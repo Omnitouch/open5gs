@@ -277,6 +277,7 @@ mme:
     eir:
         enabled: False
         allowed_states: [ WHITELIST, BLACKLIST, GREYLIST ]
+    emergency_bearer_services: True
 
 #
 # sgwc:

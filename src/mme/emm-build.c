@@ -208,7 +208,7 @@ ogs_pkbuf_t *emm_build_attach_accept(
         eps_network_feature_support->length = 1;
     }
     eps_network_feature_support->ims_voice_over_ps_session_in_s1_mode = 1;
-    eps_network_feature_support->emergency_bearer_services_in_s1_mode = 1;
+    eps_network_feature_support->emergency_bearer_services_in_s1_mode = mme_self()->emergency_bearer_services;
     eps_network_feature_support->extended_protocol_configuration_options = 1;
 
     if (MME_P_TMSI_IS_AVAILABLE(mme_ue)) {

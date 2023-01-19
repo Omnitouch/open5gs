@@ -155,6 +155,8 @@ typedef struct mme_context_s {
 
     /* Control EIR functionality */
     ogs_nas_eir_t eir;
+
+    bool emergency_bearer_services;
 } mme_context_t;
 
 typedef struct mme_sgw_s {
