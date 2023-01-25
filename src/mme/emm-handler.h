@@ -26,6 +26,9 @@
 extern "C" {
 #endif
 
+// todo rigt spot?
+int nas_eps_queue_to_downlink_nas_transport_emergency(mme_ue_t *mme_ue);
+
 int emm_handle_attach_request(mme_ue_t *mme_ue,
         ogs_nas_eps_attach_request_t *attach_request, ogs_pkbuf_t *pkbuf);
 int emm_handle_attach_complete(

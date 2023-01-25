@@ -1352,6 +1352,70 @@ int mme_context_parse_config()
                                     YAML_SEQUENCE_NODE);
                         }
                     }
+                } else if (!strcmp(mme_key, "emergency_number_list")) {
+                    ogs_yaml_iter_t e_num_list_iter;
+                    ogs_yaml_iter_recurse(&mme_iter, &e_num_list_iter);
+                    int emergency_numbers_list_length = 0;
+
+                    /* Going through 'emergency_number_list' children */
+                    while (ogs_yaml_iter_next(&e_num_list_iter)) {
+                        const char *e_num_list_key = ogs_yaml_iter_key(&e_num_list_iter);
+                        ogs_assert(e_num_list_key);
+
+                        if (!strcmp(e_num_list_key, "eni")) {
+                            ogs_yaml_iter_t eni_iter;
+                            ogs_yaml_iter_recurse(&e_num_list_iter, &eni_iter);
+                            emergency_number_item_t *emergency_number = &self.emergency_number_list[emergency_numbers_list_length];
+
+                            /* Going through 'eni' children */
+                            while (ogs_yaml_iter_next(&eni_iter)) {
+                                const char *eni_key = ogs_yaml_iter_key(&eni_iter);
+                                ogs_assert(eni_key);
+
+                                if (!strcmp(eni_key, "services")) {
+                                    ogs_yaml_iter_t services_iter;
+                                    ogs_yaml_iter_recurse(&eni_iter, &services_iter);
+
+                                    /* Going through 'services' children */
+                                    while (ogs_yaml_iter_next(&services_iter)) {
+                                        const char *service_value = NULL;
+                                        service_value = ogs_yaml_iter_value(&services_iter);
+
+                                        if (service_value) {
+                                            if (strcmp(service_value, "MOUNTAIN_RESCUE") == 0) {
+                                                emergency_number->service_mountain_rescue = true;
+                                            } else if (strcmp(service_value, "MARINE_GUARD") == 0) {
+                                                emergency_number->service_marine_guard = true;
+                                            } else if (strcmp(service_value, "FIRE_BRIGADE") == 0) {
+                                                emergency_number->service_fire_brigade = true;
+                                            } else if (strcmp(service_value, "AMBULANCE") == 0) {
+                                                emergency_number->service_ambulance = true;
+                                            } else if (strcmp(service_value, "POLICE") == 0) {
+                                                emergency_number->service_police = true;
+                                            } else {
+                                                ogs_warn("'%s' is not a valid emergency service. "
+                                                        "Valid services include: MOUNTAIN_RESCUE, MARINE_GUARD, FIRE_BRIGADE, AMBULANCE, POLICE",
+                                                        service_value);
+                                            } 
+                                        }
+                                    }
+                                }
+                                else if (!strcmp(eni_key, "bcd")) {
+                                    const char *bdc = ogs_yaml_iter_value(&eni_iter);
+                                    if (bdc)
+                                        emergency_number->bcd = atoi(bdc);
+                                } 
+                                else {
+                                    ogs_warn("unknown key `%s`", eni_key);
+                                }
+                            }
+                            ++emergency_numbers_list_length;
+                        }
+                        else {
+                            ogs_warn("unknown key `%s`", e_num_list_key);
+                        }
+                    }
+                    self.emergency_number_list_length = emergency_numbers_list_length;
                 } else if (!strcmp(mme_key, "emergency_bearer_services")) {
                     bool *emergency_bearer_services = &self.emergency_bearer_services;
                     const char *c_emergency_bearer_services = ogs_yaml_iter_value(&mme_iter);

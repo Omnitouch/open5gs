@@ -24,6 +24,58 @@
 #undef OGS_LOG_DOMAIN
 #define OGS_LOG_DOMAIN __emm_log_domain
 
+//todo not right spot
+static uint16_t int_to_bcd(uint16_t num) {
+    uint16_t bcd_num = 0;
+    int i = 0;
+    while (num > 0) {
+        int shift_by = (i++ * 4);
+        int digit_in_num = (num % 10) & 0x0F;
+        bcd_num |= digit_in_num << shift_by;
+        num /= 10;
+    }
+
+    /* Algorithm does not account for the positive sign nibble (0x00F0) */
+    /* See Packed BCD in https://en.wikipedia.org/wiki/Binary-coded_decimal */
+    /* E.g. for 115 we get 0x0115 but we need to return 0x11F5 */
+    return (bcd_num << 4) | ((bcd_num & 0x00FF) | 0x00F0);
+}
+
+// todo not right spot
+static ogs_nas_emergency_number_list_t parse_emergency_number_items_to_list(emergency_number_item_t const * const emergency_number_item_list, int emergency_number_list_length) {
+    ogs_nas_emergency_number_list_t result = {0};
+
+    result.length = emergency_number_list_length * 4; // todo 4 bytes per emergency number // todo maybe change this to size?
+    size_t bytesEncoded = 0;
+
+    for (int i = 0; i < emergency_number_list_length; ++i) {
+        emergency_number_item_t emergency_number = emergency_number_item_list[i];
+        
+         // Emergency number info length (always 3?)
+        result.buffer[bytesEncoded] = 0x03;
+        bytesEncoded += 1;
+        
+        /* Service flags */
+        result.buffer[bytesEncoded] = (uint8_t)((emergency_number.service_police          << 0) |
+                                                (emergency_number.service_ambulance       << 1) |
+                                                (emergency_number.service_fire_brigade    << 2) |
+                                                (emergency_number.service_marine_guard    << 3) |
+                                                (emergency_number.service_mountain_rescue << 4));
+        bytesEncoded += 1;
+
+        uint16_t encoded_bcd = int_to_bcd(emergency_number.bcd);
+
+        result.buffer[bytesEncoded] = (uint8_t)(encoded_bcd >> 8);
+        bytesEncoded += 1;
+
+        result.buffer[bytesEncoded] = (uint8_t)(encoded_bcd & 0x00FF);
+        bytesEncoded += 1;
+    }
+    ogs_assert(result.length == bytesEncoded);
+
+    return result;
+}
+
 ogs_pkbuf_t *emm_build_attach_accept(
         mme_ue_t *mme_ue, ogs_pkbuf_t *esmbuf)
 {
@@ -91,28 +143,34 @@ ogs_pkbuf_t *emm_build_attach_accept(
         /* print warning if difference in requested/served EPS_ATTACH_TYPE */
         switch (mme_ue->nas_eps.attach.value){
             case OGS_NAS_ATTACH_TYPE_EPS_ATTACH:
-                ogs_warn("  Requested EPS_ATTACH_TYPE[1, EPS_ATTACH]");
+                ogs_warn("  Requested EPS_ATTACH_TYPE[%d, EPS_ATTACH]",
+                         OGS_NAS_ATTACH_TYPE_EPS_ATTACH);
                 break;
             case OGS_NAS_ATTACH_TYPE_COMBINED_EPS_IMSI_ATTACH:
-                ogs_warn("  Requested EPS_ATTACH_TYPE[2, "
-                            "COMBINED_EPS_IMSI_ATTACH]");
+                ogs_warn("  Requested EPS_ATTACH_TYPE[%d, "
+                            "COMBINED_EPS_IMSI_ATTACH]",
+                         OGS_NAS_ATTACH_TYPE_COMBINED_EPS_IMSI_ATTACH);
                 break;
             case OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH:
-                ogs_warn("  Requested EPS_ATTACH_TYPE[3, "
-                            "EPS_EMERGENCY_ATTACH]");
+                ogs_warn("  Requested EPS_ATTACH_TYPE[%d, "
+                            "EPS_EMERGENCY_ATTACH]",
+                         OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH);
                 break;
         }
         switch (eps_attach_result->result) {
             case OGS_NAS_ATTACH_TYPE_EPS_ATTACH:
-                ogs_warn("  Permitted EPS_ATTACH_TYPE[1, EPS_ATTACH]");
+                ogs_warn("  Permitted EPS_ATTACH_TYPE[%d, EPS_ATTACH]",
+                         OGS_NAS_ATTACH_TYPE_EPS_ATTACH);
                 break;
             case OGS_NAS_ATTACH_TYPE_COMBINED_EPS_IMSI_ATTACH:
-                ogs_warn("  Permitted EPS_ATTACH_TYPE[2, "
-                            "COMBINED_EPS_IMSI_ATTACH]");
+                ogs_warn("  Permitted EPS_ATTACH_TYPE[%d, "
+                            "COMBINED_EPS_IMSI_ATTACH]",
+                         OGS_NAS_ATTACH_TYPE_COMBINED_EPS_IMSI_ATTACH);
                 break;
             case OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH:
-                ogs_warn("  Permitted EPS_ATTACH_TYPE[3, "
-                            "EPS_EMERGENCY_ATTACH]");
+                ogs_warn("  Permitted EPS_ATTACH_TYPE[%d, "
+                            "EPS_EMERGENCY_ATTACH]",
+                         OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH);
                 break;
         }
 
@@ -127,13 +185,16 @@ ogs_pkbuf_t *emm_build_attach_accept(
     } else {
         switch (eps_attach_result->result) {
             case OGS_NAS_ATTACH_TYPE_EPS_ATTACH:
-                ogs_debug("    EPS_ATTACH_TYPE[1, EPS_ATTACH]");
+                ogs_debug("    Requested EPS_ATTACH_TYPE[%d, EPS_ATTACH]",
+                          OGS_NAS_ATTACH_TYPE_EPS_ATTACH);
                 break;
             case OGS_NAS_ATTACH_TYPE_COMBINED_EPS_IMSI_ATTACH:
-                ogs_debug("    EPS_ATTACH_TYPE[2, COMBINED_EPS_IMSI_ATTACH]");
+                ogs_debug("    Requested EPS_ATTACH_TYPE[%d, COMBINED_EPS_IMSI_ATTACH]",
+                          OGS_NAS_ATTACH_TYPE_COMBINED_EPS_IMSI_ATTACH);
                 break;
             case OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH:
-                ogs_debug("    EPS_ATTACH_TYPE[3, EPS_EMERGENCY_ATTACH]");
+                ogs_debug("    Requested EPS_ATTACH_TYPE[%d, EPS_EMERGENCY_ATTACH]",
+                          OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH);
                 break;
         }
     }
@@ -211,6 +272,15 @@ ogs_pkbuf_t *emm_build_attach_accept(
     eps_network_feature_support->emergency_bearer_services_in_s1_mode = mme_self()->emergency_bearer_services;
     eps_network_feature_support->extended_protocol_configuration_options = 1;
 
+    // todo right spot?
+    if (mme_ue->nas_eps.attach.value ==
+            OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH) {
+        attach_accept->presencemask |= 
+            OGS_NAS_EPS_ATTACH_ACCEPT_EMERGENCY_NUMBER_LIST_PRESENT;
+        attach_accept->emergency_number_list = parse_emergency_number_items_to_list(
+            mme_self()->emergency_number_list, mme_self()->emergency_number_list_length);
+    }
+    
     if (MME_P_TMSI_IS_AVAILABLE(mme_ue)) {
         ogs_assert(mme_ue->csmap);
         ogs_assert(mme_ue->p_tmsi);

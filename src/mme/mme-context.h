@@ -76,6 +76,17 @@ typedef struct served_gummei_s {
     uint8_t         mme_code[CODE_PER_MME];
 } served_gummei_t;
 
+// TODO MAKE THIS CLEARER - THERE ARE 4 BYTES IN EACH NUM LIST ITEM
+enum { MAX_EMERGENCY_NUMBER_LIST_ITEMS = OGS_NAS_MAX_EMERGENCY_NUMBER_LIST_LEN / 4 };
+typedef struct {
+    bool service_mountain_rescue;
+    bool service_marine_guard;
+    bool service_fire_brigade;
+    bool service_ambulance;
+    bool service_police;
+    uint16_t bcd;
+} emergency_number_item_t;
+
 typedef struct mme_context_s {
     const char          *diam_conf_path;  /* MME Diameter conf path */
     ogs_diam_config_t   *diam_config;     /* MME Diameter config */
@@ -157,6 +168,8 @@ typedef struct mme_context_s {
     ogs_nas_eir_t eir;
 
     bool emergency_bearer_services;
+    int emergency_number_list_length;
+    emergency_number_item_t emergency_number_list[MAX_EMERGENCY_NUMBER_LIST_ITEMS];
 } mme_context_t;
 
 typedef struct mme_sgw_s {
