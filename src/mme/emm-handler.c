@@ -274,11 +274,8 @@ int nas_eps_queue_to_downlink_nas_transport_emergency(mme_ue_t *mme_ue)
     ogs_assert(bearer);
     ogs_assert(mme_bearer_next(bearer) == NULL);
 
-    ogs_assert(OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH == mme_ue->nas_eps.attach.value);
-    ogs_assert(true == mme_self()->emergency_bearer_services);
 
     ogs_debug("[%s] Attach accept emergency", mme_ue->imsi_bcd);
-    printf("[%s] Attach accept emergency", mme_ue->imsi_bcd);
 
     ogs_nas_eps_message_t message;
     ogs_nas_eps_emm_information_t *emm_information =

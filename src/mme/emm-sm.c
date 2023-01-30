@@ -1285,32 +1285,27 @@ void emm_state_initial_context_setup(ogs_fsm_t *s, mme_event_t *e)
 
             CLEAR_MME_UE_TIMER(mme_ue->t3450);
 
-            /* todo right spot? */
-            if (6 == mme_ue->nas_eps.attach.value) {
-                /* It seems like the default behavious is to send the DownlinkNASTransport,
-                 * are we breaking this typical behavior */
-                /* Don't send the default datalink in the case of emergency,
-                 * it is sent BEFORE the attach happens */
-                rv = OGS_OK;
+            if (OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH == mme_ue->nas_eps.attach.value) {
                 rv = nas_eps_send_emm_to_esm(
                     mme_ue, &message->emm.attach_complete.esm_message_container);
                     
                 if (rv != OGS_OK) {
                     ogs_error("nas_eps_send_emm_to_esm() failed");
+                    OGS_FSM_TRAN(s, emm_state_exception);
                     break;
                 }
-            } 
+            }
             else
              {
                 rv = emm_handle_attach_complete(
                         mme_ue, &message->emm.attach_complete);
-            }
 
-            if (rv != OGS_OK) {
-                ogs_error("emm_handle_attach_complete() failed "
-                        "in emm_state_initial_context_setup");
-                OGS_FSM_TRAN(s, emm_state_exception);
-                break;
+                if (rv != OGS_OK) {
+                    ogs_error("emm_handle_attach_complete() failed "
+                            "in emm_state_initial_context_setup");
+                    OGS_FSM_TRAN(s, emm_state_exception);
+                    break;
+                }
             }
 
             /* Confirm GUTI */
