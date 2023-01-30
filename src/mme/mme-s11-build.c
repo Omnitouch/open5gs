@@ -162,10 +162,6 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         req->pgw_s5_s8_address_for_control_plane_or_pmip.len = len;
     }
 
-    if (OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH == sess->mme_ue->nas_eps.attach.value) {
-        strcpy(session->name, "sos");
-    }
-
     req->access_point_name.presence = 1;
     req->access_point_name.len = ogs_fqdn_build(
             apn, session->name, strlen(session->name));
