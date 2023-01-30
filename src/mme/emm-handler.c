@@ -258,7 +258,7 @@ int emm_handle_attach_request(mme_ue_t *mme_ue,
     return OGS_OK;
 }
 
-int nas_eps_queue_downlink_nas_transport_emergency(mme_ue_t *mme_ue)
+int nas_eps_send_downlink_nas_transport_emergency(mme_ue_t *mme_ue)
 {
     int rv;
     mme_sess_t *sess = NULL;
@@ -272,7 +272,6 @@ int nas_eps_queue_downlink_nas_transport_emergency(mme_ue_t *mme_ue)
     bearer = mme_default_bearer_in_sess(sess);
     ogs_assert(bearer);
     ogs_assert(mme_bearer_next(bearer) == NULL);
-
 
     ogs_debug("[%s] Attach accept emergency", mme_ue->imsi_bcd);
 
@@ -338,6 +337,11 @@ int nas_eps_queue_downlink_nas_transport_emergency(mme_ue_t *mme_ue)
         return OGS_ERROR;
     }
 
+    /* Ensure we call ogs_sctp_senddata so the data is instantly
+     * sent and not queued by ogs_sctp_write_to_buffer we need to
+     * temporarly change the sctp.type to something that isn't 
+     * SOCK_STREAM */
+    mme_ue->enb_ue->enb->sctp.type = !SOCK_STREAM;
     rv = nas_eps_send_to_downlink_nas_transport(mme_ue, emmbuf);
     if (rv != OGS_OK) {
         return rv;
