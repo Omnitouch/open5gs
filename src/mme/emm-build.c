@@ -24,67 +24,11 @@
 #undef OGS_LOG_DOMAIN
 #define OGS_LOG_DOMAIN __emm_log_domain
 
-/* For more information on Packed BCD see https://en.wikipedia.org/wiki/Binary-coded_decimal */
-static uint16_t u16_to_packed_bcd(uint16_t num) {
-    enum { BITS_IN_NIBBLE = 4,
-           NIBBLES_IN_U16 = 4 };
-    uint16_t packed_bcd = 0;
+static ogs_nas_emergency_number_list_t parse_emergency_number_items_to_list(
+    emergency_number_list_item_t const * const emergency_number_list_items,
+    int num_emergency_number_list_items);
 
-    /* This function loop converts a u16 from decimal representation into BCD representation 
-     * E.g. 123 in decimal will be 0x0123 in BCD */
-    for (int nibble_index = 0; nibble_index < NIBBLES_IN_U16; ++nibble_index) {
-        packed_bcd |= ((num % 10) << (BITS_IN_NIBBLE * nibble_index));
-        num /= 10;
-    }
-
-    /* The lower nibble of the rightmost byte is usually used as the sign flag. 
-     * So to get the packed BCD (using signed overpunch representation) we need 
-     * to shift everything over and add 0xF to the lowest nibble to incicate that
-     * this is an unsigned value. */
-    packed_bcd = (packed_bcd << BITS_IN_NIBBLE) | 0x000F;
-    
-    /* To deal with the difference in endianess we will swap the byte nibbles around.
-     * E.g. 0x1234 goes to 0x2143 */
-    packed_bcd = ((packed_bcd << BITS_IN_NIBBLE) & 0xF0F0) | 
-                 ((packed_bcd >> BITS_IN_NIBBLE) & 0x0F0F); 
-
-    return packed_bcd;
-}
-
-// todo not right spot
-static ogs_nas_emergency_number_list_t parse_emergency_number_items_to_list(emergency_number_list_item_t const * const emergency_number_list_items, int num_emergency_number_list_items) {
-    ogs_nas_emergency_number_list_t result = {0};
-
-    result.length = num_emergency_number_list_items * BYTES_IN_EMERGENCY_NUMBER_LIST_ITEM;
-    size_t bytesEncoded = 0;
-
-    for (int i = 0; i < num_emergency_number_list_items; ++i) {
-        emergency_number_list_item_t emergency_number = emergency_number_list_items[i];
-        
-         // Emergency number info length (always 3?)
-        result.buffer[bytesEncoded] = 0x03;
-        bytesEncoded += 1;
-        
-        /* Service flags */
-        result.buffer[bytesEncoded] = (uint8_t)((emergency_number.service_police          << 0) |
-                                                (emergency_number.service_ambulance       << 1) |
-                                                (emergency_number.service_fire_brigade    << 2) |
-                                                (emergency_number.service_marine_guard    << 3) |
-                                                (emergency_number.service_mountain_rescue << 4));
-        bytesEncoded += 1;
-
-        uint16_t encoded_bcd = u16_to_packed_bcd(emergency_number.bcd_decimal);
-
-        result.buffer[bytesEncoded] = (uint8_t)(encoded_bcd >> 8);
-        bytesEncoded += 1;
-
-        result.buffer[bytesEncoded] = (uint8_t)(encoded_bcd & 0x00FF);
-        bytesEncoded += 1;
-    }
-    ogs_assert(result.length == bytesEncoded);
-
-    return result;
-}
+static uint16_t u16_to_packed_bcd(uint16_t bcd_decimal);
 
 ogs_pkbuf_t *emm_build_attach_accept(
         mme_ue_t *mme_ue, ogs_pkbuf_t *esmbuf)
@@ -792,4 +736,76 @@ ogs_pkbuf_t *emm_build_downlink_nas_transport(
     memcpy(nas_message_container->buffer, buffer, length);
 
     return nas_eps_security_encode(mme_ue, &message);
+}
+
+static ogs_nas_emergency_number_list_t parse_emergency_number_items_to_list(emergency_number_list_item_t const * const emergency_number_list_items, int num_emergency_number_list_items) {
+    enum { DEFAULT_EMERGENCY_NUMBER_INFO_LENGTH = 3,
+           SERVICE_POLICE_BIT = 0,
+           SERVICE_AMBULANCE_BIT = 1,
+           SERVICE_FIRE_BRIGADE_BIT = 2,
+           SERVICE_MARINE_GUARD_BIT = 3,
+           SERVICE_MOUNTAIN_RESCUE_BIT = 4 };
+    
+    ogs_nas_emergency_number_list_t result = {0};
+
+    result.length = num_emergency_number_list_items * BYTES_IN_EMERGENCY_NUMBER_LIST_ITEM;
+    size_t bytesEncoded = 0;
+
+    for (int i = 0; i < num_emergency_number_list_items; ++i) {
+        emergency_number_list_item_t emergency_number = emergency_number_list_items[i];
+        
+        result.buffer[bytesEncoded] = DEFAULT_EMERGENCY_NUMBER_INFO_LENGTH;
+        bytesEncoded += 1;
+        
+        /* Service flags */
+        result.buffer[bytesEncoded] = (uint8_t)((emergency_number.service_police          << SERVICE_POLICE_BIT)       |
+                                                (emergency_number.service_ambulance       << SERVICE_AMBULANCE_BIT)    |
+                                                (emergency_number.service_fire_brigade    << SERVICE_FIRE_BRIGADE_BIT) |
+                                                (emergency_number.service_marine_guard    << SERVICE_MARINE_GUARD_BIT) |
+                                                (emergency_number.service_mountain_rescue << SERVICE_MOUNTAIN_RESCUE_BIT));
+        bytesEncoded += 1;
+
+        uint16_t encoded_bcd = u16_to_packed_bcd(emergency_number.bcd_decimal);
+
+        result.buffer[bytesEncoded] = (uint8_t)(encoded_bcd >> 8);
+        bytesEncoded += 1;
+
+        result.buffer[bytesEncoded] = (uint8_t)(encoded_bcd & 0x00FF);
+        bytesEncoded += 1;
+    }
+    ogs_assert(result.length == bytesEncoded);
+
+    return result;
+}
+
+/* For more information on Packed BCD see https://en.wikipedia.org/wiki/Binary-coded_decimal 
+ * NOTE: This function will only work on decimals with 3 or fewer character.
+ * E.g. 6 -> OK
+ *      69 -> OK
+ *      420 -> OK
+ *      1234 -> BAD */
+static uint16_t u16_to_packed_bcd(uint16_t bcd_decimal) {
+    enum { BITS_IN_NIBBLE = 4,
+           NIBBLES_IN_U16 = 4 };
+    uint16_t packed_bcd = 0;
+
+    /* This function loop converts a u16 from decimal representation into BCD representation 
+     * E.g. 123 in decimal will be 0x0123 in BCD */
+    for (int nibble_index = 0; nibble_index < NIBBLES_IN_U16; ++nibble_index) {
+        packed_bcd |= ((bcd_decimal % 10) << (BITS_IN_NIBBLE * nibble_index));
+        bcd_decimal /= 10;
+    }
+
+    /* The lower nibble of the rightmost byte is usually used as the sign flag. 
+     * So to get the packed BCD (using signed overpunch representation) we need 
+     * to shift everything over and add 0xF to the lowest nibble to incicate that
+     * this is an unsigned value. */
+    packed_bcd = (packed_bcd << BITS_IN_NIBBLE) | 0x000F;
+    
+    /* To deal with the difference in endianess we will swap the byte nibbles around.
+     * E.g. 0x1234 goes to 0x2143 */
+    packed_bcd = ((packed_bcd << BITS_IN_NIBBLE) & 0xF0F0) | 
+                 ((packed_bcd >> BITS_IN_NIBBLE) & 0x0F0F); 
+
+    return packed_bcd;
 }

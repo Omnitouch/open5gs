@@ -222,8 +222,7 @@ int emm_handle_attach_request(mme_ue_t *mme_ue,
     return OGS_OK;
 }
 
-// todo right spot
-int nas_eps_queue_to_downlink_nas_transport_emergency(mme_ue_t *mme_ue)
+int nas_eps_queue_downlink_nas_transport_emergency(mme_ue_t *mme_ue)
 {
     int rv;
     mme_sess_t *sess = NULL;

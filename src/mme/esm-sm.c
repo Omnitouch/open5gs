@@ -106,13 +106,13 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
             ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",
                     mme_ue->imsi_bcd, sess->pti, bearer->ebi);
 
-            /* todo it would probably be best to send this then hit an emergency event that
-             * then calls the creats session stuff so we dont have to do this hack */
-            mme_ue->enb_ue->enb->sctp.type = SOCK_DGRAM;
-            if (6 == mme_ue->nas_eps.attach.value) {
-                rv = nas_eps_queue_to_downlink_nas_transport_emergency(mme_ue);
+            if (OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH == mme_ue->nas_eps.attach.value) {
+                /* Ensure we call ogs_sctp_senddata so the data is instantly
+                 * sent and not queued by ogs_sctp_write_to_buffer */
+                mme_ue->enb_ue->enb->sctp.type = !SOCK_STREAM;
+                rv = nas_eps_queue_downlink_nas_transport_emergency(mme_ue);
+                mme_ue->enb_ue->enb->sctp.type = SOCK_STREAM;
             }
-            mme_ue->enb_ue->enb->sctp.type = SOCK_STREAM;
 
             rv = esm_handle_pdn_connectivity_request(
                     bearer, &message->esm.pdn_connectivity_request,
