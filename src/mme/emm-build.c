@@ -24,32 +24,42 @@
 #undef OGS_LOG_DOMAIN
 #define OGS_LOG_DOMAIN __emm_log_domain
 
-//todo not right spot
-static uint16_t int_to_bcd(uint16_t num) {
-    uint16_t bcd_num = 0;
-    int i = 0;
-    while (num > 0) {
-        int shift_by = (i++ * 4);
-        int digit_in_num = (num % 10) & 0x0F;
-        bcd_num |= digit_in_num << shift_by;
+/* For more information on Packed BCD see https://en.wikipedia.org/wiki/Binary-coded_decimal */
+static uint16_t u16_to_packed_bcd(uint16_t num) {
+    enum { BITS_IN_NIBBLE = 4,
+           NIBBLES_IN_U16 = 4 };
+    uint16_t packed_bcd = 0;
+
+    /* This function loop converts a u16 from decimal representation into BCD representation 
+     * E.g. 123 in decimal will be 0x0123 in BCD */
+    for (int nibble_index = 0; nibble_index < NIBBLES_IN_U16; ++nibble_index) {
+        packed_bcd |= ((num % 10) << (BITS_IN_NIBBLE * nibble_index));
         num /= 10;
     }
 
-    /* Algorithm does not account for the positive sign nibble (0x00F0) */
-    /* See Packed BCD in https://en.wikipedia.org/wiki/Binary-coded_decimal */
-    /* E.g. for 115 we get 0x0115 but we need to return 0x11F5 */
-    return (bcd_num << 4) | ((bcd_num & 0x00FF) | 0x00F0);
+    /* The lower nibble of the rightmost byte is usually used as the sign flag. 
+     * So to get the packed BCD (using signed overpunch representation) we need 
+     * to shift everything over and add 0xF to the lowest nibble to incicate that
+     * this is an unsigned value. */
+    packed_bcd = (packed_bcd << BITS_IN_NIBBLE) | 0x000F;
+    
+    /* To deal with the difference in endianess we will swap the byte nibbles around.
+     * E.g. 0x1234 goes to 0x2143 */
+    packed_bcd = ((packed_bcd << BITS_IN_NIBBLE) & 0xF0F0) | 
+                 ((packed_bcd >> BITS_IN_NIBBLE) & 0x0F0F); 
+
+    return packed_bcd;
 }
 
 // todo not right spot
-static ogs_nas_emergency_number_list_t parse_emergency_number_items_to_list(emergency_number_item_t const * const emergency_number_item_list, int emergency_number_list_length) {
+static ogs_nas_emergency_number_list_t parse_emergency_number_items_to_list(emergency_number_list_item_t const * const emergency_number_list_items, int num_emergency_number_list_items) {
     ogs_nas_emergency_number_list_t result = {0};
 
-    result.length = emergency_number_list_length * 4; // todo 4 bytes per emergency number // todo maybe change this to size?
+    result.length = num_emergency_number_list_items * BYTES_IN_EMERGENCY_NUMBER_LIST_ITEM;
     size_t bytesEncoded = 0;
 
-    for (int i = 0; i < emergency_number_list_length; ++i) {
-        emergency_number_item_t emergency_number = emergency_number_item_list[i];
+    for (int i = 0; i < num_emergency_number_list_items; ++i) {
+        emergency_number_list_item_t emergency_number = emergency_number_list_items[i];
         
          // Emergency number info length (always 3?)
         result.buffer[bytesEncoded] = 0x03;
@@ -63,7 +73,7 @@ static ogs_nas_emergency_number_list_t parse_emergency_number_items_to_list(emer
                                                 (emergency_number.service_mountain_rescue << 4));
         bytesEncoded += 1;
 
-        uint16_t encoded_bcd = int_to_bcd(emergency_number.bcd);
+        uint16_t encoded_bcd = u16_to_packed_bcd(emergency_number.bcd_decimal);
 
         result.buffer[bytesEncoded] = (uint8_t)(encoded_bcd >> 8);
         bytesEncoded += 1;
@@ -272,13 +282,11 @@ ogs_pkbuf_t *emm_build_attach_accept(
     eps_network_feature_support->emergency_bearer_services_in_s1_mode = mme_self()->emergency_bearer_services;
     eps_network_feature_support->extended_protocol_configuration_options = 1;
 
-    // todo right spot?
-    if (mme_ue->nas_eps.attach.value ==
-            OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH) {
+    if (OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH == mme_ue->nas_eps.attach.value) {
         attach_accept->presencemask |= 
             OGS_NAS_EPS_ATTACH_ACCEPT_EMERGENCY_NUMBER_LIST_PRESENT;
         attach_accept->emergency_number_list = parse_emergency_number_items_to_list(
-            mme_self()->emergency_number_list, mme_self()->emergency_number_list_length);
+            mme_self()->emergency_number_list, mme_self()->num_emergency_number_list_items);
     }
     
     if (MME_P_TMSI_IS_AVAILABLE(mme_ue)) {

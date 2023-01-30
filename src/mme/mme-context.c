@@ -1355,7 +1355,7 @@ int mme_context_parse_config()
                 } else if (!strcmp(mme_key, "emergency_number_list")) {
                     ogs_yaml_iter_t e_num_list_iter;
                     ogs_yaml_iter_recurse(&mme_iter, &e_num_list_iter);
-                    int emergency_numbers_list_length = 0;
+                    int num_emergency_number_list_items = 0;
 
                     /* Going through 'emergency_number_list' children */
                     while (ogs_yaml_iter_next(&e_num_list_iter)) {
@@ -1365,7 +1365,7 @@ int mme_context_parse_config()
                         if (!strcmp(e_num_list_key, "eni")) {
                             ogs_yaml_iter_t eni_iter;
                             ogs_yaml_iter_recurse(&e_num_list_iter, &eni_iter);
-                            emergency_number_item_t *emergency_number = &self.emergency_number_list[emergency_numbers_list_length];
+                            emergency_number_list_item_t *emergency_number = &self.emergency_number_list[num_emergency_number_list_items];
 
                             /* Going through 'eni' children */
                             while (ogs_yaml_iter_next(&eni_iter)) {
@@ -1401,21 +1401,21 @@ int mme_context_parse_config()
                                     }
                                 }
                                 else if (!strcmp(eni_key, "bcd")) {
-                                    const char *bdc = ogs_yaml_iter_value(&eni_iter);
-                                    if (bdc)
-                                        emergency_number->bcd = atoi(bdc);
+                                    const char *bcd_decimal = ogs_yaml_iter_value(&eni_iter);
+                                    if (bcd_decimal)
+                                        emergency_number->bcd_decimal = atoi(bcd_decimal);
                                 } 
                                 else {
                                     ogs_warn("unknown key `%s`", eni_key);
                                 }
                             }
-                            ++emergency_numbers_list_length;
+                            ++num_emergency_number_list_items;
                         }
                         else {
                             ogs_warn("unknown key `%s`", e_num_list_key);
                         }
                     }
-                    self.emergency_number_list_length = emergency_numbers_list_length;
+                    self.num_emergency_number_list_items = num_emergency_number_list_items;
                 } else if (!strcmp(mme_key, "emergency_bearer_services")) {
                     bool *emergency_bearer_services = &self.emergency_bearer_services;
                     const char *c_emergency_bearer_services = ogs_yaml_iter_value(&mme_iter);
