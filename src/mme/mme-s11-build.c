@@ -313,7 +313,8 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     }
 
     if (OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH == mme_ue->nas_eps.attach.value) {
-        mme_ue->session[i].name = ogs_strdup("sos");
+        strcpy(sess->session->name, "sos");
+        // mme_ue->session[i].name = ogs_strdup("sos");
     }
 
     /* UE Time Zone */
