@@ -116,6 +116,11 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     req->sender_f_teid_for_control_plane.data = &mme_s11_teid;
     req->sender_f_teid_for_control_plane.len = len;
 
+    /* If we are making an emergency call */
+    if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == sess->request_type.value) {
+        session->name = ogs_strdup("sos");
+    }
+
     memset(&pgw_s5c_teid, 0, sizeof(ogs_gtp2_f_teid_t));
     pgw_s5c_teid.interface_type = OGS_GTP2_F_TEID_S5_S8_PGW_GTP_C;
     pgw_s5c_teid.teid = htobe32(sess->pgw_s5c_teid);
@@ -310,11 +315,6 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
                 &bearer_qos, bearer_qos_buf[i], GTP2_BEARER_QOS_LEN);
 
         i++;
-    }
-
-    if (OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH == mme_ue->nas_eps.attach.value) {
-        strcpy(sess->session->name, "sos");
-        // mme_ue->session[i].name = ogs_strdup("sos");
     }
 
     /* UE Time Zone */
