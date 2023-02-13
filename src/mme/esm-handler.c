@@ -119,6 +119,11 @@ int esm_handle_pdn_connectivity_request(mme_bearer_t *bearer,
         sess->session = mme_default_session(mme_ue);
     }
 
+    if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == sess->request_type.value) {
+        /* Emergency APN */
+        sess->session = mme_emergency_session(mme_ue);
+    }
+
     if (sess->session) {
         mme_bearer_t *default_bearer = NULL;
         mme_bearer_t *dedicated_bearer = NULL, *next_dedicated_bearer = NULL;

@@ -116,11 +116,6 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     req->sender_f_teid_for_control_plane.data = &mme_s11_teid;
     req->sender_f_teid_for_control_plane.len = len;
 
-    /* If we are making an emergency call */
-    if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == sess->request_type.value) {
-        session->name = ogs_strdup("sos");
-    }
-
     memset(&pgw_s5c_teid, 0, sizeof(ogs_gtp2_f_teid_t));
     pgw_s5c_teid.interface_type = OGS_GTP2_F_TEID_S5_S8_PGW_GTP_C;
     pgw_s5c_teid.teid = htobe32(sess->pgw_s5c_teid);
@@ -221,8 +216,15 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     if (req->pdn_type.u8 == OGS_PDU_SESSION_TYPE_IPV4V6)
         indication.dual_address_bearer_flag = 1;
 
-    if (sess->request_type.value == OGS_NAS_EPS_REQUEST_TYPE_HANDOVER)
+    if (sess->request_type.value == OGS_NAS_EPS_REQUEST_TYPE_HANDOVER) {
         indication.handover_indication = 1;
+    }
+    else if (sess->request_type.value == OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY) {
+        indication.emergency_pdu_session_indication = 1;
+
+        /* Request new connection */
+        pgw_s5c_teid.teid = 0;
+    }
 
     if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST)
         indication.operation_indication = 1;
@@ -416,6 +418,14 @@ ogs_pkbuf_t *mme_s11_build_modify_bearer_request(
 
         if (sess->request_type.value == OGS_NAS_EPS_REQUEST_TYPE_HANDOVER) {
             indication.handover_indication = 1;
+            req->indication_flags.presence = 1;
+            req->indication_flags.data = &indication;
+            req->indication_flags.len = sizeof(ogs_gtp2_indication_t);
+            break;
+        }
+
+        if (sess->request_type.value == OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY) {
+            indication.emergency_pdu_session_indication = 1;
             req->indication_flags.presence = 1;
             req->indication_flags.data = &indication;
             req->indication_flags.len = sizeof(ogs_gtp2_indication_t);

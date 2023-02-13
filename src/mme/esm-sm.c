@@ -106,10 +106,6 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
             ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",
                     mme_ue->imsi_bcd, sess->pti, bearer->ebi);
 
-            if (OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH == mme_ue->nas_eps.attach.value) {
-                rv = nas_eps_send_downlink_nas_transport_emergency(mme_ue);
-            }
-
             rv = esm_handle_pdn_connectivity_request(
                     bearer, &message->esm.pdn_connectivity_request,
                     e->create_action);

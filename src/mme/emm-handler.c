@@ -225,17 +225,7 @@ int emm_handle_attach_request(mme_ue_t *mme_ue,
 int nas_eps_send_downlink_nas_transport_emergency(mme_ue_t *mme_ue)
 {
     int rv;
-    mme_sess_t *sess = NULL;
-    mme_bearer_t *bearer = NULL;
     ogs_pkbuf_t *emmbuf = NULL;
-
-    ogs_assert(mme_ue);
-    sess = mme_sess_first(mme_ue);
-    ogs_assert(sess);
-    ogs_assert(mme_sess_next(sess) == NULL);
-    bearer = mme_default_bearer_in_sess(sess);
-    ogs_assert(bearer);
-    ogs_assert(mme_bearer_next(bearer) == NULL);
 
     ogs_debug("[%s] Attach accept emergency", mme_ue->imsi_bcd);
 
@@ -409,7 +399,13 @@ int emm_handle_attach_complete(
     emmbuf = nas_eps_security_encode(mme_ue, &message);
     ogs_expect_or_return_val(emmbuf, OGS_ERROR);
 
-    rv = nas_eps_send_to_downlink_nas_transport(mme_ue, emmbuf);
+    if (OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH == mme_ue->nas_eps.attach.value) {
+        rv = nas_eps_send_downlink_nas_transport_emergency(mme_ue);
+    }
+    else {
+        rv = nas_eps_send_to_downlink_nas_transport(mme_ue, emmbuf);
+    }
+
     ogs_expect_or_return_val(rv == OGS_OK, rv);
 
     ogs_debug("EMM information");

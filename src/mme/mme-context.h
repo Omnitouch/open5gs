@@ -930,6 +930,7 @@ mme_bearer_t *mme_bearer_cycle(mme_bearer_t *bearer);
 void mme_session_remove_all(mme_ue_t *mme_ue);
 ogs_session_t *mme_session_find_by_apn(mme_ue_t *mme_ue, char *apn);
 ogs_session_t *mme_default_session(mme_ue_t *mme_ue);
+ogs_session_t *mme_emergency_session(mme_ue_t *mme_ue);
 
 int mme_find_served_tai(ogs_eps_tai_t *tai);
 

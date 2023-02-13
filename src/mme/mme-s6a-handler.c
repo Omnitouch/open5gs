@@ -275,10 +275,7 @@ static uint8_t mme_ue_session_from_slice_data(mme_ue_t *mme_ue,
             break;
         }
 
-        if (OGS_NAS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH == mme_ue->nas_eps.attach.value) {
-            mme_ue->session[i].name = ogs_strdup("sos");
-        }
-        else if (slice_data->session[i].name) {
+        if (slice_data->session[i].name) {
             mme_ue->session[i].name = ogs_strdup(slice_data->session[i].name);
             ogs_assert(mme_ue->session[i].name);
         }
