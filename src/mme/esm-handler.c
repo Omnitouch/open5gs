@@ -54,6 +54,12 @@ int esm_handle_pdn_connectivity_request(mme_bearer_t *bearer,
     }
 
     memcpy(&sess->request_type, &req->request_type, sizeof(sess->request_type));
+    printf("~~~~ esm_handle_pdn_connectivity_request ~~~~\n");
+
+
+    // todo we should be doing the emergenct stuff before we start to process the request
+    // there is an early exit below that deals with the specified apn cases, then if apn not specified
+    // it will do the default case
 
     security_protected_required = 0;
     if (req->presencemask &
@@ -107,24 +113,43 @@ int esm_handle_pdn_connectivity_request(mme_bearer_t *bearer,
         OGS_NAS_STORE_DATA(&sess->ue_pco, protocol_configuration_options);
     }
 
+    /* security protected not required for the default apn? */
     if (security_protected_required) {
+        // printf("\t\t\t\tprotection required\n");
         CLEAR_BEARER_TIMER(bearer->t3489);
         ogs_assert(OGS_OK == nas_eps_send_esm_information_request(bearer));
 
-        return OGS_OK;
+        return OGS_OK; // this is where we return the non default apn requests
     }
+
+
+    if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == req->request_type.value) {
+        printf("!!!! EMERGENCY\n");
+        // char sos[] = "sos";
+        // sess->session = mme_session_find_by_apn(mme_ue, sos);
+
+    }
+    // ^^^^^^^^ if not default apn
+
+// todo foollow the execution path the the ims and other ones, cause they dont go here but they get the data we want, maybe 
+// start fresh off main and treat the emergency connect as the sos one?
+
+
 
     if (!sess->session) {
         /* Default APN */
         sess->session = mme_default_session(mme_ue);
+        printf("\n\ndefault apn is '%s'\n\n", sess->session->name);
     }
 
     if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == sess->request_type.value) {
         /* Emergency APN */
         sess->session = mme_emergency_session(mme_ue);
+        // ogs_assert(OGS_OK == nas_eps_send_esm_information_request(bearer));
     }
 
     if (sess->session) {
+        // printf("\n\napn is '%s'\n\n", sess->session->name);
         mme_bearer_t *default_bearer = NULL;
         mme_bearer_t *dedicated_bearer = NULL, *next_dedicated_bearer = NULL;
 
@@ -144,7 +169,7 @@ int esm_handle_pdn_connectivity_request(mme_bearer_t *bearer,
                 dedicated_bearer = next_dedicated_bearer;
             }
         }
-
+// printf("this is the one i thought should be getting called\n");
         ogs_assert(OGS_OK ==
             mme_gtp_send_create_session_request(sess, create_action));
     } else {
@@ -219,6 +244,10 @@ int esm_handle_information_response(mme_sess_t *sess,
                     nas_eps_send_attach_accept(mme_ue));
             }
         } else {
+
+// printf("????????\nesm handler\n??????\n");
+
+
             ogs_assert(OGS_OK ==
                 mme_gtp_send_create_session_request(
                     sess, OGS_GTP_CREATE_IN_ATTACH_REQUEST));

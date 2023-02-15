@@ -223,7 +223,7 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         indication.emergency_pdu_session_indication = 1;
 
         /* Request new connection */
-        pgw_s5c_teid.teid = 0;
+        // pgw_s5c_teid.teid = 0;
     }
 
     if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST)

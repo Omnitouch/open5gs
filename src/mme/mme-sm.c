@@ -339,8 +339,10 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
             break;
         }
 
+        // printf("mme sm => mme_bearer_find_or_add_by_message\n");
         bearer = mme_bearer_find_or_add_by_message(
                     mme_ue, &nas_message, e->create_action);
+        // printf("bearer = %p\n", bearer);
         if (!bearer) {
             ogs_pkbuf_free(pkbuf);
             break;
@@ -354,7 +356,9 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         e->bearer = bearer;
         e->nas_message = &nas_message;
 
+        // printf("ogs_fsm_dispatch start\n");
         ogs_fsm_dispatch(&bearer->sm, e);
+        // printf("ogs_fsm_dispatch end\n");
         if (OGS_FSM_CHECK(&bearer->sm, esm_state_bearer_deactivated)) {
             if (default_bearer->ebi == bearer->ebi) {
                 /* if the bearer is a default bearer,
