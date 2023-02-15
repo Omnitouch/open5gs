@@ -203,6 +203,7 @@ void mme_gtp_close(void)
 
 int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
 {
+printf("mme_gtp_send_create_session_request -- create_action = %i\n", create_action);
     int rv;
     ogs_gtp2_header_t h;
     ogs_pkbuf_t *pkbuf = NULL;
@@ -226,7 +227,7 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
 
     if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == sess->request_type.value) {
         /* Request new connection */
-        h.teid = 0;
+        // h.teid = 0;
     }
 
     pkbuf = mme_s11_build_create_session_request(h.type, sess, create_action);
