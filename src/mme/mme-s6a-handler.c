@@ -106,7 +106,6 @@ uint8_t mme_s6a_handle_ula(
     mme_ue->num_of_session = num_of_session;
 
     mme_ue->context_identifier = slice_data->context_identifier;
-    // mme_ue->context_identifier = 3;//slice_data->context_identifier; // contect id up at this level makes things work?
 
     if (mme_ue->nas_eps.type == MME_EPS_TYPE_ATTACH_REQUEST) {
         rv = nas_eps_send_emm_to_esm(mme_ue,

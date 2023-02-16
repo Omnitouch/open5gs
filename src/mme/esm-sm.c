@@ -106,27 +106,6 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
             ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",
                     mme_ue->imsi_bcd, sess->pti, bearer->ebi);
 
-
-            printf("mme_ue->session[0].name : '%s'\n", mme_ue->session[0].name); 
-            printf("mme_ue->session[2].name : '%s'\n", mme_ue->session[2].name); 
-            // if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == message->esm.pdn_connectivity_request.request_type.value) {
-            //     if (!strcmp("internet", mme_ue->session[0].name)) {
-            //         ogs_session_t temp = {0};
-            //         memcpy(&temp, &mme_ue->session[0], sizeof(ogs_session_t));
-            //         memcpy(&mme_ue->session[0], &mme_ue->session[2], sizeof(ogs_session_t));
-            //         memcpy(&mme_ue->session[2], &temp, sizeof(ogs_session_t));
-            //         printf("SWITCHED!\n");
-            //         printf("mme_ue->session[0].name : '%s'\n", mme_ue->session[0].name); 
-            //         printf("mme_ue->session[2].name : '%s'\n", mme_ue->session[2].name); 
-            //         int tmp = mme_ue->session[0].context_identifier;
-            //         mme_ue->session[0].context_identifier = mme_ue->session[2].context_identifier;
-            //         mme_ue->session[2].context_identifier = tmp;
-
-            //     }
-            // }
-
-
-            // printf("[esm_state_inactive] message->esm.pdn_connectivity_request.access_point_name = '%s'\n", message->esm.pdn_connectivity_request.access_point_name.apn);
             rv = esm_handle_pdn_connectivity_request(
                     bearer, &message->esm.pdn_connectivity_request,
                     e->create_action);
@@ -186,7 +165,6 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
                 OGS_FSM_TRAN(s, &esm_state_exception);
                 break;
             }
-printf("OGS_NAS_EPS_ESM_INFORMATION_RESPONSE\n");
             rv = esm_handle_information_response(
                     sess, &message->esm.esm_information_response);
             if (rv != OGS_OK) {
@@ -195,42 +173,32 @@ printf("OGS_NAS_EPS_ESM_INFORMATION_RESPONSE\n");
             }
             break;
         case OGS_NAS_EPS_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT:
-            printf("Activate default EPS bearer context accept\n");
-            printf("    IMSI[%s] PTI[%d] EBI[%d]\n",
+            ogs_debug("Activate default EPS bearer context accept\n");
+            ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]\n",
                     mme_ue->imsi_bcd, sess->pti, bearer->ebi);
             /* Check if Initial Context Setup Response or 
              *          E-RAB Setup Response is received */
-
-
             if (MME_HAVE_ENB_S1U_PATH(bearer)) {
-                printf("Initial Context Setup Response or E-RAB Setup Response is received\n");
                 ogs_list_init(&mme_ue->bearer_to_modify_list);
                 ogs_list_add(&mme_ue->bearer_to_modify_list,
                                 &bearer->to_modify_node);
                 ogs_assert(OGS_OK ==
                     mme_gtp_send_modify_bearer_request(mme_ue, 0, 0));
             }
-            else {
-                printf("no MME_HAVE_ENB_S1U_PATH(bearer)\n");
-            }
 
             nas_eps_send_activate_all_dedicated_bearers(bearer);
             OGS_FSM_TRAN(s, esm_state_active);
             break;
         case OGS_NAS_EPS_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT:
-            printf("Activate dedicated EPS bearer context accept\n");
-            printf("    IMSI[%s] PTI[%d] EBI[%d]\n",
+            ogs_debug("Activate dedicated EPS bearer context accept\n");
+            ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]\n",
                     mme_ue->imsi_bcd, sess->pti, bearer->ebi);
             /* Check if Initial Context Setup Response or 
              *          E-RAB Setup Response is received */
             if (MME_HAVE_ENB_S1U_PATH(bearer)) {
-                printf("Initial Context Setup Response or E-RAB Setup Response is received\n");
                 ogs_assert(OGS_OK ==
                     mme_gtp_send_create_bearer_response(
                         bearer, OGS_GTP2_CAUSE_REQUEST_ACCEPTED));
-            }
-            else {
-                printf("no MME_HAVE_ENB_S1U_PATH(bearer)\n");
             }
 
             OGS_FSM_TRAN(s, esm_state_active);
@@ -322,27 +290,6 @@ void esm_state_active(ogs_fsm_t *s, mme_event_t *e)
             ogs_debug("PDN Connectivity request");
             ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",
                     mme_ue->imsi_bcd, sess->pti, bearer->ebi);
-            // printf("[esm_state_active] message->esm.pdn_connectivity_request.access_point_name = '%s'\n", message->esm.pdn_connectivity_request.access_point_name.apn);
-// 
-            // is emergency make the access_point_name same as sessions?
-            printf("mme_ue->session[0].name : '%s'\n", mme_ue->session[0].name); 
-            printf("mme_ue->session[2].name : '%s'\n", mme_ue->session[2].name); 
-            // if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == message->esm.pdn_connectivity_request.request_type.value) {
-            //     if (!strcmp("internet", mme_ue->session[0].name)) {
-            //         ogs_session_t temp = {0};
-            //         memcpy(&temp, &mme_ue->session[0], sizeof(ogs_session_t));
-            //         memcpy(&mme_ue->session[0], &mme_ue->session[2], sizeof(ogs_session_t));
-            //         memcpy(&mme_ue->session[2], &temp, sizeof(ogs_session_t));
-            //         printf("SWITCHED!\n");
-            //         printf("mme_ue->session[0].name : '%s'\n", mme_ue->session[0].name); 
-            //         printf("mme_ue->session[2].name : '%s'\n", mme_ue->session[2].name); 
-            //         int tmp = mme_ue->session[0].context_identifier;
-            //         mme_ue->session[0].context_identifier = mme_ue->session[2].context_identifier;
-            //         mme_ue->session[2].context_identifier = tmp;
-            //     }
-            // }
-
-
 
             rv = esm_handle_pdn_connectivity_request(
                     bearer, &message->esm.pdn_connectivity_request,
@@ -452,7 +399,7 @@ void esm_state_pdn_will_disconnect(ogs_fsm_t *s, mme_event_t *e)
             ogs_debug("PDN Connectivity request");
             ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",
                     mme_ue->imsi_bcd, sess->pti, bearer->ebi);
-            printf("[esm_state_pdn_will_disconnect] message->esm.pdn_connectivity_request.access_point_name = '%s'\n", message->esm.pdn_connectivity_request.access_point_name.apn);
+
             rv = esm_handle_pdn_connectivity_request(
                     bearer, &message->esm.pdn_connectivity_request,
                     e->create_action);

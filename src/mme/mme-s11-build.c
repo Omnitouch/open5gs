@@ -221,9 +221,6 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     }
     else if (sess->request_type.value == OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY) {
         indication.emergency_pdu_session_indication = 1;
-
-        /* Request new connection */
-        // pgw_s5c_teid.teid = 0;
     }
 
     if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST)

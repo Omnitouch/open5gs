@@ -223,11 +223,6 @@ printf("mme_gtp_send_create_session_request -- create_action = %i\n", create_act
     h.type = OGS_GTP2_CREATE_SESSION_REQUEST_TYPE;
     h.teid = sgw_ue->sgw_s11_teid;
 
-    if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == sess->request_type.value) {
-        /* Request new connection */
-        // h.teid = 0;
-    }
-
     pkbuf = mme_s11_build_create_session_request(h.type, sess, create_action);
     ogs_expect_or_return_val(pkbuf, OGS_ERROR);
 

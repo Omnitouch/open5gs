@@ -3356,7 +3356,6 @@ mme_bearer_t *mme_bearer_find_by_ue_ebi(mme_ue_t *mme_ue, uint8_t ebi)
 mme_bearer_t *mme_bearer_find_or_add_by_message(
         mme_ue_t *mme_ue, ogs_nas_eps_message_t *message, int create_action)
 {
-
     uint8_t pti = OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED;
     uint8_t ebi = OGS_NAS_EPS_BEARER_IDENTITY_UNASSIGNED;
 
@@ -3367,13 +3366,9 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
     ogs_assert(message);
 
     pti = message->esm.h.procedure_transaction_identity;
-    ebi = message->esm.h.eps_bearer_identity;                       // clobber this so we can get one made for us???
-    printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ mme_bearer_find_or_add_by_message\n");
+    ebi = message->esm.h.eps_bearer_identity;
 
-    printf("\tmme_bearer_find_or_add_by_message() [PTI:%d, EBI:%d, MSG_TYP[%d]]\n",
-            pti, ebi, message->esm.h.message_type);
-
-    if (ebi != OGS_NAS_EPS_BEARER_IDENTITY_UNASSIGNED) { // free realestate
+    if (ebi != OGS_NAS_EPS_BEARER_IDENTITY_UNASSIGNED) {
         bearer = mme_bearer_find_by_ue_ebi(mme_ue, ebi);
         if (!bearer) {
             ogs_error("No Bearer : EBI[%d]", ebi);
@@ -3383,8 +3378,6 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
                     OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
             return NULL;
         }
-
-        printf("@@@@ we found the bearer! @@@@ OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == message->esm.pdn_connectivity_request.request_type.value : %i == %i\n", OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY, message->esm.pdn_connectivity_request.request_type.value);
 
         return bearer;
     }
@@ -3464,19 +3457,27 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         return bearer;
     }
 
-    if (message->esm.h.message_type == OGS_NAS_EPS_PDN_CONNECTIVITY_REQUEST) {   // is this the higher plain i seek?
-        printf("pdn_connectivity_request->request_type.value = %i\n", message->esm.pdn_connectivity_request.request_type.value);
-
+    if (message->esm.h.message_type == OGS_NAS_EPS_PDN_CONNECTIVITY_REQUEST) {
         ogs_nas_eps_pdn_connectivity_request_t *pdn_connectivity_request =
             &message->esm.pdn_connectivity_request;
 
-
-        if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == message->esm.pdn_connectivity_request.request_type.value) {
+        if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == pdn_connectivity_request->request_type.value) {
+            /* Special case, make sure we don't get duplicate sos APNs */
             char sos[] = "sos";
             sess = mme_sess_find_by_apn(mme_ue, sos);
-            printf("$$%%$@#$setting it to sos\n");
+            if (sess && create_action != OGS_GTP_CREATE_IN_ATTACH_REQUEST) {
+                ogs_assert(OGS_OK ==
+                    nas_eps_send_pdn_connectivity_reject(
+                        sess,
+                        OGS_NAS_ESM_CAUSE_MULTIPLE_PDN_CONNECTIONS_FOR_A_GIVEN_APN_NOT_ALLOWED,
+                        create_action));
+                ogs_warn("APN duplicated [%s]",
+                    pdn_connectivity_request->access_point_name.apn);
+                return NULL;
+            }
         } else if (pdn_connectivity_request->presencemask &
             OGS_NAS_EPS_PDN_CONNECTIVITY_REQUEST_ACCESS_POINT_NAME_PRESENT) {
+            /* Specific APN has been requested by the UE, make sure it doesn't already exist */
             sess = mme_sess_find_by_apn(mme_ue,
                     pdn_connectivity_request->access_point_name.apn);
             if (sess && create_action != OGS_GTP_CREATE_IN_ATTACH_REQUEST) {
@@ -3490,6 +3491,7 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
                 return NULL;
             }
         } else {
+            /* Default case, session assumed to be the first session in list */
             sess = mme_sess_first(mme_ue);
         }
 
