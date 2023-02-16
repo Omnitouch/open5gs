@@ -203,7 +203,6 @@ void mme_gtp_close(void)
 
 int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
 {
-printf("mme_gtp_send_create_session_request -- create_action = %i\n", create_action);
     int rv;
     ogs_gtp2_header_t h;
     ogs_pkbuf_t *pkbuf = NULL;
