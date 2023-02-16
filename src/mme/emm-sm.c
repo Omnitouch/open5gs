@@ -1287,7 +1287,6 @@ void emm_state_initial_context_setup(ogs_fsm_t *s, mme_event_t *e)
 
             rv = emm_handle_attach_complete(
                     mme_ue, &message->emm.attach_complete);
-
             if (rv != OGS_OK) {
                 ogs_error("emm_handle_attach_complete() failed "
                         "in emm_state_initial_context_setup");
