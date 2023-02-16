@@ -165,6 +165,7 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
                 OGS_FSM_TRAN(s, &esm_state_exception);
                 break;
             }
+
             rv = esm_handle_information_response(
                     sess, &message->esm.esm_information_response);
             if (rv != OGS_OK) {

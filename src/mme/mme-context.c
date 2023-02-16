@@ -3368,6 +3368,9 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
     pti = message->esm.h.procedure_transaction_identity;
     ebi = message->esm.h.eps_bearer_identity;
 
+    ogs_debug("mme_bearer_find_or_add_by_message() [PTI:%d, EBI:%d]",
+            pti, ebi);
+
     if (ebi != OGS_NAS_EPS_BEARER_IDENTITY_UNASSIGNED) {
         bearer = mme_bearer_find_by_ue_ebi(mme_ue, ebi);
         if (!bearer) {
