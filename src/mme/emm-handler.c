@@ -38,6 +38,7 @@ static int send_to_downlink_emergency(mme_ue_t *mme_ue);
 int emm_handle_attach_request(mme_ue_t *mme_ue,
         ogs_nas_eps_attach_request_t *attach_request, ogs_pkbuf_t *pkbuf)
 {
+    int r;
     int served_tai_index = 0;
 
     ogs_nas_eps_mobile_identity_guti_t *eps_mobile_identity_guti = NULL;
@@ -135,10 +136,11 @@ int emm_handle_attach_request(mme_ue_t *mme_ue,
         /* Send Attach Reject */
         ogs_warn("Cannot find Served TAI[PLMN_ID:%06x,TAC:%d]",
             ogs_plmn_id_hexdump(&mme_ue->tai.plmn_id), mme_ue->tai.tac);
-        ogs_assert(OGS_OK ==
-            nas_eps_send_attach_reject(mme_ue,
+        r = nas_eps_send_attach_reject(mme_ue,
                 OGS_NAS_EMM_CAUSE_TRACKING_AREA_NOT_ALLOWED,
-                OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return OGS_ERROR;
     }
     ogs_debug("    SERVED_TAI_INDEX[%d]", served_tai_index);
@@ -178,10 +180,11 @@ int emm_handle_attach_request(mme_ue_t *mme_ue,
             "but Integrity[0x%x] cannot be bypassed with EIA0",
             mme_selected_enc_algorithm(mme_ue), 
             mme_selected_int_algorithm(mme_ue));
-        ogs_assert(OGS_OK ==
-            nas_eps_send_attach_reject(mme_ue,
+        r = nas_eps_send_attach_reject(mme_ue,
                 OGS_NAS_EMM_CAUSE_UE_SECURITY_CAPABILITIES_MISMATCH,
-                OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return OGS_ERROR;
     }
 
@@ -410,6 +413,7 @@ int emm_handle_service_request(
 int emm_handle_tau_request(mme_ue_t *mme_ue,
     ogs_nas_eps_tracking_area_update_request_t *tau_request, ogs_pkbuf_t *pkbuf)
 {
+    int r;
     int served_tai_index = 0;
 
     ogs_nas_eps_mobile_identity_guti_t *eps_mobile_identity_guti = NULL;
@@ -483,9 +487,10 @@ int emm_handle_tau_request(mme_ue_t *mme_ue,
         /* Send TAU reject */
         ogs_warn("Cannot find Served TAI[PLMN_ID:%06x,TAC:%d]",
             ogs_plmn_id_hexdump(&mme_ue->tai.plmn_id), mme_ue->tai.tac);
-        ogs_assert(OGS_OK ==
-            nas_eps_send_tau_reject(
-                mme_ue, OGS_NAS_EMM_CAUSE_TRACKING_AREA_NOT_ALLOWED));
+        r = nas_eps_send_tau_reject(
+                mme_ue, OGS_NAS_EMM_CAUSE_TRACKING_AREA_NOT_ALLOWED);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return OGS_ERROR;
     }
     ogs_debug("    SERVED_TAI_INDEX[%d]", served_tai_index);
@@ -548,6 +553,7 @@ int emm_handle_tau_request(mme_ue_t *mme_ue,
 int emm_handle_extended_service_request(mme_ue_t *mme_ue,
         ogs_nas_eps_extended_service_request_t *extended_service_request)
 {
+    int r;
     int served_tai_index = 0;
 
     ogs_nas_service_type_t *service_type =
@@ -601,9 +607,10 @@ int emm_handle_extended_service_request(mme_ue_t *mme_ue,
         /* Send TAU reject */
         ogs_warn("Cannot find Served TAI[PLMN_ID:%06x,TAC:%d]",
             ogs_plmn_id_hexdump(&mme_ue->tai.plmn_id), mme_ue->tai.tac);
-        ogs_assert(OGS_OK ==
-            nas_eps_send_tau_reject(
-                mme_ue, OGS_NAS_EMM_CAUSE_TRACKING_AREA_NOT_ALLOWED));
+        r = nas_eps_send_tau_reject(
+                mme_ue, OGS_NAS_EMM_CAUSE_TRACKING_AREA_NOT_ALLOWED);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return OGS_ERROR;
     }
     ogs_debug("    SERVED_TAI_INDEX[%d]", served_tai_index);
@@ -737,10 +744,14 @@ static int send_to_downlink_emergency(mme_ue_t *mme_ue)
     universal_time_and_local_time_zone->timezone = *local_time_zone;
 
     emmbuf = nas_eps_security_encode(mme_ue, &message);
-    ogs_expect_or_return_val(emmbuf, OGS_ERROR);
+    if (NULL == emmbuf) {
+        return OGS_ERROR;
+    }
 
     rv = nas_eps_send_to_downlink_nas_transport(mme_ue, emmbuf);
-    ogs_expect_or_return_val(rv == OGS_OK, rv);
+    if (OGS_OK != rv) {
+        return rv;
+    }
 
     ogs_debug("EMM information");
     ogs_debug("    IMSI[%s]", mme_ue->imsi_bcd);
@@ -832,10 +843,14 @@ static int send_to_downlink_default(mme_ue_t *mme_ue) {
     network_daylight_saving_time->length = 1;
 
     emmbuf = nas_eps_security_encode(mme_ue, &message);
-    ogs_expect_or_return_val(emmbuf, OGS_ERROR);
+    if (NULL == emmbuf) {
+        return OGS_ERROR;
+    }
 
     rv = nas_eps_send_to_downlink_nas_transport(mme_ue, emmbuf);
-    ogs_expect_or_return_val(rv == OGS_OK, rv);
+    if (OGS_OK != rv) {
+        return rv;
+    }
 
     ogs_debug("EMM information");
     ogs_debug("    IMSI[%s]", mme_ue->imsi_bcd);

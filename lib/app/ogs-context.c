@@ -172,7 +172,7 @@ static void app_context_prepare(void)
 
     self.sockopt.no_delay = true;
 
-#define MAX_NUM_OF_UE               1024    /* Num of UEs */
+#define MAX_NUM_OF_UE               4069    /* Num of UEs */
 #define MAX_NUM_OF_PEER             64      /* Num of Peer */
 
     self.max.ue = MAX_NUM_OF_UE;
@@ -429,6 +429,10 @@ int ogs_app_context_parse_config(void)
                     const char *v = ogs_yaml_iter_value(&pool_iter);
                     if (v)
                         self.pool.defconfig.cluster_8192_pool = atoi(v);
+                } else if (!strcmp(pool_key, "32768")) {
+                    const char *v = ogs_yaml_iter_value(&pool_iter);
+                    if (v)
+                        self.pool.defconfig.cluster_32768_pool = atoi(v);
                 } else if (!strcmp(pool_key, "big")) {
                     const char *v = ogs_yaml_iter_value(&pool_iter);
                     if (v)

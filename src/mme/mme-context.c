@@ -2535,6 +2535,22 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue)
         return NULL;
     }
     mme_ue->t3470.pkbuf = NULL;
+    mme_ue->t_mobile_reachable.timer = ogs_timer_add(
+            ogs_app()->timer_mgr, mme_timer_mobile_reachable_expire, mme_ue);
+    if (!mme_ue->t_mobile_reachable.timer) {
+        ogs_error("ogs_timer_add() failed");
+        ogs_pool_free(&mme_ue_pool, mme_ue);
+        return NULL;
+    }
+    mme_ue->t_mobile_reachable.pkbuf = NULL;
+    mme_ue->t_implicit_detach.timer = ogs_timer_add(
+            ogs_app()->timer_mgr, mme_timer_implicit_detach_expire, mme_ue);
+    if (!mme_ue->t_implicit_detach.timer) {
+        ogs_error("ogs_timer_add() failed");
+        ogs_pool_free(&mme_ue_pool, mme_ue);
+        return NULL;
+    }
+    mme_ue->t_implicit_detach.pkbuf = NULL;
 
     mme_ebi_pool_init(mme_ue);
 
@@ -2626,6 +2642,8 @@ void mme_ue_remove(mme_ue_t *mme_ue)
     ogs_timer_delete(mme_ue->t3450.timer);
     ogs_timer_delete(mme_ue->t3460.timer);
     ogs_timer_delete(mme_ue->t3470.timer);
+    ogs_timer_delete(mme_ue->t_mobile_reachable.timer);
+    ogs_timer_delete(mme_ue->t_implicit_detach.timer);
 
     enb_ue_unlink(mme_ue);
 
@@ -3356,6 +3374,7 @@ mme_bearer_t *mme_bearer_find_by_ue_ebi(mme_ue_t *mme_ue, uint8_t ebi)
 mme_bearer_t *mme_bearer_find_or_add_by_message(
         mme_ue_t *mme_ue, ogs_nas_eps_message_t *message, int create_action)
 {
+    int r;
     uint8_t pti = OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED;
     uint8_t ebi = OGS_NAS_EPS_BEARER_IDENTITY_UNASSIGNED;
 
@@ -3375,10 +3394,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         bearer = mme_bearer_find_by_ue_ebi(mme_ue, ebi);
         if (!bearer) {
             ogs_error("No Bearer : EBI[%d]", ebi);
-            ogs_assert(OGS_OK ==
-                nas_eps_send_attach_reject(mme_ue,
+            r = nas_eps_send_attach_reject(mme_ue,
                     OGS_NAS_EMM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED,
-                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
             return NULL;
         }
 
@@ -3387,10 +3407,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
 
     if (pti == OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED) {
         ogs_error("Both PTI[%d] and EBI[%d] are 0", pti, ebi);
-        ogs_assert(OGS_OK ==
-            nas_eps_send_attach_reject(mme_ue,
+        r = nas_eps_send_attach_reject(mme_ue,
                 OGS_NAS_EMM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED,
-                OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return NULL;
     }
 
@@ -3405,10 +3426,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         if (!bearer) {
             ogs_error("No Bearer : Linked-EBI[%d]",
                     linked_eps_bearer_identity->eps_bearer_identity);
-            ogs_assert(OGS_OK ==
-                nas_eps_send_attach_reject(mme_ue,
+            r = nas_eps_send_attach_reject(mme_ue,
                     OGS_NAS_EMM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED,
-                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
             return NULL;
         }
     } else if (message->esm.h.message_type ==
@@ -3424,10 +3446,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         if (!bearer) {
             ogs_error("No Bearer : Linked-EBI[%d]",
                     linked_eps_bearer_identity->eps_bearer_identity);
-            ogs_assert(OGS_OK ==
-                nas_eps_send_bearer_resource_allocation_reject(
+            r = nas_eps_send_bearer_resource_allocation_reject(
                     mme_ue, pti,
-                    OGS_NAS_ESM_CAUSE_INVALID_EPS_BEARER_IDENTITY));
+                    OGS_NAS_ESM_CAUSE_INVALID_EPS_BEARER_IDENTITY);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
             return NULL;
         }
 
@@ -3444,10 +3467,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         if (!bearer) {
             ogs_error("No Bearer : Linked-EBI[%d]",
                     linked_eps_bearer_identity->eps_bearer_identity);
-            ogs_assert(OGS_OK ==
-                nas_eps_send_bearer_resource_modification_reject(
+            r = nas_eps_send_bearer_resource_modification_reject(
                     mme_ue, pti,
-                    OGS_NAS_ESM_CAUSE_INVALID_EPS_BEARER_IDENTITY));
+                    OGS_NAS_ESM_CAUSE_INVALID_EPS_BEARER_IDENTITY);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
             return NULL;
         }
     }
@@ -3484,11 +3508,12 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
             sess = mme_sess_find_by_apn(mme_ue,
                     pdn_connectivity_request->access_point_name.apn);
             if (sess && create_action != OGS_GTP_CREATE_IN_ATTACH_REQUEST) {
-                ogs_assert(OGS_OK ==
-                    nas_eps_send_pdn_connectivity_reject(
+                r = nas_eps_send_pdn_connectivity_reject(
                         sess,
                         OGS_NAS_ESM_CAUSE_MULTIPLE_PDN_CONNECTIONS_FOR_A_GIVEN_APN_NOT_ALLOWED,
-                        create_action));
+                        create_action);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 ogs_warn("APN duplicated [%s]",
                     pdn_connectivity_request->access_point_name.apn);
                 return NULL;
@@ -3509,10 +3534,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         if (!sess) {
             ogs_error("No Session : ESM message type[%d], PTI[%d]",
                     message->esm.h.message_type, pti);
-            ogs_assert(OGS_OK ==
-                nas_eps_send_attach_reject(mme_ue,
+            r = nas_eps_send_attach_reject(mme_ue,
                     OGS_NAS_EMM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED,
-                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
             return NULL;
         }
     }
