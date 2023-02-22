@@ -3498,8 +3498,7 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
                         sess,
                         OGS_NAS_ESM_CAUSE_MULTIPLE_PDN_CONNECTIONS_FOR_A_GIVEN_APN_NOT_ALLOWED,
                         create_action));
-                ogs_warn("APN duplicated [%s]",
-                    pdn_connectivity_request->access_point_name.apn);
+                ogs_warn("APN duplicated [%s]", sos);
                 return NULL;
             }
         } else if (pdn_connectivity_request->presencemask &
