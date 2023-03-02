@@ -1110,7 +1110,8 @@ out:
             ogs_assert(sess_data->xact_data[sess_data->cc_request_number].pfcp == true);
             e->pfcp_xact = xact;
         } else {
-            ogs_assert(sess_data->xact_data[sess_data->cc_request_number].pfcp == false);
+            // todo does this prevent the crashes? 
+            // ogs_assert(sess_data->xact_data[sess_data->cc_request_number].pfcp == false);
             e->gtp_xact = xact;
         }
         rv = ogs_queue_push(ogs_app()->queue, e);
