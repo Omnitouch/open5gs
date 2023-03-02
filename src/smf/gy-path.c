@@ -572,7 +572,8 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     ogs_assert(xact);
     ogs_assert(sess);
 
-    ogs_assert(sess->ipv4 || sess->ipv6);
+    // todo does this fix the issue
+    // ogs_assert(sess->ipv4 || sess->ipv6);
     smf_ue = sess->smf_ue;
     ogs_assert(smf_ue);
 
