@@ -24,16 +24,19 @@
 
 int nas_5gs_send_to_gnb(amf_ue_t *amf_ue, ogs_pkbuf_t *pkbuf)
 {
+    int rv;
     ogs_assert(pkbuf);
 
-    amf_ue = amf_ue_cycle(amf_ue);
-    if (!amf_ue) {
-        ogs_warn("UE(amf-ue) context has already been removed");
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
         ogs_pkbuf_free(pkbuf);
-        return OGS_ERROR;
+        return OGS_NOTFOUND;
     }
 
-    return ngap_send_to_ran_ue(amf_ue->ran_ue, pkbuf);
+    rv = ngap_send_to_ran_ue(amf_ue->ran_ue, pkbuf);
+    ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
 int nas_5gs_send_to_downlink_nas_transport(amf_ue_t *amf_ue, ogs_pkbuf_t *pkbuf)
@@ -44,23 +47,25 @@ int nas_5gs_send_to_downlink_nas_transport(amf_ue_t *amf_ue, ogs_pkbuf_t *pkbuf)
 
     ogs_assert(pkbuf);
 
-    amf_ue = amf_ue_cycle(amf_ue);
-    if (!amf_ue) {
-        ogs_warn("UE(amf-ue) context has already been removed");
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
         ogs_pkbuf_free(pkbuf);
-        return OGS_ERROR;
+        return OGS_NOTFOUND;
     }
 
     ran_ue = ran_ue_cycle(amf_ue->ran_ue);
     if (!ran_ue) {
-        ogs_warn("NG context has already been removed");
+        ogs_error("NG context has already been removed");
         ogs_pkbuf_free(pkbuf);
-        return OGS_ERROR;
+        return OGS_NOTFOUND;
     }
 
     ngapbuf = ngap_build_downlink_nas_transport(
             ran_ue, pkbuf, false, false);
-    ogs_expect_or_return_val(ngapbuf, OGS_ERROR);
+    if (!ngapbuf) {
+        ogs_error("ngap_build_downlink_nas_transport() failed");
+        return OGS_ERROR;
+    }
 
     rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
     ogs_expect(rv == OGS_OK);
@@ -78,28 +83,44 @@ int nas_5gs_send_registration_accept(amf_ue_t *amf_ue)
     ogs_pkbuf_t *ngapbuf = NULL;
     ogs_pkbuf_t *gmmbuf = NULL;
 
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
     ran_ue = ran_ue_cycle(amf_ue->ran_ue);
-    ogs_expect_or_return_val(ran_ue, OGS_ERROR);
+    if (!ran_ue) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     ogs_debug("[%s] Registration accept", amf_ue->supi);
 
     if (amf_ue->next.m_tmsi) {
         if (amf_ue->t3550.pkbuf) {
             gmmbuf = amf_ue->t3550.pkbuf;
-            ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
         } else {
             gmmbuf = gmm_build_registration_accept(amf_ue);
-            ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+            if (!gmmbuf) {
+                ogs_error("gmm_build_registration_accept() failed");
+                return OGS_ERROR;
+            }
         }
 
         amf_ue->t3550.pkbuf = ogs_pkbuf_copy(gmmbuf);
-        ogs_expect_or_return_val(amf_ue->t3550.pkbuf, OGS_ERROR);
+        if (!amf_ue->t3550.pkbuf) {
+            ogs_error("ogs_pkbuf_copy(amf_ue->t3550.pkbuf) failed");
+            ogs_pkbuf_free(gmmbuf);
+            return OGS_ERROR;
+        }
         ogs_timer_start(amf_ue->t3550.timer,
                 amf_timer_cfg(AMF_TIMER_T3550)->duration);
     } else {
         gmmbuf = gmm_build_registration_accept(amf_ue);
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+        if (!gmmbuf) {
+            ogs_error("gmm_build_registration_accept() failed");
+            return OGS_ERROR;
+        }
     }
 
     /*
@@ -125,31 +146,41 @@ int nas_5gs_send_registration_accept(amf_ue_t *amf_ue)
     if (ran_ue->initial_context_setup_request_sent == false &&
         (ran_ue->ue_context_requested == true || transfer_needed == true)) {
         ngapbuf = ngap_ue_build_initial_context_setup_request(amf_ue, gmmbuf);
-        ogs_expect_or_return_val(ngapbuf, OGS_ERROR);
+        if (!ngapbuf) {
+            ogs_error("ngap_ue_build_initial_context_setup_request() failed");
+            return OGS_ERROR;
+        }
 
         rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
-        ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
+        ogs_expect(rv == OGS_OK);
 
         ran_ue->initial_context_setup_request_sent = true;
     } else {
         if (transfer_needed == true) {
             ngapbuf = ngap_ue_build_pdu_session_resource_setup_request(
                     amf_ue, gmmbuf);
-            ogs_expect_or_return_val(ngapbuf, OGS_ERROR);
+            if (!ngapbuf) {
+                ogs_error("ngap_ue_build_pdu_session_resource_setup_request()"
+                        " failed");
+                return OGS_ERROR;
+            }
 
             rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
-            ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
+            ogs_expect(rv == OGS_OK);
         } else {
             ngapbuf = ngap_build_downlink_nas_transport(
                     ran_ue, gmmbuf, true, true);
-            ogs_expect_or_return_val(ngapbuf, OGS_ERROR);
+            if (!ngapbuf) {
+                ogs_error("ngap_build_downlink_nas_transport() failed");
+                return OGS_ERROR;
+            }
 
             rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
-            ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
+            ogs_expect(rv == OGS_OK);
         }
     }
 
-    return OGS_OK;
+    return rv;
 }
 
 int nas_5gs_send_registration_reject(
@@ -158,14 +189,20 @@ int nas_5gs_send_registration_reject(
     int rv;
     ogs_pkbuf_t *gmmbuf = NULL;
 
-    amf_metrics_inst_by_cause_add(gmm_cause, AMF_METR_CTR_RM_REG_INITFAIL, 1);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
-    ogs_assert(amf_ue);
+    amf_metrics_inst_by_cause_add(gmm_cause, AMF_METR_CTR_RM_REG_INITFAIL, 1);
 
     ogs_warn("[%s] Registration reject [%d]", amf_ue->suci, gmm_cause);
 
     gmmbuf = gmm_build_registration_reject(gmm_cause);
-    ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+    if (!gmmbuf) {
+        ogs_error("gmm_build_registration_reject() failed");
+        return OGS_ERROR;
+    }
 
     rv = nas_5gs_send_to_downlink_nas_transport(amf_ue, gmmbuf);
     ogs_expect(rv == OGS_OK);
@@ -182,14 +219,24 @@ int nas_5gs_send_service_accept(amf_ue_t *amf_ue)
     ogs_pkbuf_t *gmmbuf = NULL;
     ogs_pkbuf_t *ngapbuf = NULL;
 
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
     ran_ue = ran_ue_cycle(amf_ue->ran_ue);
-    ogs_expect_or_return_val(ran_ue, OGS_ERROR);
+    if (!ran_ue) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     ogs_debug("[%s] Service accept", amf_ue->supi);
 
     gmmbuf = gmm_build_service_accept(amf_ue);
-    ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+    if (!gmmbuf) {
+        ogs_error("gmm_build_registration_reject() failed");
+        return OGS_ERROR;
+    }
 
     /*
      * Previously, AMF would sends PDUSessionResourceSetupRequest
@@ -214,27 +261,34 @@ int nas_5gs_send_service_accept(amf_ue_t *amf_ue)
     if (ran_ue->initial_context_setup_request_sent == false &&
         (ran_ue->ue_context_requested == true || transfer_needed == true)) {
         ngapbuf = ngap_ue_build_initial_context_setup_request(amf_ue, gmmbuf);
-        ogs_expect_or_return_val(ngapbuf, OGS_ERROR);
+        if (!ngapbuf) {
+            ogs_error("ngap_ue_build_initial_context_setup_request() failed");
+            return OGS_ERROR;
+        }
 
         rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
-        ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
+        ogs_expect(rv == OGS_OK);
 
         ran_ue->initial_context_setup_request_sent = true;
     } else {
         if (transfer_needed == true) {
             ngapbuf = ngap_ue_build_pdu_session_resource_setup_request(
                     amf_ue, gmmbuf);
-            ogs_expect_or_return_val(ngapbuf, OGS_ERROR);
+            if (!ngapbuf) {
+                ogs_error("ngap_ue_build_pdu_session_resource_setup_request()"
+                        " failed");
+                return OGS_ERROR;
+            }
 
             rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
-            ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
+            ogs_expect(rv == OGS_OK);
         } else {
             rv = nas_5gs_send_to_downlink_nas_transport(amf_ue, gmmbuf);
-            ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
+            ogs_expect(rv == OGS_OK);
         }
     }
 
-    return OGS_OK;
+    return rv;
 }
 
 int nas_5gs_send_service_reject(
@@ -243,12 +297,23 @@ int nas_5gs_send_service_reject(
     int rv;
     ogs_pkbuf_t *gmmbuf = NULL;
 
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     ogs_debug("[%s] Service reject", amf_ue->supi);
 
     gmmbuf = gmm_build_service_reject(amf_ue, gmm_cause);
-    ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+    if (!gmmbuf) {
+        ogs_error("gmm_build_registration_reject() failed");
+        return OGS_ERROR;
+    }
 
     rv = nas_5gs_send_to_downlink_nas_transport(amf_ue, gmmbuf);
     ogs_expect(rv == OGS_OK);
@@ -263,9 +328,16 @@ int nas_5gs_send_de_registration_accept(amf_ue_t *amf_ue)
     ran_ue_t *ran_ue = NULL;
     ogs_pkbuf_t *gmmbuf = NULL;
 
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
     ran_ue = ran_ue_cycle(amf_ue->ran_ue);
-    ogs_expect_or_return_val(ran_ue, OGS_ERROR);
+    if (!ran_ue) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     ogs_debug("[%s] De-registration accept", amf_ue->supi);
 
@@ -273,10 +345,16 @@ int nas_5gs_send_de_registration_accept(amf_ue_t *amf_ue)
         int rv;
 
         gmmbuf = gmm_build_de_registration_accept(amf_ue);
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+        if (!gmmbuf) {
+            ogs_error("gmm_build_registration_reject() failed");
+            return OGS_ERROR;
+        }
 
         rv = nas_5gs_send_to_downlink_nas_transport(amf_ue, gmmbuf);
-        ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
+        if (rv != OGS_OK) {
+            ogs_error("nas_5gs_send_to_downlink_nas_transport() failed");
+            return rv;
+        }
     }
 
     rv = ngap_send_ran_ue_context_release_command(ran_ue,
@@ -287,35 +365,51 @@ int nas_5gs_send_de_registration_accept(amf_ue_t *amf_ue)
     return rv;
 }
 
-int nas_5gs_send_de_registration_request(amf_ue_t *amf_ue,
-        OpenAPI_deregistration_reason_e dereg_reason)
+int nas_5gs_send_de_registration_request(
+        amf_ue_t *amf_ue,
+        OpenAPI_deregistration_reason_e dereg_reason,
+        ogs_nas_5gmm_cause_t gmm_cause)
 {
     int rv;
 
     ran_ue_t *ran_ue = NULL;
     ogs_pkbuf_t *gmmbuf = NULL;
 
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
     ran_ue = ran_ue_cycle(amf_ue->ran_ue);
-    ogs_expect_or_return_val(ran_ue, OGS_ERROR);
+    if (!ran_ue) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     ogs_debug("[%s] De-registration request", amf_ue->supi);
 
     if (amf_ue->t3522.pkbuf) {
         gmmbuf = amf_ue->t3522.pkbuf;
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
     } else {
-        gmmbuf = gmm_build_de_registration_request(amf_ue, dereg_reason);
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+        gmmbuf = gmm_build_de_registration_request(
+                amf_ue, dereg_reason, gmm_cause);
+        if (!gmmbuf) {
+            ogs_error("gmm_build_de_registration_request() failed");
+            return OGS_ERROR;
+        }
     }
 
     amf_ue->t3522.pkbuf = ogs_pkbuf_copy(gmmbuf);
-    ogs_expect_or_return_val(amf_ue->t3522.pkbuf, OGS_ERROR);
+    if (!amf_ue->t3522.pkbuf) {
+        ogs_error("ogs_pkbuf_copy(amf_ue->t3522.pkbuf) failed");
+        ogs_pkbuf_free(gmmbuf);
+        return OGS_ERROR;
+    }
     ogs_timer_start(amf_ue->t3522.timer,
             amf_timer_cfg(AMF_TIMER_T3522)->duration);
 
     rv = nas_5gs_send_to_downlink_nas_transport(amf_ue, gmmbuf);
-    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
+    ogs_expect(rv == OGS_OK);
 
     return rv;
 }
@@ -325,20 +419,34 @@ int nas_5gs_send_identity_request(amf_ue_t *amf_ue)
     int rv;
     ogs_pkbuf_t *gmmbuf = NULL;
 
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     ogs_debug("Identity request");
 
     if (amf_ue->t3570.pkbuf) {
         gmmbuf = amf_ue->t3570.pkbuf;
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
     } else {
         gmmbuf = gmm_build_identity_request(amf_ue);
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+        if (!gmmbuf) {
+            ogs_error("gmm_build_identity_request() failed");
+            return OGS_ERROR;
+        }
     }
 
     amf_ue->t3570.pkbuf = ogs_pkbuf_copy(gmmbuf);
-    ogs_expect_or_return_val(amf_ue->t3570.pkbuf, OGS_ERROR);
+    if (!amf_ue->t3570.pkbuf) {
+        ogs_error("ogs_pkbuf_copy(amf_ue->t3570.pkbuf) failed");
+        ogs_pkbuf_free(gmmbuf);
+        return OGS_ERROR;
+    }
     ogs_timer_start(amf_ue->t3570.timer,
             amf_timer_cfg(AMF_TIMER_T3570)->duration);
 
@@ -353,20 +461,34 @@ int nas_5gs_send_authentication_request(amf_ue_t *amf_ue)
     int rv;
     ogs_pkbuf_t *gmmbuf = NULL;
 
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     ogs_debug("[%s] Authentication request", amf_ue->suci);
 
     if (amf_ue->t3560.pkbuf) {
         gmmbuf = amf_ue->t3560.pkbuf;
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
     } else {
         gmmbuf = gmm_build_authentication_request(amf_ue);
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+        if (!gmmbuf) {
+            ogs_error("gmm_build_authentication_request() failed");
+            return OGS_ERROR;
+        }
     }
 
     amf_ue->t3560.pkbuf = ogs_pkbuf_copy(gmmbuf);
-    ogs_expect_or_return_val(amf_ue->t3560.pkbuf, OGS_ERROR);
+    if (!amf_ue->t3560.pkbuf) {
+        ogs_error("ogs_pkbuf_copy(amf_ue->t3560.pkbuf) failed");
+        ogs_pkbuf_free(gmmbuf);
+        return OGS_ERROR;
+    }
     ogs_timer_start(amf_ue->t3560.timer,
             amf_timer_cfg(AMF_TIMER_T3560)->duration);
 
@@ -381,14 +503,25 @@ int nas_5gs_send_authentication_reject(amf_ue_t *amf_ue)
     int rv;
     ogs_pkbuf_t *gmmbuf = NULL;
 
-    amf_metrics_inst_by_cause_add(0, AMF_METR_CTR_RM_REG_INITFAIL, 1);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
-    ogs_assert(amf_ue);
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    amf_metrics_inst_by_cause_add(0, AMF_METR_CTR_RM_REG_INITFAIL, 1);
 
     ogs_warn("[%s] Authentication reject", amf_ue->suci);
 
     gmmbuf = gmm_build_authentication_reject();
-    ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+    if (!gmmbuf) {
+        ogs_error("gmm_build_authentication_reject() failed");
+        return OGS_ERROR;
+    }
 
     rv = nas_5gs_send_to_downlink_nas_transport(amf_ue, gmmbuf);
     ogs_expect(rv == OGS_OK);
@@ -401,20 +534,34 @@ int nas_5gs_send_security_mode_command(amf_ue_t *amf_ue)
     int rv;
     ogs_pkbuf_t *gmmbuf = NULL;
 
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     ogs_debug("[%s] Security mode command", amf_ue->supi);
 
     if (amf_ue->t3560.pkbuf) {
         gmmbuf = amf_ue->t3560.pkbuf;
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
     } else {
         gmmbuf = gmm_build_security_mode_command(amf_ue);
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+        if (!gmmbuf) {
+            ogs_error("gmm_build_security_mode_command() failed");
+            return OGS_ERROR;
+        }
     }
 
     amf_ue->t3560.pkbuf = ogs_pkbuf_copy(gmmbuf);
-    ogs_expect_or_return_val(amf_ue->t3560.pkbuf, OGS_ERROR);
+    if (!amf_ue->t3560.pkbuf) {
+        ogs_error("ogs_pkbuf_copy(amf_ue->t3560.pkbuf) failed");
+        ogs_pkbuf_free(gmmbuf);
+        return OGS_ERROR;
+    }
     ogs_timer_start(amf_ue->t3560.timer,
             amf_timer_cfg(AMF_TIMER_T3560)->duration);
 
@@ -430,27 +577,48 @@ int nas_5gs_send_configuration_update_command(
     int rv;
     ogs_pkbuf_t *gmmbuf = NULL;
 
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     ogs_info("[%s] Configuration update command", amf_ue->supi);
 
     if (amf_ue->t3555.pkbuf) {
         gmmbuf = amf_ue->t3555.pkbuf;
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
 
         amf_ue->t3555.pkbuf = ogs_pkbuf_copy(gmmbuf);
-        ogs_expect_or_return_val(amf_ue->t3555.pkbuf, OGS_ERROR);
+        if (!amf_ue->t3555.pkbuf) {
+            ogs_error("ogs_pkbuf_copy(amf_ue->t3555.pkbuf) failed");
+            ogs_pkbuf_free(gmmbuf);
+            return OGS_ERROR;
+        }
         ogs_timer_start(amf_ue->t3555.timer,
                 amf_timer_cfg(AMF_TIMER_T3555)->duration);
 
     } else {
-        ogs_expect_or_return_val(param, OGS_ERROR);
+        if (!param) {
+            ogs_error("No param");
+            return OGS_ERROR;
+        }
         gmmbuf = gmm_build_configuration_update_command(amf_ue, param);
-        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+        if (!gmmbuf) {
+            ogs_error("gmm_build_configuration_update_command() failed");
+            return OGS_ERROR;
+        }
 
         if (param->acknowledgement_requested) {
             amf_ue->t3555.pkbuf = ogs_pkbuf_copy(gmmbuf);
-            ogs_expect_or_return_val(amf_ue->t3555.pkbuf, OGS_ERROR);
+            if (!amf_ue->t3555.pkbuf) {
+                ogs_error("ogs_pkbuf_copy(amf_ue->t3555.pkbuf) failed");
+                ogs_pkbuf_free(gmmbuf);
+                return OGS_ERROR;
+            }
             ogs_timer_start(amf_ue->t3555.timer,
                     amf_timer_cfg(AMF_TIMER_T3555)->duration);
         }
@@ -476,17 +644,17 @@ int nas_send_pdu_session_setup_request(amf_sess_t *sess,
     ogs_assert(sess);
     amf_ue = amf_ue_cycle(sess->amf_ue);
     if (!amf_ue) {
-        ogs_warn("UE(amf-ue) context has already been removed");
+        ogs_error("UE(amf-ue) context has already been removed");
         if (n1smbuf) ogs_pkbuf_free(n1smbuf);
         ogs_pkbuf_free(n2smbuf);
-        return OGS_ERROR;
+        return OGS_NOTFOUND;
     }
     ran_ue = ran_ue_cycle(amf_ue->ran_ue);
     if (!ran_ue) {
         ogs_warn("NG context has already been removed");
         if (n1smbuf) ogs_pkbuf_free(n1smbuf);
         ogs_pkbuf_free(n2smbuf);
-        return OGS_ERROR;
+        return OGS_NOTFOUND;
     }
 
     if (n1smbuf) {
@@ -508,10 +676,7 @@ int nas_send_pdu_session_setup_request(amf_sess_t *sess,
         }
 
         rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
-        if (rv != OGS_OK) {
-            ogs_error("nas_5gs_send_to_gnb() failed");
-            return OGS_ERROR;
-        }
+        ogs_expect(rv == OGS_OK);
 
         ran_ue->initial_context_setup_request_sent = true;
     } else {
@@ -523,10 +688,7 @@ int nas_send_pdu_session_setup_request(amf_sess_t *sess,
         }
 
         rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
-        if (rv != OGS_OK) {
-            ogs_error("nas_5gs_send_to_gnb() failed");
-            return OGS_ERROR;
-        }
+        ogs_expect(rv == OGS_OK);
     }
 
     return rv;
@@ -546,17 +708,17 @@ int nas_send_pdu_session_modification_command(amf_sess_t *sess,
     ogs_assert(sess);
     amf_ue = amf_ue_cycle(sess->amf_ue);
     if (!amf_ue) {
-        ogs_warn("UE(amf-ue) context has already been removed");
+        ogs_error("UE(amf-ue) context has already been removed");
         if (n1smbuf) ogs_pkbuf_free(n1smbuf);
         ogs_pkbuf_free(n2smbuf);
-        return OGS_ERROR;
+        return OGS_NOTFOUND;
     }
     ran_ue = ran_ue_cycle(amf_ue->ran_ue);
     if (!ran_ue) {
         ogs_warn("NG context has already been removed");
         if (n1smbuf) ogs_pkbuf_free(n1smbuf);
         ogs_pkbuf_free(n2smbuf);
-        return OGS_ERROR;
+        return OGS_NOTFOUND;
     }
 
     if (n1smbuf) {
@@ -607,17 +769,17 @@ int nas_send_pdu_session_release_command(amf_sess_t *sess,
     ogs_assert(sess);
     amf_ue = amf_ue_cycle(sess->amf_ue);
     if (!amf_ue) {
-        ogs_warn("UE(amf-ue) context has already been removed");
+        ogs_error("UE(amf-ue) context has already been removed");
         if (n1smbuf) ogs_pkbuf_free(n1smbuf);
         ogs_pkbuf_free(n2smbuf);
-        return OGS_ERROR;
+        return OGS_NOTFOUND;
     }
     ran_ue = ran_ue_cycle(amf_ue->ran_ue);
     if (!ran_ue) {
         ogs_warn("NG context has already been removed");
         if (n1smbuf) ogs_pkbuf_free(n1smbuf);
         ogs_pkbuf_free(n2smbuf);
-        return OGS_ERROR;
+        return OGS_NOTFOUND;
     }
 
     if (n1smbuf) {
@@ -659,6 +821,7 @@ int nas_send_pdu_session_release_command(amf_sess_t *sess,
         rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
         ogs_expect(rv == OGS_OK);
     } else if (gmmbuf) {
+        ogs_pkbuf_free(n2smbuf);
         ngapbuf = ngap_build_downlink_nas_transport(
                 ran_ue, gmmbuf, false, false);
         if (!ngapbuf) {
@@ -669,10 +832,25 @@ int nas_send_pdu_session_release_command(amf_sess_t *sess,
         rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
         ogs_expect(rv == OGS_OK);
     } else {
-        ogs_error("ngap_build_pdu_session_resource_release_command() failed");
-        ogs_error("    ACTIVATED[0x%x] SUPI[%s] PSI[%d]",
-                ran_ue->psimask.activated, amf_ue->supi, sess->psi);
-        return OGS_ERROR;
+        /*
+         * TS23.527
+         * 5.3 Restoration Procedures upon Loss of GTP-U contexts
+         * 5.3.2 Procedure for GTP-U Error Indication received from 5G-AN
+         *
+         * 1. gNB sent TP-U Error Indication to the UPF.
+         * 2. UPF sent PFCP Report to SMF.
+         * 3. SMF sent N1N2Transfer to AMF to release PDU Session
+         * 4. In AMF, there is no Activated Session.
+         *
+         * Since AMF does not yet have an activated PDU Session,
+         * it ignores it without requesting PDU release from gNB.
+         */
+        ogs_error("No session and N1 message");
+        ogs_error("    ACTIVATED[0x%x] N1[%p], SUPI[%s] PSI[%d]",
+                ran_ue->psimask.activated, gmmbuf, amf_ue->supi, sess->psi);
+
+        ogs_pkbuf_free(n2smbuf);
+        rv = OGS_OK;
     }
 
     return rv;
@@ -683,12 +861,23 @@ int nas_5gs_send_gmm_status(amf_ue_t *amf_ue, ogs_nas_5gmm_cause_t cause)
     int rv;
     ogs_pkbuf_t *gmmbuf = NULL;
 
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     ogs_debug("[%s] 5GMM status", amf_ue->supi);
 
     gmmbuf = gmm_build_status(amf_ue, cause);
-    ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+    if (!gmmbuf) {
+        ogs_error("gmm_build_status() failed");
+        return OGS_ERROR;
+    }
 
     rv = nas_5gs_send_to_downlink_nas_transport(amf_ue, gmmbuf);
     ogs_expect(rv == OGS_OK);
@@ -700,7 +889,16 @@ int nas_5gs_send_gmm_reject(
         amf_ue_t *amf_ue, ogs_nas_5gmm_cause_t gmm_cause)
 {
     int rv;
-    ogs_assert(amf_ue);
+
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     switch(amf_ue->nas.message_type) {
     case OGS_NAS_5GS_REGISTRATION_REQUEST:
@@ -748,7 +946,16 @@ int nas_5gs_send_gmm_reject_from_sbi(amf_ue_t *amf_ue, int status)
 {
     int rv;
 
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
     rv = nas_5gs_send_gmm_reject(amf_ue, gmm_cause_from_sbi(status));
     ogs_expect(rv == OGS_OK);
 
@@ -765,8 +972,17 @@ int nas_5gs_send_dl_nas_transport(amf_sess_t *sess,
     amf_ue_t *amf_ue = NULL;
 
     ogs_assert(sess);
+
     amf_ue = sess->amf_ue;
-    ogs_assert(amf_ue);
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
 
     ogs_assert(payload_container_type);
     ogs_assert(payload_container);
@@ -775,9 +991,12 @@ int nas_5gs_send_dl_nas_transport(amf_sess_t *sess,
 
     gmmbuf = gmm_build_dl_nas_transport(sess,
             payload_container_type, payload_container, cause, backoff_time);
-    ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+    if (!gmmbuf) {
+        ogs_error("gmm_build_dl_nas_transport() failed");
+        return OGS_ERROR;
+    }
     rv = nas_5gs_send_to_downlink_nas_transport(amf_ue, gmmbuf);
-    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
+    ogs_expect(rv == OGS_OK);
 
     return rv;
 }
@@ -799,8 +1018,21 @@ int nas_5gs_send_gsm_reject(amf_sess_t *sess,
         uint8_t payload_container_type, ogs_pkbuf_t *payload_container)
 {
     int rv;
+    amf_ue_t *amf_ue = NULL;
 
     ogs_assert(sess);
+
+    amf_ue = sess->amf_ue;
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
     ogs_assert(payload_container_type);
     ogs_assert(payload_container);
 
@@ -816,16 +1048,32 @@ int nas_5gs_send_back_gsm_message(
 {
     int rv;
     ogs_pkbuf_t *pbuf = NULL;
+    amf_ue_t *amf_ue = NULL;
 
     ogs_assert(sess);
+
+    amf_ue = sess->amf_ue;
+    if (!amf_ue_cycle(amf_ue)) {
+        ogs_error("UE(amf-ue) context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
+    if (!ran_ue_cycle(amf_ue->ran_ue)) {
+        ogs_error("NG context has already been removed");
+        return OGS_NOTFOUND;
+    }
+
     ogs_assert(sess->payload_container_type);
     ogs_assert(sess->payload_container);
 
     pbuf = ogs_pkbuf_copy(sess->payload_container);
-    ogs_expect_or_return_val(pbuf, OGS_ERROR);
+    if (!pbuf) {
+        ogs_error("ogs_pkbuf_copy(pbuf) failed");
+        return OGS_ERROR;
+    }
 
-    rv = nas_5gs_send_dl_nas_transport(sess, sess->payload_container_type, pbuf,
-            cause, backoff_time);
+    rv = nas_5gs_send_dl_nas_transport(
+            sess, sess->payload_container_type, pbuf, cause, backoff_time);
     ogs_expect(rv == OGS_OK);
 
     return rv;

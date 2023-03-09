@@ -445,8 +445,9 @@ bool smf_npcf_smpolicycontrol_handle_create(
     /* Check if selected UPF is associated with SMF */
     ogs_assert(sess->pfcp_node);
     if (!OGS_FSM_CHECK(&sess->pfcp_node->sm, smf_pfcp_state_associated)) {
-        ogs_error("[%s] No associated UPF", smf_ue->supi);
-        return false;
+        strerror = ogs_msprintf("[%s:%d] No associated UPF",
+                smf_ue->supi, sess->psi);
+        goto cleanup;
     }
 
     /* Remove all previous QoS flow */
@@ -491,6 +492,38 @@ bool smf_npcf_smpolicycontrol_handle_create(
     ogs_assert(OGS_OK ==
         ogs_pfcp_paa_to_ue_ip_addr(&sess->session.paa,
             &ul_pdr->ue_ip_addr, &ul_pdr->ue_ip_addr_len));
+
+    if (sess->session.ipv4_framed_routes &&
+        sess->pfcp_node->up_function_features.frrt) {
+        int i = 0;
+        for (i = 0; i < OGS_MAX_NUM_OF_FRAMED_ROUTES_IN_PDI; i++) {
+            const char *route = sess->session.ipv4_framed_routes[i];
+            if (!route) break;
+            if (!dl_pdr->ipv4_framed_routes) {
+                dl_pdr->ipv4_framed_routes =
+                    ogs_calloc(OGS_MAX_NUM_OF_FRAMED_ROUTES_IN_PDI,
+                               sizeof(dl_pdr->ipv4_framed_routes[0]));
+                ogs_assert(dl_pdr->ipv4_framed_routes);
+            }
+            dl_pdr->ipv4_framed_routes[i] = ogs_strdup(route);
+        }
+    }
+
+    if (sess->session.ipv6_framed_routes &&
+        sess->pfcp_node->up_function_features.frrt) {
+        int i = 0;
+        for (i = 0; i < OGS_MAX_NUM_OF_FRAMED_ROUTES_IN_PDI; i++) {
+            const char *route = sess->session.ipv6_framed_routes[i];
+            if (!route) break;
+            if (!dl_pdr->ipv6_framed_routes) {
+                dl_pdr->ipv6_framed_routes =
+                    ogs_calloc(OGS_MAX_NUM_OF_FRAMED_ROUTES_IN_PDI,
+                               sizeof(dl_pdr->ipv6_framed_routes[0]));
+                ogs_assert(dl_pdr->ipv6_framed_routes);
+            }
+            dl_pdr->ipv6_framed_routes[i] = ogs_strdup(route);
+        }
+    }
 
     ogs_info("UE SUPI[%s] DNN[%s] IPv4[%s] IPv6[%s]",
         smf_ue->supi, sess->session.name,
@@ -669,6 +702,7 @@ bool smf_npcf_smpolicycontrol_handle_terminate_notify(
 {
     smf_ue_t *smf_ue = NULL;
     smf_npcf_smpolicycontrol_param_t param;
+    int r;
 
     ogs_assert(sess);
     ogs_assert(stream);
@@ -680,11 +714,12 @@ bool smf_npcf_smpolicycontrol_handle_terminate_notify(
     ogs_assert(true == ogs_sbi_send_http_status_no_content(stream));
 
     memset(&param, 0, sizeof(param));
-    ogs_assert(true ==
-        smf_sbi_discover_and_send(
+    r = smf_sbi_discover_and_send(
             OGS_SBI_SERVICE_TYPE_NPCF_SMPOLICYCONTROL, NULL,
             smf_npcf_smpolicycontrol_build_delete,
-            sess, NULL, OGS_PFCP_DELETE_TRIGGER_PCF_INITIATED, &param));
+            sess, NULL, OGS_PFCP_DELETE_TRIGGER_PCF_INITIATED, &param);
+    ogs_expect(r == OGS_OK);
+    ogs_assert(r != OGS_ERROR);
 
     return true;
 }

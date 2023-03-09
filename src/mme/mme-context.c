@@ -2535,6 +2535,22 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue)
         return NULL;
     }
     mme_ue->t3470.pkbuf = NULL;
+    mme_ue->t_mobile_reachable.timer = ogs_timer_add(
+            ogs_app()->timer_mgr, mme_timer_mobile_reachable_expire, mme_ue);
+    if (!mme_ue->t_mobile_reachable.timer) {
+        ogs_error("ogs_timer_add() failed");
+        ogs_pool_free(&mme_ue_pool, mme_ue);
+        return NULL;
+    }
+    mme_ue->t_mobile_reachable.pkbuf = NULL;
+    mme_ue->t_implicit_detach.timer = ogs_timer_add(
+            ogs_app()->timer_mgr, mme_timer_implicit_detach_expire, mme_ue);
+    if (!mme_ue->t_implicit_detach.timer) {
+        ogs_error("ogs_timer_add() failed");
+        ogs_pool_free(&mme_ue_pool, mme_ue);
+        return NULL;
+    }
+    mme_ue->t_implicit_detach.pkbuf = NULL;
 
     mme_ebi_pool_init(mme_ue);
 
@@ -2577,19 +2593,6 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue)
     return mme_ue;
 }
 
-void mme_ue_hash_remove(mme_ue_t *mme_ue)
-{
-    ogs_assert(mme_ue);
-
-    if (mme_ue->imsi_len != 0)
-        ogs_hash_set(mme_self()->imsi_ue_hash,
-                mme_ue->imsi, mme_ue->imsi_len, NULL);
-
-    if (mme_ue->current.m_tmsi)
-        ogs_hash_set(self.guti_ue_hash,
-                &mme_ue->current.guti, sizeof(ogs_nas_eps_guti_t), NULL);
-}
-
 void mme_ue_remove(mme_ue_t *mme_ue)
 {
     ogs_assert(mme_ue);
@@ -2601,8 +2604,15 @@ void mme_ue_remove(mme_ue_t *mme_ue)
     ogs_assert(mme_ue->sgw_ue);
     sgw_ue_remove(mme_ue->sgw_ue);
 
-    if (mme_ue->current.m_tmsi)
+    if (mme_ue->imsi_len != 0)
+        ogs_hash_set(mme_self()->imsi_ue_hash,
+                mme_ue->imsi, mme_ue->imsi_len, NULL);
+
+    if (mme_ue->current.m_tmsi) {
+        ogs_hash_set(self.guti_ue_hash,
+                &mme_ue->current.guti, sizeof(ogs_nas_eps_guti_t), NULL);
         ogs_assert(mme_m_tmsi_free(mme_ue->current.m_tmsi) == OGS_OK);
+    }
 
     if (mme_ue->next.m_tmsi)
         ogs_assert(mme_m_tmsi_free(mme_ue->next.m_tmsi) == OGS_OK);
@@ -2626,6 +2636,8 @@ void mme_ue_remove(mme_ue_t *mme_ue)
     ogs_timer_delete(mme_ue->t3450.timer);
     ogs_timer_delete(mme_ue->t3460.timer);
     ogs_timer_delete(mme_ue->t3470.timer);
+    ogs_timer_delete(mme_ue->t_mobile_reachable.timer);
+    ogs_timer_delete(mme_ue->t_implicit_detach.timer);
 
     enb_ue_unlink(mme_ue);
 
@@ -2649,7 +2661,6 @@ void mme_ue_remove_all(void)
 
         if (enb_ue) enb_ue_remove(enb_ue);
 
-        mme_ue_hash_remove(mme_ue);
         mme_ue_remove(mme_ue);
     }
 }
@@ -2883,6 +2894,8 @@ mme_ue_t *mme_ue_find_by_message(ogs_nas_eps_message_t *message)
 int mme_ue_set_imsi(mme_ue_t *mme_ue, char *imsi_bcd)
 {
     mme_ue_t *old_mme_ue = NULL;
+    mme_sess_t *old_sess = NULL;
+    mme_bearer_t *old_bearer = NULL;
     ogs_assert(mme_ue && imsi_bcd);
 
     ogs_cpystrn(mme_ue->imsi_bcd, imsi_bcd, OGS_MAX_IMSI_BCD_LEN+1);
@@ -2907,24 +2920,42 @@ int mme_ue_set_imsi(mme_ue_t *mme_ue, char *imsi_bcd)
 
     /*
      * We should delete the MME-Session Context in the MME-UE Context.
-     * Otherwise, all unnecessary SESSIONs remain in SMF/SGW-C/SGW-U/UPF.
+     * Otherwise, all unnecessary SESSIONs remain in SMF/UPF.
      *
-     * Hash deletion is separated from mme_ue_remove(). Otherwise,
-     * hash deletion occurs simultaneously in mme_ue_remove()
-     * after mme_gtp_send_delete_all_session(). This will delete the Hash
-     * we added immediately below, so we can't find this IMSI.
+     * In order to do this, MME-Session Context should be moved
+     * from OLD MME-UE Context to NEW MME-UE Context.
      *
-     * Note that we should not use the session movement method in AMF.
-     * This is because the MME-S11-TEID in the Delete Session Response
-     * uses the OLD MME.
+     * If needed, The Session deletion process in NEW-MME UE context will work.
+     *
+     * Note that we should not send Session-Release to the SGW-C at this point.
+     * Another GTPv2-C Transaction can cause fatal errors.
      */
-            mme_ue_hash_remove(old_mme_ue);
+            /* Phase-1 : Change MME-UE Context in Session Context */
+            ogs_list_for_each(&old_mme_ue->sess_list, old_sess) {
+                ogs_list_for_each(&old_sess->bearer_list, old_bearer) {
+                    old_bearer->mme_ue = mme_ue;
 
-            if (SESSION_CONTEXT_IS_AVAILABLE(old_mme_ue)) {
-                ogs_warn("[%s] Trigger OLD Session Remove", mme_ue->imsi_bcd);
-                mme_gtp_send_delete_all_sessions(old_mme_ue,
-                        OGS_GTP_DELETE_UE_CONTEXT_REMOVE_PARTIAL);
+                    if (old_bearer->ebi_node)
+                        ogs_pool_free(
+                                &old_mme_ue->ebi_pool, old_bearer->ebi_node);
+                    old_bearer->ebi_node = NULL;
+                }
+                old_sess->mme_ue = mme_ue;
             }
+
+            /* Phase-2 : Move Session Context from OLD to NEW MME-UE Context */
+            memcpy(&mme_ue->sess_list,
+                    &old_mme_ue->sess_list, sizeof(mme_ue->sess_list));
+
+            /* Phase-3 : Clear Session Context in OLD MME-UE Context */
+            memset(&old_mme_ue->sess_list, 0, sizeof(old_mme_ue->sess_list));
+
+            /* Phase-4 : Move sgw_ue->sgw_s11_teid */
+            ogs_assert(old_mme_ue->sgw_ue);
+            ogs_assert(mme_ue->sgw_ue);
+            mme_ue->sgw_ue->sgw_s11_teid = old_mme_ue->sgw_ue->sgw_s11_teid;
+
+            mme_ue_remove(old_mme_ue);
         }
     }
 
@@ -2975,18 +3006,74 @@ void mme_ue_clear_indirect_tunnel(mme_ue_t *mme_ue)
 bool mme_ue_have_active_eps_bearers(mme_ue_t *mme_ue)
 {
     mme_sess_t *sess = NULL;
-    mme_bearer_t *bearer = NULL;
 
     ogs_assert(mme_ue);
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
-        ogs_list_for_each(&sess->bearer_list, bearer) {
-            if (OGS_FSM_CHECK(&bearer->sm, esm_state_active))
-                return true;
-        }
+        if (mme_sess_have_active_eps_bearers(sess) == true)
+            return true;
     }
 
     return false;
+}
+
+bool mme_sess_have_active_eps_bearers(mme_sess_t *sess)
+{
+    mme_bearer_t *bearer = NULL;
+    ogs_assert(sess);
+
+    ogs_list_for_each(&sess->bearer_list, bearer) {
+        if (OGS_FSM_CHECK(&bearer->sm, esm_state_active))
+            return true;
+    }
+
+    return false;
+}
+
+bool mme_ue_have_session_release_pending(mme_ue_t *mme_ue)
+{
+    mme_sess_t *sess = NULL;
+
+    ogs_assert(mme_ue);
+
+    ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (mme_sess_have_session_release_pending(sess) == true)
+            return true;
+    }
+
+    return false;
+}
+
+bool mme_sess_have_session_release_pending(mme_sess_t *sess)
+{
+    mme_bearer_t *bearer = NULL;
+    ogs_assert(sess);
+
+    ogs_list_for_each(&sess->bearer_list, bearer) {
+        if (OGS_FSM_CHECK(&bearer->sm, esm_state_pdn_will_disconnect))
+            return true;
+    }
+
+    return false;
+}
+
+int mme_ue_xact_count(mme_ue_t *mme_ue, uint8_t org)
+{
+    sgw_ue_t *sgw_ue = NULL;
+    ogs_gtp_node_t *gnode = NULL;
+
+    ogs_assert(org == OGS_GTP_LOCAL_ORIGINATOR ||
+                org == OGS_GTP_REMOTE_ORIGINATOR);
+
+    sgw_ue = mme_ue->sgw_ue;
+    if (!sgw_ue) return 0;
+
+    gnode = sgw_ue->gnode;
+    if (!gnode) return 0;
+
+    return org == OGS_GTP_LOCAL_ORIGINATOR ?
+            ogs_list_count(&gnode->local_list) :
+                ogs_list_count(&gnode->remote_list);
 }
 
 void enb_ue_associate_mme_ue(enb_ue_t *enb_ue, mme_ue_t *mme_ue)
@@ -3227,9 +3314,7 @@ unsigned int mme_sess_count(mme_ue_t *mme_ue)
     unsigned int count = 0;
     mme_sess_t *sess = NULL;
 
-    sess = mme_sess_first(mme_ue);
-    while (sess) {
-        sess = mme_sess_next(sess);
+    ogs_list_for_each(&mme_ue->sess_list, sess) {
         count++;
     }
 
@@ -3294,8 +3379,8 @@ void mme_bearer_remove(mme_bearer_t *bearer)
 
     OGS_TLV_CLEAR_DATA(&bearer->tft);
 
-    ogs_assert(bearer->ebi_node);
-    ogs_pool_free(&bearer->mme_ue->ebi_pool, bearer->ebi_node);
+    if (bearer->ebi_node)
+        ogs_pool_free(&bearer->mme_ue->ebi_pool, bearer->ebi_node);
 
     ogs_pool_free(&mme_bearer_pool, bearer);
 }
@@ -3356,6 +3441,7 @@ mme_bearer_t *mme_bearer_find_by_ue_ebi(mme_ue_t *mme_ue, uint8_t ebi)
 mme_bearer_t *mme_bearer_find_or_add_by_message(
         mme_ue_t *mme_ue, ogs_nas_eps_message_t *message, int create_action)
 {
+    int r;
     uint8_t pti = OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED;
     uint8_t ebi = OGS_NAS_EPS_BEARER_IDENTITY_UNASSIGNED;
 
@@ -3375,10 +3461,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         bearer = mme_bearer_find_by_ue_ebi(mme_ue, ebi);
         if (!bearer) {
             ogs_error("No Bearer : EBI[%d]", ebi);
-            ogs_assert(OGS_OK ==
-                nas_eps_send_attach_reject(mme_ue,
+            r = nas_eps_send_attach_reject(mme_ue,
                     OGS_NAS_EMM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED,
-                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
             return NULL;
         }
 
@@ -3387,10 +3474,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
 
     if (pti == OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED) {
         ogs_error("Both PTI[%d] and EBI[%d] are 0", pti, ebi);
-        ogs_assert(OGS_OK ==
-            nas_eps_send_attach_reject(mme_ue,
+        r = nas_eps_send_attach_reject(mme_ue,
                 OGS_NAS_EMM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED,
-                OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return NULL;
     }
 
@@ -3405,10 +3493,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         if (!bearer) {
             ogs_error("No Bearer : Linked-EBI[%d]",
                     linked_eps_bearer_identity->eps_bearer_identity);
-            ogs_assert(OGS_OK ==
-                nas_eps_send_attach_reject(mme_ue,
+            r = nas_eps_send_attach_reject(mme_ue,
                     OGS_NAS_EMM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED,
-                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
             return NULL;
         }
     } else if (message->esm.h.message_type ==
@@ -3424,10 +3513,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         if (!bearer) {
             ogs_error("No Bearer : Linked-EBI[%d]",
                     linked_eps_bearer_identity->eps_bearer_identity);
-            ogs_assert(OGS_OK ==
-                nas_eps_send_bearer_resource_allocation_reject(
+            r = nas_eps_send_bearer_resource_allocation_reject(
                     mme_ue, pti,
-                    OGS_NAS_ESM_CAUSE_INVALID_EPS_BEARER_IDENTITY));
+                    OGS_NAS_ESM_CAUSE_INVALID_EPS_BEARER_IDENTITY);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
             return NULL;
         }
 
@@ -3444,10 +3534,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         if (!bearer) {
             ogs_error("No Bearer : Linked-EBI[%d]",
                     linked_eps_bearer_identity->eps_bearer_identity);
-            ogs_assert(OGS_OK ==
-                nas_eps_send_bearer_resource_modification_reject(
+            r = nas_eps_send_bearer_resource_modification_reject(
                     mme_ue, pti,
-                    OGS_NAS_ESM_CAUSE_INVALID_EPS_BEARER_IDENTITY));
+                    OGS_NAS_ESM_CAUSE_INVALID_EPS_BEARER_IDENTITY);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
             return NULL;
         }
     }
@@ -3463,21 +3554,38 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
     if (message->esm.h.message_type == OGS_NAS_EPS_PDN_CONNECTIVITY_REQUEST) {
         ogs_nas_eps_pdn_connectivity_request_t *pdn_connectivity_request =
             &message->esm.pdn_connectivity_request;
-        if (pdn_connectivity_request->presencemask &
-            OGS_NAS_EPS_PDN_CONNECTIVITY_REQUEST_ACCESS_POINT_NAME_PRESENT) {
-            sess = mme_sess_find_by_apn(mme_ue,
-                    pdn_connectivity_request->access_point_name.apn);
+
+        if (OGS_NAS_EPS_REQUEST_TYPE_EMERGENCY == pdn_connectivity_request->request_type.value) {
+            /* Special case, make sure we don't get duplicate sos APNs */
+            char sos[] = "sos";
+            sess = mme_sess_find_by_apn(mme_ue, sos);
             if (sess && create_action != OGS_GTP_CREATE_IN_ATTACH_REQUEST) {
                 ogs_assert(OGS_OK ==
                     nas_eps_send_pdn_connectivity_reject(
                         sess,
                         OGS_NAS_ESM_CAUSE_MULTIPLE_PDN_CONNECTIONS_FOR_A_GIVEN_APN_NOT_ALLOWED,
                         create_action));
+                ogs_warn("APN duplicated [%s]", sos);
+                return NULL;
+            }
+        } else if (pdn_connectivity_request->presencemask &
+            OGS_NAS_EPS_PDN_CONNECTIVITY_REQUEST_ACCESS_POINT_NAME_PRESENT) {
+            /* Specific APN has been requested by the UE, make sure it doesn't already exist */
+            sess = mme_sess_find_by_apn(mme_ue,
+                    pdn_connectivity_request->access_point_name.apn);
+            if (sess && create_action != OGS_GTP_CREATE_IN_ATTACH_REQUEST) {
+                r = nas_eps_send_pdn_connectivity_reject(
+                        sess,
+                        OGS_NAS_ESM_CAUSE_MULTIPLE_PDN_CONNECTIONS_FOR_A_GIVEN_APN_NOT_ALLOWED,
+                        create_action);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 ogs_warn("APN duplicated [%s]",
                     pdn_connectivity_request->access_point_name.apn);
                 return NULL;
             }
         } else {
+            /* Default case, session assumed to be the first session in list */
             sess = mme_sess_first(mme_ue);
         }
 
@@ -3492,10 +3600,11 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         if (!sess) {
             ogs_error("No Session : ESM message type[%d], PTI[%d]",
                     message->esm.h.message_type, pti);
-            ogs_assert(OGS_OK ==
-                nas_eps_send_attach_reject(mme_ue,
+            r = nas_eps_send_attach_reject(mme_ue,
                     OGS_NAS_EMM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED,
-                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                    OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
             return NULL;
         }
     }
@@ -3570,6 +3679,24 @@ ogs_session_t *mme_session_find_by_apn(mme_ue_t *mme_ue, char *apn)
         ogs_assert(session->name);
         if (ogs_strcasecmp(session->name, apn) == 0)
             return session;
+    }
+
+    return NULL;
+}
+
+ogs_session_t *mme_emergency_session(mme_ue_t *mme_ue)
+{
+    ogs_session_t *session = NULL;
+    int i = 0;
+
+    ogs_assert(mme_ue);
+    ogs_assert(mme_ue->num_of_session <= OGS_MAX_NUM_OF_SESS);
+
+    for (i = 0; i < mme_ue->num_of_session; i++) {
+        session = &mme_ue->session[i];
+        if (strstr(session->name, "sos")) {
+            return session;
+        }
     }
 
     return NULL;

@@ -23,8 +23,9 @@
 int amf_nausf_auth_handle_authenticate(
         amf_ue_t *amf_ue, ogs_sbi_message_t *message)
 {
+    int r;
     OpenAPI_ue_authentication_ctx_t *UeAuthenticationCtx = NULL;
-    OpenAPI_av5g_aka_t *AV5G_AKA = NULL;
+    OpenAPI_ue_authentication_ctx_5g_auth_data_t *AV5G_AKA = NULL;
     OpenAPI_links_value_schema_t *LinksValueSchemeValue = NULL;
     OpenAPI_map_t *LinksValueScheme = NULL;
     OpenAPI_lnode_t *node = NULL;
@@ -111,8 +112,9 @@ int amf_nausf_auth_handle_authenticate(
 
     amf_ue->nas.ue.ksi = amf_ue->nas.amf.ksi;
 
-    ogs_assert(OGS_OK ==
-        nas_5gs_send_authentication_request(amf_ue));
+    r = nas_5gs_send_authentication_request(amf_ue);
+    ogs_expect(r == OGS_OK);
+    ogs_assert(r != OGS_ERROR);
 
     return OGS_OK;
 }

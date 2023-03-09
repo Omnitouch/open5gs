@@ -174,6 +174,41 @@ ogs_nas_5gmm_cause_t gmm_handle_registration_request(amf_ue_t *amf_ue,
             sizeof(ogs_nas_5gs_registration_type_t));
     amf_ue->nas.message_type = OGS_NAS_5GS_REGISTRATION_REQUEST;
 
+    if (registration_type->value == OGS_NAS_5GS_REGISTRATION_TYPE_INITIAL) {
+        /*
+         * Issue #2040
+         *
+         * TS23.501
+         * 5.4.4 UE Radio Capability handling
+         * 5.4.4.1 UE radio capability information storage in the AMF
+         *
+         * The AMF deletes the UE radio capability when the UE RM state
+         * in the AMF transitions to RM-DEREGISTERED. When the AMF receives
+         * Registration Request with the Registration type set to Initial
+         * Registration or when it receives the first Registration Request
+         * after E-UTRA/EPC Attach with Registration type set to Mobility
+         * Registration Update, the AMF deletes the UE radio capability.
+         *
+         * TS24.501
+         * 5.5.2 De-registration procedure
+         * 5.5.2.1 General
+         *
+         * When the AMF enters the state 5GMM-DEREGISTERED for 3GPP access,
+         * the AMF shall delete the stored UE radio capability information
+         * or the UE radio capability ID, if any.
+         *
+         * (DEPRECATED) Issue #1917 (from Switch-Off to De-Registration)
+         *
+         * When the UE sends a De-registration Request with Switch-Off,
+         * AMF should remove the the stored UE Radio Capability.
+         *
+         * Otherwise, the Radio Capability will not match
+         * because the gNB will not query the Radio Capability
+         * when the UE changes USIM.
+         */
+        OGS_ASN_CLEAR_DATA(&amf_ue->ueRadioCapability);
+    }
+
     amf_ue->nas.ue.tsc = registration_type->tsc;
     amf_ue->nas.ue.ksi = registration_type->ksi;
     ogs_debug("    OLD TSC[UE:%d,AMF:%d] KSI[UE:%d,AMF:%d]",
@@ -291,6 +326,7 @@ ogs_nas_5gmm_cause_t gmm_handle_registration_update(amf_ue_t *amf_ue,
     ogs_nas_5gs_tracking_area_identity_t *last_visited_registered_tai = NULL;
     ogs_nas_uplink_data_status_t *uplink_data_status = NULL;
     ogs_nas_pdu_session_status_t *pdu_session_status = NULL;
+    ogs_nas_5gs_update_type_t *update_type = NULL;
 
     ogs_assert(amf_ue);
     ogs_assert(registration_request);
@@ -302,6 +338,8 @@ ogs_nas_5gmm_cause_t gmm_handle_registration_update(amf_ue_t *amf_ue,
     ogs_assert(uplink_data_status);
     pdu_session_status = &registration_request->pdu_session_status;
     ogs_assert(pdu_session_status);
+    update_type = &registration_request->update_type;
+    ogs_assert(update_type);
 
     if (registration_request->presencemask &
         OGS_NAS_5GS_REGISTRATION_REQUEST_NAS_MESSAGE_CONTAINER_PRESENT) {
@@ -427,6 +465,44 @@ ogs_nas_5gmm_cause_t gmm_handle_registration_update(amf_ue_t *amf_ue,
         }
     }
 
+    if (registration_request->presencemask &
+            OGS_NAS_5GS_REGISTRATION_REQUEST_5GS_UPDATE_TYPE_PRESENT) {
+        if (update_type->ng_ran_radio_capability_update_needed == 1) {
+            /*
+             * Issue #2040
+             *
+             * TS23.501
+             * 5.4.4 UE Radio Capability handling
+             * 5.4.4.1 UE radio capability information storage in the AMF
+             *
+             * The AMF deletes the UE radio capability when the UE RM state
+             * in the AMF transitions to RM-DEREGISTERED. When the AMF receives
+             * Registration Request with the Registration type set to Initial
+             * Registration or when it receives the first Registration Request
+             * after E-UTRA/EPC Attach with Registration type set to Mobility
+             * Registration Update, the AMF deletes the UE radio capability.
+             *
+             * TS24.501
+             * 5.5.2 De-registration procedure
+             * 5.5.2.1 General
+             *
+             * When the AMF enters the state 5GMM-DEREGISTERED for 3GPP access,
+             * the AMF shall delete the stored UE radio capability information
+             * or the UE radio capability ID, if any.
+             *
+             * (DEPRECATED) Issue #1917 (from Switch-Off to De-Registration)
+             *
+             * When the UE sends a De-registration Request with Switch-Off,
+             * AMF should remove the the stored UE Radio Capability.
+             *
+             * Otherwise, the Radio Capability will not match
+             * because the gNB will not query the Radio Capability
+             * when the UE changes USIM.
+             */
+            OGS_ASN_CLEAR_DATA(&amf_ue->ueRadioCapability);
+        }
+    }
+
     return OGS_5GMM_CAUSE_REQUEST_ACCEPTED;
 }
 
@@ -548,7 +624,7 @@ ogs_nas_5gmm_cause_t gmm_handle_service_update(amf_ue_t *amf_ue,
 {
     amf_sess_t *sess = NULL;
     uint16_t psimask = 0;
-    int xact_count = 0;
+    int xact_count = 0, r;
 
     ogs_nas_uplink_data_status_t *uplink_data_status = NULL;
     ogs_nas_pdu_session_status_t *pdu_session_status = NULL;
@@ -634,9 +710,11 @@ ogs_nas_5gmm_cause_t gmm_handle_service_update(amf_ue_t *amf_ue,
         }
     }
 
-    if (amf_sess_xact_count(amf_ue) == xact_count)
-        ogs_assert(OGS_OK ==
-            nas_5gs_send_service_accept(amf_ue));
+    if (amf_sess_xact_count(amf_ue) == xact_count) {
+        r = nas_5gs_send_service_accept(amf_ue);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
+    }
 
     return OGS_5GMM_CAUSE_REQUEST_ACCEPTED;
 }
@@ -644,6 +722,7 @@ ogs_nas_5gmm_cause_t gmm_handle_service_update(amf_ue_t *amf_ue,
 int gmm_handle_deregistration_request(amf_ue_t *amf_ue,
         ogs_nas_5gs_deregistration_request_from_ue_t *deregistration_request)
 {
+    int r, state, xact_count = 0;
     ogs_nas_de_registration_type_t *de_registration_type = NULL;
 
     ogs_assert(amf_ue);
@@ -669,30 +748,39 @@ int gmm_handle_deregistration_request(amf_ue_t *amf_ue,
             amf_ue->nas.ue.tsc, amf_ue->nas.amf.tsc,
             amf_ue->nas.ue.ksi, amf_ue->nas.amf.ksi);
 
-    if (deregistration_request->de_registration_type.switch_off) {
+    if (deregistration_request->de_registration_type.switch_off)
         ogs_debug("    Switch-Off");
-
-        /*
-         * Issue #1917
-         *
-         * When the UE sends a De-registration Request with Switch-Off,
-         * AMF should remove the the stored UE Radio Capability.
-         *
-         * Otherwise, the Radio Capability will not match
-         * because the gNB will not query the Radio Capability
-         * when the UE changes USIM.
-         */
-        OGS_ASN_CLEAR_DATA(&amf_ue->ueRadioCapability);
-    }
 
     ogs_info("[%s]    SUCI", amf_ue->suci);
 
-    amf_sbi_send_release_all_sessions(
-            amf_ue, AMF_RELEASE_SM_CONTEXT_NO_STATE);
+    xact_count = amf_sess_xact_count(amf_ue);
 
-    if (ogs_list_count(&amf_ue->sess_list) == 0)
-        ogs_assert(OGS_OK ==
-            nas_5gs_send_de_registration_accept(amf_ue));
+    state = AMF_UE_INITIATED_DE_REGISTERED;
+    amf_sbi_send_release_all_sessions(amf_ue, state);
+
+    if (!AMF_SESSION_RELEASE_PENDING(amf_ue) &&
+        amf_sess_xact_count(amf_ue) == xact_count) {
+        if (UDM_SDM_SUBSCRIBED(amf_ue)) {
+            r = amf_ue_sbi_discover_and_send(
+                    OGS_SBI_SERVICE_TYPE_NUDM_SDM, NULL,
+                    amf_nudm_sdm_build_subscription_delete,
+                    amf_ue, state, NULL);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
+        } else if (PCF_AM_POLICY_ASSOCIATED(amf_ue)) {
+            r = amf_ue_sbi_discover_and_send(
+                    OGS_SBI_SERVICE_TYPE_NPCF_AM_POLICY_CONTROL,
+                    NULL,
+                    amf_npcf_am_policy_control_build_delete,
+                    amf_ue, state, NULL);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
+        } else {
+            r = nas_5gs_send_de_registration_accept(amf_ue);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
+        }
+    }
 
     return OGS_OK;
 }
@@ -703,6 +791,7 @@ int gmm_handle_authentication_response(amf_ue_t *amf_ue,
     ogs_nas_authentication_response_parameter_t
         *authentication_response_parameter = NULL;
     uint8_t hxres_star[OGS_MAX_RES_LEN];
+    int r;
 
     ogs_assert(amf_ue);
     ogs_assert(authentication_response);
@@ -737,10 +826,11 @@ int gmm_handle_authentication_response(amf_ue_t *amf_ue,
     memcpy(amf_ue->xres_star, authentication_response_parameter->res,
             authentication_response_parameter->length);
 
-    ogs_assert(true ==
-        amf_ue_sbi_discover_and_send(
+    r = amf_ue_sbi_discover_and_send(
             OGS_SBI_SERVICE_TYPE_NAUSF_AUTH, NULL,
-            amf_nausf_auth_build_authenticate_confirmation, amf_ue, 0, NULL));
+            amf_nausf_auth_build_authenticate_confirmation, amf_ue, 0, NULL);
+    ogs_expect(r == OGS_OK);
+    ogs_assert(r != OGS_ERROR);
 
     return OGS_OK;
 }
@@ -885,6 +975,7 @@ ogs_nas_5gmm_cause_t gmm_handle_security_mode_complete(amf_ue_t *amf_ue,
 int gmm_handle_ul_nas_transport(amf_ue_t *amf_ue,
         ogs_nas_5gs_ul_nas_transport_t *ul_nas_transport)
 {
+    int r;
     ogs_slice_data_t *selected_slice = NULL;
     amf_sess_t *sess = NULL;
     amf_nsmf_pdusession_sm_context_param_t param;
@@ -906,34 +997,38 @@ int gmm_handle_ul_nas_transport(amf_ue_t *amf_ue,
 
     if (!payload_container_type->value) {
         ogs_error("[%s] No Payload container type", amf_ue->supi);
-        ogs_assert(OGS_OK ==
-            nas_5gs_send_gmm_status(
-                amf_ue, OGS_5GMM_CAUSE_INVALID_MANDATORY_INFORMATION));
+        r = nas_5gs_send_gmm_status(
+                amf_ue, OGS_5GMM_CAUSE_INVALID_MANDATORY_INFORMATION);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return OGS_ERROR;
     }
 
     if (!payload_container->length) {
         ogs_error("[%s] No Payload container length", amf_ue->supi);
-        ogs_assert(OGS_OK ==
-            nas_5gs_send_gmm_status(
-                amf_ue, OGS_5GMM_CAUSE_INVALID_MANDATORY_INFORMATION));
+        r = nas_5gs_send_gmm_status(
+                amf_ue, OGS_5GMM_CAUSE_INVALID_MANDATORY_INFORMATION);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return OGS_ERROR;
     }
 
     if (!payload_container->buffer) {
         ogs_error("[%s] No Payload container buffer", amf_ue->supi);
-        ogs_assert(OGS_OK ==
-            nas_5gs_send_gmm_status(
-                amf_ue, OGS_5GMM_CAUSE_INVALID_MANDATORY_INFORMATION));
+        r = nas_5gs_send_gmm_status(
+                amf_ue, OGS_5GMM_CAUSE_INVALID_MANDATORY_INFORMATION);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return OGS_ERROR;
     }
 
     if ((ul_nas_transport->presencemask &
         OGS_NAS_5GS_UL_NAS_TRANSPORT_PDU_SESSION_ID_PRESENT) == 0) {
         ogs_error("[%s] No PDU session ID", amf_ue->supi);
-        ogs_assert(OGS_OK ==
-            nas_5gs_send_gmm_status(
-                amf_ue, OGS_5GMM_CAUSE_INVALID_MANDATORY_INFORMATION));
+        r = nas_5gs_send_gmm_status(
+                amf_ue, OGS_5GMM_CAUSE_INVALID_MANDATORY_INFORMATION);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return OGS_ERROR;
     }
 
@@ -941,9 +1036,10 @@ int gmm_handle_ul_nas_transport(amf_ue_t *amf_ue,
     if (*pdu_session_id == OGS_NAS_PDU_SESSION_IDENTITY_UNASSIGNED) {
         ogs_error("[%s] PDU session identity is unassigned",
                 amf_ue->supi);
-        ogs_assert(OGS_OK ==
-            nas_5gs_send_gmm_status(
-                amf_ue, OGS_5GMM_CAUSE_INVALID_MANDATORY_INFORMATION));
+        r = nas_5gs_send_gmm_status(
+                amf_ue, OGS_5GMM_CAUSE_INVALID_MANDATORY_INFORMATION);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return OGS_ERROR;
     }
 
@@ -964,9 +1060,10 @@ int gmm_handle_ul_nas_transport(amf_ue_t *amf_ue,
             if (!sess) {
                 ogs_error("[%s] No Session Context [%d]",
                     amf_ue->supi, gsm_header->message_type);
-                ogs_assert(OGS_OK ==
-                    nas_5gs_send_gmm_status(amf_ue,
-                    OGS_5GMM_CAUSE_INSUFFICIENT_USER_PLANE_RESOURCES_FOR_THE_PDU_SESSION));
+                r = nas_5gs_send_gmm_status(amf_ue,
+                    OGS_5GMM_CAUSE_INSUFFICIENT_USER_PLANE_RESOURCES_FOR_THE_PDU_SESSION);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 return OGS_ERROR;
             }
         }
@@ -1072,8 +1169,10 @@ int gmm_handle_ul_nas_transport(amf_ue_t *amf_ue,
             if (!selected_slice || !sess->dnn) {
                 ogs_warn("[%s] DNN Not Supported OR "
                             "Not Subscribed in the Slice", amf_ue->supi);
-                ogs_assert(OGS_OK ==
-                    nas_5gs_send_gmm_status(amf_ue, OGS_5GMM_CAUSE_DNN_NOT_SUPPORTED_OR_NOT_SUBSCRIBED_IN_THE_SLICE));
+                r = nas_5gs_send_gmm_status(amf_ue,
+                        OGS_5GMM_CAUSE_DNN_NOT_SUPPORTED_OR_NOT_SUBSCRIBED_IN_THE_SLICE);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 return OGS_ERROR;
             }
 
@@ -1106,16 +1205,18 @@ int gmm_handle_ul_nas_transport(amf_ue_t *amf_ue,
                 }
 
                 if (nf_instance) {
-                    ogs_assert(true ==
-                        amf_sess_sbi_discover_and_send(
+                    r = amf_sess_sbi_discover_and_send(
                             OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
                             amf_nsmf_pdusession_build_create_sm_context,
-                            sess, AMF_CREATE_SM_CONTEXT_NO_STATE, NULL));
+                            sess, AMF_CREATE_SM_CONTEXT_NO_STATE, NULL);
+                    ogs_expect(r == OGS_OK);
+                    ogs_assert(r != OGS_ERROR);
                 } else {
-                    ogs_assert(true ==
-                        amf_sess_sbi_discover_and_send(
+                    r = amf_sess_sbi_discover_and_send(
                             OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION, NULL,
-                            amf_nnssf_nsselection_build_get, sess, 0, NULL));
+                            amf_nnssf_nsselection_build_get, sess, 0, NULL);
+                    ogs_expect(r == OGS_OK);
+                    ogs_assert(r != OGS_ERROR);
                 }
 
             } else {
@@ -1124,12 +1225,13 @@ int gmm_handle_ul_nas_transport(amf_ue_t *amf_ue,
                 param.release = 1;
                 param.cause = OpenAPI_cause_REL_DUE_TO_DUPLICATE_SESSION_ID;
 
-                ogs_assert(true ==
-                    amf_sess_sbi_discover_and_send(
+                r = amf_sess_sbi_discover_and_send(
                         OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
                         amf_nsmf_pdusession_build_update_sm_context,
                         sess, AMF_UPDATE_SM_CONTEXT_DUPLICATED_PDU_SESSION_ID,
-                        &param));
+                        &param);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
             }
 
         } else {
@@ -1137,9 +1239,10 @@ int gmm_handle_ul_nas_transport(amf_ue_t *amf_ue,
             if (!SESSION_CONTEXT_IN_SMF(sess)) {
                 ogs_error("[%s:%d] Session Context is not in SMF [%d]",
                     amf_ue->supi, sess->psi, gsm_header->message_type);
-                ogs_assert(OGS_OK ==
-                    nas_5gs_send_back_gsm_message(sess,
-                        OGS_5GMM_CAUSE_DNN_NOT_SUPPORTED_OR_NOT_SUBSCRIBED_IN_THE_SLICE, 0));
+                r = nas_5gs_send_back_gsm_message(sess,
+                        OGS_5GMM_CAUSE_DNN_NOT_SUPPORTED_OR_NOT_SUBSCRIBED_IN_THE_SLICE, 0);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 return OGS_ERROR;
             }
 
@@ -1151,18 +1254,20 @@ int gmm_handle_ul_nas_transport(amf_ue_t *amf_ue,
                 param.ue_location = true;
                 param.ue_timezone = true;
 
-                ogs_assert(true ==
-                    amf_sess_sbi_discover_and_send(
+                r = amf_sess_sbi_discover_and_send(
                         OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
                         amf_nsmf_pdusession_build_update_sm_context,
-                        sess, AMF_UPDATE_SM_CONTEXT_N1_RELEASED, &param));
+                        sess, AMF_UPDATE_SM_CONTEXT_N1_RELEASED, &param);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
             } else {
 
-                ogs_assert(true ==
-                    amf_sess_sbi_discover_and_send(
+                r = amf_sess_sbi_discover_and_send(
                         OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
                         amf_nsmf_pdusession_build_update_sm_context,
-                        sess, AMF_UPDATE_SM_CONTEXT_MODIFIED, &param));
+                        sess, AMF_UPDATE_SM_CONTEXT_MODIFIED, &param);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
             }
 
             switch (gsm_header->message_type) {
@@ -1192,9 +1297,10 @@ int gmm_handle_ul_nas_transport(amf_ue_t *amf_ue,
                     memset(&param, 0, sizeof(param));
                     param.acknowledgement_requested = 1;
                     param.guti = 1;
-                    ogs_assert(OGS_OK ==
-                        nas_5gs_send_configuration_update_command(
-                            amf_ue, &param));
+                    r = nas_5gs_send_configuration_update_command(
+                            amf_ue, &param);
+                    ogs_expect(r == OGS_OK);
+                    ogs_assert(r != OGS_ERROR);
 
                     AMF_UE_CLEAR_PAGING_INFO(amf_ue);
                 }
@@ -1212,9 +1318,10 @@ int gmm_handle_ul_nas_transport(amf_ue_t *amf_ue,
     default:
         ogs_error("[%s] Unknown Payload container type [%d]",
             amf_ue->supi, payload_container_type->value);
-        ogs_assert(OGS_OK ==
-            nas_5gs_send_gmm_status(amf_ue,
-                OGS_5GMM_CAUSE_MESSAGE_TYPE_NON_EXISTENT_OR_NOT_IMPLEMENTED));
+        r = nas_5gs_send_gmm_status(amf_ue,
+                OGS_5GMM_CAUSE_MESSAGE_TYPE_NON_EXISTENT_OR_NOT_IMPLEMENTED);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
         return OGS_ERROR;
     }
 

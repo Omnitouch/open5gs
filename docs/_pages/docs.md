@@ -18,7 +18,6 @@ head_inline: "<style> ul { padding-bottom: 1em; } </style>"
   - [Dockerized VoLTE Setup](tutorial/03-VoLTE-dockerized)
 
 - Inside Source Code
-  - [Detailed Architecture of Open5GS](https://chowdera.com/2022/151/202205312246348316.html)
   - [UPF Code Explanation](https://medium.com/@aditya.koranga/open5gs-upf-code-explanation-with-flow-c-79c50f253dd1)
   - [SMF Code Explanation](https://medium.com/@aditya.koranga/open5gs-smf-code-explanation-with-flow-charts-a3b3cd38c991)
 
@@ -60,3 +59,4 @@ head_inline: "<style> ul { padding-bottom: 1em; } </style>"
   - [Select UPF based on S-NSSAI](https://github.com/s5uishida/open5gs_5gc_ueransim_snssai_upf_sample_config)
   - [SCP Indirect communication Model C](https://github.com/s5uishida/open5gs_5gc_ueransim_scp_model_c_sample_config)
   - [Monitoring Metrics with Prometheus](https://github.com/s5uishida/open5gs_5gc_ueransim_metrics_sample_config)
+  - [Frame Routing](https://github.com/s5uishida/open5gs_5gc_ueransim_framed_routing_sample_config)

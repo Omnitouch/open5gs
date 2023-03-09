@@ -404,7 +404,27 @@ struct amf_ue_s {
     } handover;
 
     /* SubscriptionId of Subscription to Data Change Notification to UDM */
+#define UDM_SDM_SUBSCRIBED(__aMF) \
+    ((__aMF) && ((__aMF)->data_change_subscription_id))
     char *data_change_subscription_id;
+
+    struct {
+        /*
+         * De-Registered Request
+         * De-Registered Accept
+         */
+        bool n1_done;
+
+        /*
+         * Nudm_SDM_Unsubscribe
+         * PATCH Nudm_UECM/registration/amf-3gpp-access
+         * PDU Session Release
+         * N4 Release
+         * DELETE Nbpsf-management
+         * DELETE Npcf-am_policy-control
+         */
+        bool sbi_done;
+    } explict_de_registered;
 
     ogs_list_t      sess_list;
 };
@@ -758,6 +778,9 @@ void amf_sbi_select_nf(
     (amf_sess_xact_state_count(__aMF, __sTATE) == 0)
 int amf_sess_xact_count(amf_ue_t *amf_ue);
 int amf_sess_xact_state_count(amf_ue_t *amf_ue, int state);
+
+#define AMF_SESSION_RELEASE_PENDING(__aMF) \
+    (amf_ue_have_session_release_pending(__aMF) == true)
 
 #define PDU_RES_SETUP_REQ_TRANSFER_NEEDED(__aMF) \
     (amf_pdu_res_setup_req_transfer_needed(__aMF) == true)

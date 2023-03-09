@@ -28,6 +28,7 @@ bool smf_nsmf_handle_create_sm_context(
 {
     bool rc;
     smf_ue_t *smf_ue = NULL;
+    char *type = NULL;
 
     ogs_nas_5gsm_header_t *gsm_header = NULL;
     ogs_pkbuf_t *n1smbuf = NULL;
@@ -164,6 +165,60 @@ bool smf_nsmf_handle_create_sm_context(
         return false;
     }
 
+    if (SmContextCreateData->supi) {
+        type = ogs_id_get_type(SmContextCreateData->supi);
+        if (type) {
+            if (strncmp(type, OGS_ID_SUPI_TYPE_IMSI,
+                        strlen(OGS_ID_SUPI_TYPE_IMSI)) == 0) {
+                char *imsi_bcd = ogs_id_get_value(SmContextCreateData->supi);
+
+                ogs_cpystrn(smf_ue->imsi_bcd, imsi_bcd,
+                        ogs_min(strlen(imsi_bcd), OGS_MAX_IMSI_BCD_LEN)+1);
+                ogs_bcd_to_buffer(smf_ue->imsi_bcd,
+                        smf_ue->imsi, &smf_ue->imsi_len);
+
+                ogs_free(imsi_bcd);
+            }
+            ogs_free(type);
+        }
+    }
+
+    if (SmContextCreateData->pei) {
+        type = ogs_id_get_type(SmContextCreateData->pei);
+        if (type) {
+            if (strncmp(type, OGS_ID_SUPI_TYPE_IMEISV,
+                        strlen(OGS_ID_SUPI_TYPE_IMEISV)) == 0) {
+                char *imeisv_bcd = ogs_id_get_value(SmContextCreateData->pei);
+
+                ogs_cpystrn(smf_ue->imeisv_bcd, imeisv_bcd,
+                        ogs_min(strlen(imeisv_bcd), OGS_MAX_IMEISV_BCD_LEN)+1);
+                ogs_bcd_to_buffer(smf_ue->imeisv_bcd,
+                        smf_ue->imeisv, &smf_ue->imeisv_len);
+
+                ogs_free(imeisv_bcd);
+            }
+            ogs_free(type);
+        }
+    }
+
+    if (SmContextCreateData->gpsi) {
+        type = ogs_id_get_type(SmContextCreateData->gpsi);
+        if (type) {
+            if (strncmp(type, OGS_ID_GPSI_TYPE_MSISDN,
+                        strlen(OGS_ID_GPSI_TYPE_MSISDN)) == 0) {
+                char *msisdn_bcd = ogs_id_get_value(SmContextCreateData->gpsi);
+
+                ogs_cpystrn(smf_ue->msisdn_bcd, msisdn_bcd,
+                        ogs_min(strlen(msisdn_bcd), OGS_MAX_MSISDN_BCD_LEN)+1);
+                ogs_bcd_to_buffer(smf_ue->msisdn_bcd,
+                        smf_ue->msisdn, &smf_ue->msisdn_len);
+
+                ogs_free(msisdn_bcd);
+            }
+            ogs_free(type);
+        }
+    }
+
     ogs_sbi_parse_plmn_id_nid(&sess->plmn_id, servingNetwork);
 
     sess->sbi_rat_type = SmContextCreateData->rat_type;
@@ -232,6 +287,7 @@ bool smf_nsmf_handle_update_sm_context(
     smf_sess_t *sess, ogs_sbi_stream_t *stream, ogs_sbi_message_t *message)
 {
     int i;
+    int r;
     smf_ue_t *smf_ue = NULL;
 
     ogs_sbi_message_t sendmsg;
@@ -605,12 +661,14 @@ bool smf_nsmf_handle_update_sm_context(
                 param.ue_location = true;
                 param.ue_timezone = true;
 
-                ogs_assert(true ==
-                    smf_sbi_discover_and_send(
+                r = smf_sbi_discover_and_send(
                         OGS_SBI_SERVICE_TYPE_NPCF_SMPOLICYCONTROL, NULL,
                         smf_npcf_smpolicycontrol_build_delete,
                         sess, stream,
-                        OGS_PFCP_DELETE_TRIGGER_AMF_UPDATE_SM_CONTEXT, &param));
+                        OGS_PFCP_DELETE_TRIGGER_AMF_UPDATE_SM_CONTEXT, &param);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
+
             }
         } else {
             ogs_error("No PolicyAssociationId");
@@ -646,6 +704,7 @@ bool smf_nsmf_handle_update_sm_context(
 bool smf_nsmf_handle_release_sm_context(
     smf_sess_t *sess, ogs_sbi_stream_t *stream, ogs_sbi_message_t *message)
 {
+    int r;
     smf_npcf_smpolicycontrol_param_t param;
 
     OpenAPI_sm_context_release_data_t *SmContextReleaseData = NULL;
@@ -696,12 +755,13 @@ bool smf_nsmf_handle_release_sm_context(
     }
 
     if (sess->policy_association_id) {
-        ogs_assert(true ==
-            smf_sbi_discover_and_send(
+        r = smf_sbi_discover_and_send(
                 OGS_SBI_SERVICE_TYPE_NPCF_SMPOLICYCONTROL, NULL,
                 smf_npcf_smpolicycontrol_build_delete,
                 sess, stream,
-                OGS_PFCP_DELETE_TRIGGER_AMF_RELEASE_SM_CONTEXT, &param));
+                OGS_PFCP_DELETE_TRIGGER_AMF_RELEASE_SM_CONTEXT, &param);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
     } else {
         ogs_error("No PolicyAssociationId");
         ogs_assert(true ==

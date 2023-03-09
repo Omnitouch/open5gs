@@ -31,9 +31,11 @@ static OGS_POOL(subscription_data_pool, ogs_sbi_subscription_data_t);
 static OGS_POOL(smf_info_pool, ogs_sbi_smf_info_t);
 static OGS_POOL(nf_info_pool, ogs_sbi_nf_info_t);
 
-void ogs_sbi_context_init(void)
+void ogs_sbi_context_init(OpenAPI_nf_type_e nf_type)
 {
     char nf_instance_id[OGS_UUID_FORMATTED_LENGTH + 1];
+
+    ogs_assert(nf_type);
 
     ogs_assert(context_initialized == 0);
 
@@ -62,18 +64,21 @@ void ogs_sbi_context_init(void)
 
     ogs_pool_init(&nf_info_pool, ogs_app()->pool.nf * OGS_MAX_NUM_OF_NF_INFO);
 
-    /* Add AELF NF-Instance */
+    /* Add SELF NF-Instance */
     self.nf_instance = ogs_sbi_nf_instance_add();
     ogs_assert(self.nf_instance);
 
     ogs_uuid_get(&self.uuid);
     ogs_uuid_format(nf_instance_id, &self.uuid);
     ogs_sbi_nf_instance_set_id(self.nf_instance, nf_instance_id);
+    ogs_sbi_nf_instance_set_type(self.nf_instance, nf_type);
 
     /* Add NRF NF-Instance */
-    self.nrf_instance = ogs_sbi_nf_instance_add();
-    ogs_assert(self.nrf_instance);
-    ogs_sbi_nf_instance_set_type(self.nrf_instance, OpenAPI_nf_type_NRF);
+    if (nf_type != OpenAPI_nf_type_NRF) {
+        self.nrf_instance = ogs_sbi_nf_instance_add();
+        ogs_assert(self.nrf_instance);
+        ogs_sbi_nf_instance_set_type(self.nrf_instance, OpenAPI_nf_type_NRF);
+    }
 
     /* Add SCP NF-Instance */
     self.scp_instance = ogs_sbi_nf_instance_add();
@@ -115,44 +120,6 @@ ogs_sbi_context_t *ogs_sbi_self(void)
     return &self;
 }
 
-bool ogs_app_tls_server_enabled(void)
-{
-    if (self.tls.enabled == OGS_SBI_TLS_ENABLED_AUTO) {
-        if (self.tls.server.key && self.tls.server.cert)
-            return true;
-        else
-            return false;
-    } else if (self.tls.enabled == OGS_SBI_TLS_ENABLED_YES) {
-        ogs_assert(self.tls.server.key);
-        ogs_assert(self.tls.server.cert);
-        return true;
-    } else if (self.tls.enabled == OGS_SBI_TLS_ENABLED_NO) {
-        return false;
-    } else {
-        ogs_error("Unknown TLS enabled mode [%d]", self.tls.enabled);
-        return false;
-    }
-}
-
-bool ogs_app_tls_client_enabled(void)
-{
-    if (self.tls.enabled == OGS_SBI_TLS_ENABLED_AUTO) {
-        if (self.tls.client.key && self.tls.client.cert)
-            return true;
-        else
-            return false;
-    } else if (self.tls.enabled == OGS_SBI_TLS_ENABLED_YES) {
-        ogs_assert(self.tls.client.key);
-        ogs_assert(self.tls.client.cert);
-        return true;
-    } else if (self.tls.enabled == OGS_SBI_TLS_ENABLED_NO) {
-        return false;
-    } else {
-        ogs_error("Unknown TLS enabled mode [%d]", self.tls.enabled);
-        return false;
-    }
-}
-
 static int ogs_sbi_context_prepare(void)
 {
     self.sbi_port = OGS_SBI_HTTP_PORT;
@@ -160,8 +127,6 @@ static int ogs_sbi_context_prepare(void)
 #if ENABLE_ACCEPT_ENCODING
     self.content_encoding = "gzip";
 #endif
-
-    self.tls.enabled = OGS_SBI_TLS_ENABLED_AUTO;
 
     return OGS_OK;
 }
@@ -216,23 +181,24 @@ static int ogs_sbi_context_validation(
         ogs_assert_if_reached();
     }
 
-    if (self.tls.enabled == OGS_SBI_TLS_ENABLED_YES) {
+    if (ogs_app()->sbi.server.no_tls == false) {
+        if (!ogs_app()->sbi.server.key) {
+            ogs_error("TLS enabled but no server key");
+            return OGS_ERROR;
+        }
+        if (!ogs_app()->sbi.server.cert) {
+            ogs_error("TLS enabled but no server certificate");
+            return OGS_ERROR;
+        }
+    }
 
-        if (!self.tls.server.key) {
-            ogs_error("No Server Key");
+    if (ogs_app()->sbi.client.no_tls == false) {
+        if (!ogs_app()->sbi.client.key) {
+            ogs_error("TLS enabled but no client key");
             return OGS_ERROR;
         }
-        if (!self.tls.server.cert) {
-            ogs_error("No Server Certificate");
-            return OGS_ERROR;
-        }
-
-        if (!self.tls.client.key) {
-            ogs_error("No Client Key");
-            return OGS_ERROR;
-        }
-        if (!self.tls.client.cert) {
-            ogs_error("No Client Certificate");
+        if (!ogs_app()->sbi.client.cert) {
+            ogs_error("TLS enabled but no client certificate");
             return OGS_ERROR;
         }
     }
@@ -617,7 +583,7 @@ int ogs_sbi_context_parse_config(
                         if (addr == NULL) continue;
 
                         client = ogs_sbi_client_add(
-                                    ogs_app_tls_client_enabled() == true ?
+                                    ogs_app()->sbi.client.no_tls == false ?
                                         OpenAPI_uri_scheme_https :
                                         OpenAPI_uri_scheme_http,
                                     addr);
@@ -723,7 +689,7 @@ int ogs_sbi_context_parse_config(
                         if (addr == NULL) continue;
 
                         client = ogs_sbi_client_add(
-                                    ogs_app_tls_client_enabled() == true ?
+                                    ogs_app()->sbi.client.no_tls == false ?
                                         OpenAPI_uri_scheme_https :
                                         OpenAPI_uri_scheme_http,
                                     addr);
@@ -736,146 +702,87 @@ int ogs_sbi_context_parse_config(
                             YAML_SEQUENCE_NODE);
                 }
             }
-        } else if (!strcmp(root_key, "tls")) {
-            ogs_yaml_iter_t tls_iter;
-            ogs_yaml_iter_recurse(&root_iter, &tls_iter);
-            while (ogs_yaml_iter_next(&tls_iter)) {
-                const char *tls_key = ogs_yaml_iter_key(&tls_iter);
-                ogs_assert(tls_key);
-                if (!strcmp(tls_key, "enabled")) {
-                    const char *v = ogs_yaml_iter_value(&tls_iter);
-                    if (!strcmp(v, "auto"))
-                        self.tls.enabled = OGS_SBI_TLS_ENABLED_AUTO;
-                    else if (!strcmp(v, "yes"))
-                        self.tls.enabled = OGS_SBI_TLS_ENABLED_YES;
-                    else if (!strcmp(v, "no"))
-                        self.tls.enabled = OGS_SBI_TLS_ENABLED_NO;
-                    else
-                        ogs_warn("unknown 'tls.enabled' value `%s`", v);
-                } else if (!strcmp(tls_key, "server")) {
-                    ogs_yaml_iter_t server_iter;
-                    ogs_yaml_iter_recurse(&tls_iter, &server_iter);
-
-                    while (ogs_yaml_iter_next(&server_iter)) {
-                        const char *server_key =
-                            ogs_yaml_iter_key(&server_iter);
-                        ogs_assert(server_key);
-                        if (!strcmp(server_key, "cacert")) {
-                            self.tls.server.cacert =
-                                ogs_yaml_iter_value(&server_iter);
-                        } else if (!strcmp(server_key, "cert")) {
-                            self.tls.server.cert =
-                                ogs_yaml_iter_value(&server_iter);
-                        } else if (!strcmp(server_key, "key")) {
-                            self.tls.server.key =
-                                ogs_yaml_iter_value(&server_iter);
-                        } else
-                            ogs_warn("unknown key `%s`", server_key);
-                    }
-                } else if (!strcmp(tls_key, "client")) {
-                    ogs_yaml_iter_t client_iter;
-                    ogs_yaml_iter_recurse(&tls_iter, &client_iter);
-
-                    while (ogs_yaml_iter_next(&client_iter)) {
-                        const char *client_key =
-                            ogs_yaml_iter_key(&client_iter);
-                        ogs_assert(client_key);
-                        if (!strcmp(client_key, "cacert")) {
-                            self.tls.client.cacert =
-                                ogs_yaml_iter_value(&client_iter);
-                        } else if (!strcmp(client_key, "cert")) {
-                            self.tls.client.cert =
-                                ogs_yaml_iter_value(&client_iter);
-                        } else if (!strcmp(client_key, "key")) {
-                            self.tls.client.key =
-                                ogs_yaml_iter_value(&client_iter);
-                        } else
-                            ogs_warn("unknown key `%s`", client_key);
-                    }
-                } else
-                    ogs_warn("unknown key `%s`", tls_key);
-            }
-        } else if (!strcmp(root_key, "hnet")) {
-            ogs_yaml_iter_t hnet_array, hnet_iter;
-            ogs_yaml_iter_recurse(&root_iter, &hnet_array);
-            do {
-                uint8_t id = 0, scheme = 0;
-                const char *filename = NULL;
-
-                if (ogs_yaml_iter_type(&hnet_array) ==
-                        YAML_MAPPING_NODE) {
-                    memcpy(&hnet_iter, &hnet_array,
-                            sizeof(ogs_yaml_iter_t));
-                } else if (ogs_yaml_iter_type(&hnet_array) ==
-                    YAML_SEQUENCE_NODE) {
-                    if (!ogs_yaml_iter_next(&hnet_array))
-                        break;
-                    ogs_yaml_iter_recurse(&hnet_array,
-                            &hnet_iter);
-                } else if (ogs_yaml_iter_type(&hnet_array) ==
-                    YAML_SCALAR_NODE) {
-                    break;
-                } else
-                    ogs_assert_if_reached();
-
-                while (ogs_yaml_iter_next(&hnet_iter)) {
-                    const char *hnet_key =
-                        ogs_yaml_iter_key(&hnet_iter);
-                    ogs_assert(hnet_key);
-                    if (!strcmp(hnet_key, "id")) {
-                        const char *v = ogs_yaml_iter_value(&hnet_iter);
-                        if (v) {
-                            if (atoi(v) >= 1 && atoi(v) <= 254) id = atoi(v);
-                        }
-                    } else if (!strcmp(hnet_key, "scheme")) {
-                        const char *v = ogs_yaml_iter_value(&hnet_iter);
-                        if (v) {
-                            if (atoi(v) == 1 || atoi(v) == 2)
-                                scheme = atoi(v);
-                        }
-                    } else if (!strcmp(hnet_key, "key")) {
-                        filename = ogs_yaml_iter_value(&hnet_iter);
-                    } else
-                        ogs_warn("unknown key `%s`", hnet_key);
-                }
-
-                if (id >= OGS_HOME_NETWORK_PKI_VALUE_MIN &&
-                    id <= OGS_HOME_NETWORK_PKI_VALUE_MAX &&
-                    filename) {
-                    if (scheme == OGS_PROTECTION_SCHEME_PROFILE_A) {
-                        rv = ogs_pem_decode_curve25519_key(
-                                filename, self.hnet[id].key);
-                        if (rv == OGS_OK) {
-                            self.hnet[id].avail = true;
-                            self.hnet[id].scheme = scheme;
-                        } else {
-                            ogs_error(
-                                    "ogs_pem_decode_curve25519_key[%s] failed",
-                                    filename);
-                        }
-                    } else if (scheme == OGS_PROTECTION_SCHEME_PROFILE_B) {
-                        rv = ogs_pem_decode_secp256r1_key(
-                                filename, self.hnet[id].key);
-                        if (rv == OGS_OK) {
-                            self.hnet[id].avail = true;
-                            self.hnet[id].scheme = scheme;
-                        } else {
-                            ogs_error(
-                                    "ogs_pem_decode_secp256r1_key[%s] failed",
-                                    filename);
-                        }
-                    } else
-                        ogs_error("Invalid scheme [%d]", scheme);
-                } else
-                    ogs_error("Invalid home network configuration "
-                            "[id:%d, filename:%s]", id, filename);
-            } while (ogs_yaml_iter_type(&hnet_array) ==
-                    YAML_SEQUENCE_NODE);
         }
     }
 
     rv = ogs_sbi_context_validation(local, nrf, scp);
     if (rv != OGS_OK) return rv;
+
+    return OGS_OK;
+}
+
+int ogs_sbi_context_parse_hnet_config(ogs_yaml_iter_t *root_iter)
+{
+    int rv;
+    ogs_yaml_iter_t hnet_array, hnet_iter;
+
+    ogs_assert(root_iter);
+    ogs_yaml_iter_recurse(root_iter, &hnet_array);
+    do {
+        uint8_t id = 0, scheme = 0;
+        const char *filename = NULL;
+
+        if (ogs_yaml_iter_type(&hnet_array) == YAML_MAPPING_NODE) {
+            memcpy(&hnet_iter, &hnet_array, sizeof(ogs_yaml_iter_t));
+        } else if (ogs_yaml_iter_type(&hnet_array) == YAML_SEQUENCE_NODE) {
+            if (!ogs_yaml_iter_next(&hnet_array))
+                break;
+            ogs_yaml_iter_recurse(&hnet_array, &hnet_iter);
+        } else if (ogs_yaml_iter_type(&hnet_array) == YAML_SCALAR_NODE) {
+            break;
+        } else
+            ogs_assert_if_reached();
+
+        while (ogs_yaml_iter_next(&hnet_iter)) {
+            const char *hnet_key = ogs_yaml_iter_key(&hnet_iter);
+            ogs_assert(hnet_key);
+            if (!strcmp(hnet_key, "id")) {
+                const char *v = ogs_yaml_iter_value(&hnet_iter);
+                if (v) {
+                    if (atoi(v) >= 1 && atoi(v) <= 254)
+                        id = atoi(v);
+                }
+            } else if (!strcmp(hnet_key, "scheme")) {
+                const char *v = ogs_yaml_iter_value(&hnet_iter);
+                if (v) {
+                    if (atoi(v) == 1 || atoi(v) == 2)
+                        scheme = atoi(v);
+                }
+            } else if (!strcmp(hnet_key, "key")) {
+                filename = ogs_yaml_iter_value(&hnet_iter);
+            } else
+                ogs_warn("unknown key `%s`", hnet_key);
+        }
+
+        if (id >= OGS_HOME_NETWORK_PKI_VALUE_MIN &&
+            id <= OGS_HOME_NETWORK_PKI_VALUE_MAX &&
+            filename) {
+            if (scheme == OGS_PROTECTION_SCHEME_PROFILE_A) {
+                rv = ogs_pem_decode_curve25519_key(
+                        filename, self.hnet[id].key);
+                if (rv == OGS_OK) {
+                    self.hnet[id].avail = true;
+                    self.hnet[id].scheme = scheme;
+                } else {
+                    ogs_error("ogs_pem_decode_curve25519_key"
+                            "[%s] failed", filename);
+                }
+            } else if (scheme == OGS_PROTECTION_SCHEME_PROFILE_B) {
+                rv = ogs_pem_decode_secp256r1_key(
+                        filename, self.hnet[id].key);
+                if (rv == OGS_OK) {
+                    self.hnet[id].avail = true;
+                    self.hnet[id].scheme = scheme;
+                } else {
+                    ogs_error("ogs_pem_decode_secp256r1_key[%s]"
+                            " failed", filename);
+                }
+            } else
+                ogs_error("Invalid scheme [%d]", scheme);
+        } else
+            ogs_error("Invalid home network configuration "
+                    "[id:%d, filename:%s]", id, filename);
+    } while (ogs_yaml_iter_type(&hnet_array) == YAML_SEQUENCE_NODE);
 
     return OGS_OK;
 }
@@ -1409,16 +1316,13 @@ ogs_sbi_nf_info_t *ogs_sbi_nf_info_find(
     return NULL;
 }
 
-void ogs_sbi_nf_instance_build_default(
-        ogs_sbi_nf_instance_t *nf_instance, OpenAPI_nf_type_e nf_type)
+void ogs_sbi_nf_instance_build_default(ogs_sbi_nf_instance_t *nf_instance)
 {
     ogs_sbi_server_t *server = NULL;
     char *hostname = NULL;
 
     ogs_assert(nf_instance);
-    ogs_assert(nf_type);
 
-    ogs_sbi_nf_instance_set_type(nf_instance, nf_type);
     ogs_sbi_nf_instance_set_status(nf_instance, OpenAPI_nf_status_REGISTERED);
 
     hostname = NULL;
@@ -1478,7 +1382,7 @@ ogs_sbi_nf_service_t *ogs_sbi_nf_service_build_default(
     ogs_uuid_format(id, &uuid);
 
     nf_service = ogs_sbi_nf_service_add(nf_instance, id, name,
-                    ogs_app_tls_server_enabled() == true ?
+                    ogs_app()->sbi.server.no_tls == false ?
                         OpenAPI_uri_scheme_https :
                         OpenAPI_uri_scheme_http);
     ogs_assert(nf_service);
@@ -1569,7 +1473,7 @@ static ogs_sbi_client_t *nf_instance_find_client(
     ogs_sockaddr_t *addr = NULL;
     OpenAPI_uri_scheme_e scheme = OpenAPI_uri_scheme_NULL;
 
-    scheme = ogs_app_tls_client_enabled() == true ?
+    scheme = ogs_app()->sbi.client.no_tls == false ?
                 OpenAPI_uri_scheme_https : OpenAPI_uri_scheme_http;
 
     if (nf_instance->fqdn)
@@ -1685,6 +1589,9 @@ bool ogs_sbi_discovery_param_is_matched(
     ogs_assert(target_nf_type);
     ogs_assert(requester_nf_type);
 
+    if (NF_INSTANCE_EXCLUDED_FROM_DISCOVERY(nf_instance))
+        return false;
+
     if (!OGS_FSM_CHECK(&nf_instance->sm, ogs_sbi_nf_state_registered))
         return false;
 
@@ -1798,7 +1705,6 @@ ogs_sbi_xact_t *ogs_sbi_xact_add(
         ogs_error("ogs_pool_alloc() failed");
         return NULL;
     }
-    ogs_expect_or_return_val(xact, NULL);
     memset(xact, 0, sizeof(ogs_sbi_xact_t));
 
     xact->sbi_object = sbi_object;
@@ -1815,6 +1721,10 @@ ogs_sbi_xact_t *ogs_sbi_xact_add(
     if (!discovery_option) {
         discovery_option = ogs_sbi_discovery_option_new();
         ogs_assert(discovery_option);
+
+        /* ALWAYS add Service-MAP to requester-features in Discovery Option */
+        OGS_SBI_FEATURES_SET(discovery_option->requester_features,
+                OGS_SBI_NNRF_DISC_SERVICE_MAP);
     }
 
     if (!discovery_option->num_of_service_names) {

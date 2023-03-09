@@ -30,7 +30,7 @@ int udm_sbi_open(void)
     ogs_sbi_nf_fsm_init(nf_instance);
 
     /* Build NF instance information. It will be transmitted to NRF. */
-    ogs_sbi_nf_instance_build_default(nf_instance, OpenAPI_nf_type_UDM);
+    ogs_sbi_nf_instance_build_default(nf_instance);
     ogs_sbi_nf_instance_add_allowed_nf_type(nf_instance, OpenAPI_nf_type_AMF);
     ogs_sbi_nf_instance_add_allowed_nf_type(nf_instance, OpenAPI_nf_type_SMF);
     ogs_sbi_nf_instance_add_allowed_nf_type(nf_instance, OpenAPI_nf_type_AUSF);
@@ -93,13 +93,14 @@ bool udm_sbi_send_request(
     return ogs_sbi_send_request_to_nf_instance(nf_instance, xact);
 }
 
-bool udm_sbi_discover_and_send(
+int udm_sbi_discover_and_send(
         ogs_sbi_service_type_e service_type,
         ogs_sbi_discovery_option_t *discovery_option,
         ogs_sbi_request_t *(*build)(udm_ue_t *udm_ue, void *data),
         udm_ue_t *udm_ue, ogs_sbi_stream_t *stream, void *data)
 {
     ogs_sbi_xact_t *xact = NULL;
+    int r;
 
     ogs_assert(service_type);
     ogs_assert(udm_ue);
@@ -115,20 +116,21 @@ bool udm_sbi_discover_and_send(
             ogs_sbi_server_send_error(stream,
                 OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT, NULL,
                 "Cannot discover", udm_ue->suci));
-        return false;
+        return OGS_ERROR;
     }
 
     xact->assoc_stream = stream;
 
-    if (ogs_sbi_discover_and_send(xact) != true) {
+    r = ogs_sbi_discover_and_send(xact);
+    if (r != OGS_OK) {
         ogs_error("udm_sbi_discover_and_send() failed");
         ogs_sbi_xact_remove(xact);
         ogs_assert(true ==
             ogs_sbi_server_send_error(stream,
                 OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT, NULL,
                 "Cannot discover", udm_ue->suci));
-        return false;
+        return r;
     }
 
-    return true;
+    return OGS_OK;
 }

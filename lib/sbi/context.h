@@ -46,23 +46,8 @@ typedef struct ogs_sbi_discovery_config_s {
     bool prefer_requester_nf_instance_id;
 } ogs_sbi_discovery_config_t;
 
-typedef enum {
-    OGS_SBI_TLS_ENABLED_AUTO = 0,
-    OGS_SBI_TLS_ENABLED_YES,
-    OGS_SBI_TLS_ENABLED_NO,
-} ogs_sbi_tls_enabled_mode_e;
-
 typedef struct ogs_sbi_context_s {
     ogs_sbi_discovery_config_t discovery_config; /* SCP Discovery Delegated */
-
-    struct {
-        ogs_sbi_tls_enabled_mode_e enabled;
-        struct {
-            const char *cacert;
-            const char *cert;
-            const char *key;
-        } server, client;
-    } tls;
 
 #define OGS_HOME_NETWORK_PKI_VALUE_MIN 1
 #define OGS_HOME_NETWORK_PKI_VALUE_MAX 254
@@ -108,6 +93,21 @@ typedef struct ogs_sbi_nf_instance_s {
     ogs_timer_t *t_heartbeat_interval;      /* heartbeat interval */
     ogs_timer_t *t_no_heartbeat;            /* check heartbeat */
     ogs_timer_t *t_validity;                /* check validation */
+
+    /*
+     * Issues #2034
+     *
+     * Other NF instances are obtained through NRF
+     * or created directly through configuration files.
+     *
+     * Other NFs created by the config file should not be passed
+     * through NRF discovery or anything like that.
+     *
+     * Since self-created NF Instances do not have an ID,
+     * they are implemented to exclude them from NRF Discovery.
+     */
+#define NF_INSTANCE_EXCLUDED_FROM_DISCOVERY(__nFInstance) \
+    (!(__nFInstance) || !((__nFInstance)->id))
 
 #define NF_INSTANCE_ID(__nFInstance) \
     ((__nFInstance) ? ((__nFInstance)->id) : NULL)
@@ -329,11 +329,12 @@ typedef struct ogs_sbi_nf_info_s {
     };
 } ogs_sbi_nf_info_t;
 
-void ogs_sbi_context_init(void);
+void ogs_sbi_context_init(OpenAPI_nf_type_e nf_type);
 void ogs_sbi_context_final(void);
 ogs_sbi_context_t *ogs_sbi_self(void);
 int ogs_sbi_context_parse_config(
         const char *local, const char *nrf, const char *scp);
+int ogs_sbi_context_parse_hnet_config(ogs_yaml_iter_t *root_iter);
 
 bool ogs_sbi_nf_service_is_available(const char *name);
 
@@ -385,8 +386,7 @@ void ogs_sbi_nf_info_remove_all(ogs_list_t *list);
 ogs_sbi_nf_info_t *ogs_sbi_nf_info_find(
         ogs_list_t *list, OpenAPI_nf_type_e nf_type);
 
-void ogs_sbi_nf_instance_build_default(
-        ogs_sbi_nf_instance_t *nf_instance, OpenAPI_nf_type_e nf_type);
+void ogs_sbi_nf_instance_build_default(ogs_sbi_nf_instance_t *nf_instance);
 ogs_sbi_nf_service_t *ogs_sbi_nf_service_build_default(
         ogs_sbi_nf_instance_t *nf_instance, const char *name);
 

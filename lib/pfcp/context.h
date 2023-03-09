@@ -55,6 +55,8 @@ typedef struct ogs_pfcp_context_s {
 
     ogs_list_t      pfcp_list;      /* PFCP IPv4 Server List */
     ogs_list_t      pfcp_list6;     /* PFCP IPv6 Server List */
+    ogs_sockaddr_t  *pfcp_advertise; /* PFCP Advertise Addr */
+    ogs_sockaddr_t  *pfcp_advertise6;
     ogs_sock_t      *pfcp_sock;     /* PFCP IPv4 Socket */
     ogs_sock_t      *pfcp_sock6;    /* PFCP IPv6 Socket */
     ogs_sockaddr_t  *pfcp_addr;     /* PFCP IPv4 Address */
@@ -168,6 +170,9 @@ typedef struct ogs_pfcp_pdr_s {
 
     ogs_pfcp_ue_ip_addr_t   ue_ip_addr;
     int                     ue_ip_addr_len;
+
+    char                    **ipv4_framed_routes;
+    char                    **ipv6_framed_routes;
 
     ogs_pfcp_f_teid_t       f_teid;
     int                     f_teid_len;
@@ -406,6 +411,7 @@ ogs_pfcp_pdr_t *ogs_pfcp_pdr_find_or_add(
 void ogs_pfcp_object_teid_hash_set(
         ogs_pfcp_object_type_e type, ogs_pfcp_pdr_t *pdr);
 ogs_pfcp_object_t *ogs_pfcp_object_find_by_teid(uint32_t teid);
+int ogs_pfcp_object_count_by_teid(ogs_pfcp_sess_t *sess, uint32_t teid);
 
 ogs_pfcp_pdr_t *ogs_pfcp_pdr_find_by_choose_id(
         ogs_pfcp_sess_t *sess, uint8_t choose_id);
