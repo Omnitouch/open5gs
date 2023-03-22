@@ -29,7 +29,7 @@ struct sess_state {
 
     os0_t       peer_host;          /* Peer Host */
 
-#define MAX_CC_REQUEST_NUMBER 1048576
+#define MAX_CC_REQUEST_NUMBER 64
     smf_sess_t *sess;
     struct {
         bool pfcp;
@@ -648,16 +648,17 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
      * for TERMINATION_REQUEST is one more than for the last UPDATE_REQUEST.
      */
 
+
+
     sess_data->cc_request_type = cc_request_type;
     if (cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST ||
         cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_EVENT_REQUEST)
         sess_data->cc_request_number = 0;
     else
-        sess_data->cc_request_number++;
+        sess_data->cc_request_number = (sess_data->cc_request_number + 1) % MAX_CC_REQUEST_NUMBER;
 
     ogs_debug("    CC Request Type[%d] Number[%d]",
         sess_data->cc_request_type, sess_data->cc_request_number);
-    ogs_assert(sess_data->cc_request_number <= MAX_CC_REQUEST_NUMBER);
 
     /* Update session state */
     sess_data->sess = sess;
@@ -666,6 +667,7 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     else
         sess_data->xact_data[sess_data->cc_request_number].pfcp = false;
     sess_data->xact_data[sess_data->cc_request_number].ptr = xact;
+
 
     /* Origin-Host & Origin-Realm */
     ret = fd_msg_add_origin(req, 0);
