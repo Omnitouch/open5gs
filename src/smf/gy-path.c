@@ -29,7 +29,7 @@ struct sess_state {
 
     os0_t       peer_host;          /* Peer Host */
 
-#define MAX_CC_REQUEST_NUMBER 64
+#define MAX_CC_REQUEST_NUMBER 1048576
     smf_sess_t *sess;
     struct {
         bool pfcp;

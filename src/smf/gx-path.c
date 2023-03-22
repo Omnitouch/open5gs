@@ -28,7 +28,7 @@ struct sess_state {
 
     os0_t       peer_host;          /* Peer Host */
 
-#define MAX_CC_REQUEST_NUMBER 64
+#define MAX_CC_REQUEST_NUMBER 1048576
     smf_sess_t *sess;
     ogs_gtp_xact_t *xact[MAX_CC_REQUEST_NUMBER];
 
