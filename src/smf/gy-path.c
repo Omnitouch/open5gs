@@ -29,7 +29,7 @@ struct sess_state {
 
     os0_t       peer_host;          /* Peer Host */
 
-#define MAX_CC_REQUEST_NUMBER 5
+#define MAX_CC_REQUEST_NUMBER 64
     smf_sess_t *sess;
     struct {
         bool pfcp;
@@ -1100,10 +1100,6 @@ static void smf_gy_cca_cb(void *data, struct msg **msg)
     }
 
 out:
-
-    ogs_info ("sess_data->cc_request_number = %i", sess_data->cc_request_number);
-    ogs_info ("cc_request_number = %i", cc_request_number);
-
     if (!error) {
         e = smf_event_new(SMF_EVT_GY_MESSAGE);
         ogs_assert(e);
