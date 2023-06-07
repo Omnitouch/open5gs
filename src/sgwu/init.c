@@ -20,6 +20,7 @@
 #include "context.h"
 #include "gtp-path.h"
 #include "pfcp-path.h"
+#include "metrics.h"
 
 static ogs_thread_t *thread;
 static void sgwu_main(void *data);
@@ -32,6 +33,7 @@ int sgwu_initialize(void)
 
     ogs_gtp_context_init(OGS_MAX_NUM_OF_GTPU_RESOURCE);
     ogs_pfcp_context_init();
+    ogs_metrics_context_init();
 
     sgwu_context_init();
     sgwu_event_init();
@@ -46,6 +48,9 @@ int sgwu_initialize(void)
     rv = ogs_pfcp_context_parse_config("sgwu", "sgwc");
     if (rv != OGS_OK) return rv;
 
+    rv = ogs_metrics_context_parse_config("sgwu");
+    if (rv != OGS_OK) return rv;
+
     rv = sgwu_context_parse_config();
     if (rv != OGS_OK) return rv;
 
@@ -58,6 +63,9 @@ int sgwu_initialize(void)
 
     rv = sgwu_gtp_open();
     if (rv != OGS_OK) return rv;
+
+    rv = sgwu_metrics_open();
+    if (rv != 0) return OGS_ERROR;
 
     thread = ogs_thread_create(sgwu_main, NULL);
     if (!thread) return OGS_ERROR;
@@ -75,6 +83,8 @@ void sgwu_terminate(void)
 
     ogs_thread_destroy(thread);
 
+    sgwu_metrics_close();
+
     sgwu_pfcp_close();
     sgwu_gtp_close();
 
@@ -86,6 +96,7 @@ void sgwu_terminate(void)
     ogs_pfcp_xact_final();
 
     sgwu_gtp_final();
+    ogs_metrics_context_final();
     sgwu_event_final();
 }
 

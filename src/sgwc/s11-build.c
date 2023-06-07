@@ -82,6 +82,14 @@ ogs_pkbuf_t *sgwc_s11_build_create_session_response(
         rsp->bearer_contexts_created[i].eps_bearer_id.presence = 1;
         rsp->bearer_contexts_created[i].eps_bearer_id.u8 = bearer->ebi;
 
+        if((5 <= rsp->bearer_contexts_created[i].eps_bearer_id.u8) &&
+           (rsp->bearer_contexts_created[i].eps_bearer_id.u8 <= 15)) {
+            sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_CREATIONDEDICATEDBEARERS11SUCC);
+        }
+        else {
+            sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_CREATIONDEFAULTBEARERS11SUCC);
+        }
+
         /* Bearer Cause */
         memset(&bearer_cause[i], 0, sizeof(bearer_cause[i]));
         rsp->bearer_contexts_created[i].cause.presence = 1;

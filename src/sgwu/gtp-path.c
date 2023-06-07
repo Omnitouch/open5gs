@@ -179,6 +179,8 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
 
         ogs_assert(pdr);
 
+        sgwu_metrics_inst_global_add(SGWU_METR_GLOB_GAUGE_GTP_INDATAOCTS1USGW, pkbuf->len);
+
         sendbuf = ogs_pkbuf_copy(pkbuf);
         ogs_assert(sendbuf);
 

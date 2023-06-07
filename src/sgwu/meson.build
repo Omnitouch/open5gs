@@ -24,6 +24,7 @@ libsgwu_sources = files('''
     sxa-handler.h
     pfcp-path.h
     sgwu-sm.h
+    metrics.h
 
     init.c
     timer.c
@@ -35,16 +36,19 @@ libsgwu_sources = files('''
     pfcp-path.c
     pfcp-sm.c
     sgwu-sm.c
+    metrics.c
 '''.split())
 
 libsgwu = static_library('sgwu',
     sources : libsgwu_sources,
-    dependencies : libpfcp_dep,
+    dependencies : [ libpfcp_dep,
+                    libmetrics_dep ],
     install : false)
 
 libsgwu_dep = declare_dependency(
     link_with : libsgwu,
-    dependencies : libpfcp_dep)
+    dependencies : [ libpfcp_dep,
+                    libmetrics_dep ])
 
 sgwu_sources = files('''
     app.c
