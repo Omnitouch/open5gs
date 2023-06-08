@@ -74,6 +74,11 @@ sgwc_metrics_spec_def_t sgwc_metrics_spec_def_global[_SGWC_METR_GLOB_MAX] = {
         .name = "fivegs_servinggwfunction_sm_creationdedicatedbearers11succ",
         .description = "Number of successful dedicated bearer creation over S11",
     },
+    [SGWC_METR_GLOB_CTR_SM_MODIFYEPSBEARERS11SUCC] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "fivegs_sgwcfunction_sm_modifybearersucc",
+        .description = "Number of successful bearer modify over S11",
+    },
     
     /* PFCP */
     [SGWC_METR_GLOB_CTR_SM_ESTABLISHPFCPSESSIONATT] = {

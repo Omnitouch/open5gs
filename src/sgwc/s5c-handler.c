@@ -437,6 +437,8 @@ void sgwc_s5c_handle_modify_bearer_response(
         rv = ogs_gtp_xact_commit(s11_xact);
         ogs_expect(rv == OGS_OK);
     }
+
+    sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_MODIFYEPSBEARERS11SUCC);
 }
 
 void sgwc_s5c_handle_delete_session_response(
