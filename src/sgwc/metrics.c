@@ -101,6 +101,16 @@ sgwc_metrics_spec_def_t sgwc_metrics_spec_def_global[_SGWC_METR_GLOB_MAX] = {
         .name = "fivegs_sgwcfunction_sm_modifypfcpsessionatt",
         .description = "Number of attempted PFCP session modify",
     },
+    [SGWC_METR_GLOB_CTR_SM_MODIFYPFCPSESSIONSUCC] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "fivegs_sgwcfunction_sm_modifypfcpsessionsucc",
+        .description = "Number of successful PFCP session modify",
+    },
+    [SGWC_METR_GLOB_CTR_SM_MODIFYPFCPSESSIONFAIL] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "fivegs_sgwcfunction_sm_modifypfcpsessionfail",
+        .description = "Number of failed PFCP session modify",
+    },
 
     /* Session */
     [SGWC_METR_GLOB_GAUGE_SGWC_SESSIONNBR] = {
