@@ -96,6 +96,16 @@ sgwc_metrics_spec_def_t sgwc_metrics_spec_def_global[_SGWC_METR_GLOB_MAX] = {
         .name = "fivegs_sgwcfunction_sm_deletionpfcpsessionatt",
         .description = "Number of attempted PFCP session deletion",
     },
+    [SGWC_METR_GLOB_CTR_SM_DELETIONPFCPSESSIONSUCC] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "fivegs_sgwcfunction_sm_deletionpfcpsessionsucc",
+        .description = "Number of successful PFCP session deletion",
+    },
+    [SGWC_METR_GLOB_CTR_SM_DELETIONPFCPSESSIONFAIL] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "fivegs_sgwcfunction_sm_deletionpfcpsessionfail",
+        .description = "Number of failed PFCP session deletion",
+    },
     [SGWC_METR_GLOB_CTR_SM_MODIFYPFCPSESSIONATT] = {
         .type = OGS_METRICS_METRIC_TYPE_COUNTER,
         .name = "fivegs_sgwcfunction_sm_modifypfcpsessionatt",

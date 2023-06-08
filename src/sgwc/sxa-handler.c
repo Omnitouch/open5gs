@@ -1352,7 +1352,10 @@ void sgwc_sxa_handle_session_deletion_response(
             ogs_gtp_send_error_message(
                     gtp_xact, teid, gtp_message->h.type, cause_value);
         }
+        sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_DELETIONPFCPSESSIONFAIL);
         return;
+    } else {
+        sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_DELETIONPFCPSESSIONSUCC);
     }
 
     ogs_assert(sess);
