@@ -331,9 +331,9 @@ sgwc_sess_t *sgwc_sess_add(sgwc_ue_t *sgwc_ue, char *apn)
     sess->sgwc_ue = sgwc_ue;
 
     ogs_list_add(&sgwc_ue->sess_list, sess);
-    sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_GAUGE_SGWC_SESSIONNBR);
 
     stats_add_sgwc_session();
+    sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_GAUGE_SGWC_SESSIONNBR);
 
     return sess;
 }
@@ -451,9 +451,9 @@ int sgwc_sess_remove(sgwc_sess_t *sess)
 
     ogs_pool_free(&sgwc_sxa_seid_pool, sess->sgwc_sxa_seid_node);
     ogs_pool_free(&sgwc_sess_pool, sess);
-    sgwc_metrics_inst_global_dec(SGWC_METR_GLOB_GAUGE_SGWC_SESSIONNBR);
 
     stats_remove_sgwc_session();
+    sgwc_metrics_inst_global_dec(SGWC_METR_GLOB_GAUGE_SGWC_SESSIONNBR);
 
     return OGS_OK;
 }

@@ -95,9 +95,9 @@ sgwu_metrics_spec_def_t sgwu_metrics_spec_def_global[_SGWU_METR_GLOB_MAX] = {
 
     /* Sessioon */
     [SGWU_METR_GLOB_GAUGE_SGWU_SESSIONNBR] = {
-        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .type = OGS_METRICS_METRIC_TYPE_GAUGE,
         .name = "fivegs_sgwufunction_sm_sessionnbr",
-        .description = "Active Sessions",
+        .description = "Active Sessions for SGWU",
     },
 };
 

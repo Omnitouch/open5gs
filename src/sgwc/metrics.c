@@ -124,9 +124,9 @@ sgwc_metrics_spec_def_t sgwc_metrics_spec_def_global[_SGWC_METR_GLOB_MAX] = {
 
     /* Session */
     [SGWC_METR_GLOB_GAUGE_SGWC_SESSIONNBR] = {
-        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .type = OGS_METRICS_METRIC_TYPE_GAUGE,
         .name = "fivegs_sgwcfunction_sm_sessionnbr",
-        .description = "Active Sessions",
+        .description = "Active Sessions for SGWC",
     },
 };
 
