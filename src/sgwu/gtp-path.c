@@ -195,9 +195,11 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
             /* Note these counters will stop when they reaches the max
              * value of 9,007,199,254,740,992 Bytes, roughly 9 Petabytes */
             if (is_uplink) {
-                sgwu_metrics_inst_global_add(SGWU_METR_GLOB_GAUGE_GTP_INDATAOCTS1USGW, gtpu_data_length);
+                sgwu_metrics_inst_global_add(SGWU_METR_GLOB_GAUGE_GTP_INDATAOCTS1U, gtpu_data_length);
+                sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_GAUGE_GTP_INDATAPACKETS1U);
             } else {
-                sgwu_metrics_inst_global_add(SGWU_METR_GLOB_GAUGE_GTP_OUTDATAOCTS1USGW, gtpu_data_length);
+                sgwu_metrics_inst_global_add(SGWU_METR_GLOB_GAUGE_GTP_OUTDATAOCTS1U, gtpu_data_length);
+                sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_GAUGE_GTP_OUTDATAPACKETS1U);
             }
 
             ogs_assert(pdr);
