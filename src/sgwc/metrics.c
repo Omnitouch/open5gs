@@ -53,6 +53,7 @@ ogs_metrics_spec_t *sgwc_metrics_spec_global[_SGWC_METR_GLOB_MAX];
 ogs_metrics_inst_t *sgwc_metrics_inst_global[_SGWC_METR_GLOB_MAX];
 sgwc_metrics_spec_def_t sgwc_metrics_spec_def_global[_SGWC_METR_GLOB_MAX] = {
     /* Global Counters: */
+    /* Bearers */
     [SGWC_METR_GLOB_CTR_SM_CREATIONDEFAULTBEARERS11ATT] = {
         .type = OGS_METRICS_METRIC_TYPE_COUNTER,
         .name = "fivegs_servinggwfunction_sm_creationdefaultbearers11att",
@@ -73,6 +74,8 @@ sgwc_metrics_spec_def_t sgwc_metrics_spec_def_global[_SGWC_METR_GLOB_MAX] = {
         .name = "fivegs_servinggwfunction_sm_creationdedicatedbearers11succ",
         .description = "Number of successful dedicated bearer creation over S11",
     },
+    
+    /* PFCP */
     [SGWC_METR_GLOB_CTR_SM_ESTABLISHPFCPSESSIONATT] = {
         .type = OGS_METRICS_METRIC_TYPE_COUNTER,
         .name = "fivegs_sgwcfunction_sm_establishpfcpsessionatt",
@@ -83,6 +86,11 @@ sgwc_metrics_spec_def_t sgwc_metrics_spec_def_global[_SGWC_METR_GLOB_MAX] = {
         .name = "fivegs_sgwcfunction_sm_establishpfcpsessionsucc",
         .description = "Number of successful PFCP session establishment",
     },
+    [SGWC_METR_GLOB_CTR_SM_ESTABLISHPFCPSESSIONFAIL] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "fivegs_sgwcfunction_sm_establishpfcpsessionfail",
+        .description = "Number of failed PFCP session establishment",
+    },
     [SGWC_METR_GLOB_CTR_SM_DELETIONPFCPSESSIONATT] = {
         .type = OGS_METRICS_METRIC_TYPE_COUNTER,
         .name = "fivegs_sgwcfunction_sm_deletionpfcpsessionatt",
@@ -92,6 +100,13 @@ sgwc_metrics_spec_def_t sgwc_metrics_spec_def_global[_SGWC_METR_GLOB_MAX] = {
         .type = OGS_METRICS_METRIC_TYPE_COUNTER,
         .name = "fivegs_sgwcfunction_sm_modifypfcpsessionatt",
         .description = "Number of attempted PFCP session modify",
+    },
+
+    /* Session */
+    [SGWC_METR_GLOB_GAUGE_SGWC_SESSIONNBR] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "fivegs_sgwcfunction_sm_sessionnbr",
+        .description = "Active Sessions",
     },
 };
 

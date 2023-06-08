@@ -178,7 +178,9 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
         }
 
         ogs_assert(pdr);
-
+        
+        /* Note this counter will stop when it reaches the max
+         * value of 9,007,199,254,740,992 Bytes, roughly 9 Petabytes */ 
         sgwu_metrics_inst_global_add(SGWU_METR_GLOB_GAUGE_GTP_INDATAOCTS1USGW, pkbuf->len);
 
         sendbuf = ogs_pkbuf_copy(pkbuf);

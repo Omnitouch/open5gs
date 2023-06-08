@@ -53,6 +53,8 @@ ogs_metrics_spec_t *sgwu_metrics_spec_global[_SGWU_METR_GLOB_MAX];
 ogs_metrics_inst_t *sgwu_metrics_inst_global[_SGWU_METR_GLOB_MAX];
 sgwu_metrics_spec_def_t sgwu_metrics_spec_def_global[_SGWU_METR_GLOB_MAX] = {
     /* Global Counters: */
+    
+    /* GTP Data packets */
     [SGWU_METR_GLOB_GAUGE_GTP_OUTDATAOCTS1USGW] = {
         .type = OGS_METRICS_METRIC_TYPE_GAUGE,
         .name = "fivegs_servinggwfunction_sm_outdataocts1usgw",
@@ -62,6 +64,13 @@ sgwu_metrics_spec_def_t sgwu_metrics_spec_def_global[_SGWU_METR_GLOB_MAX] = {
         .type = OGS_METRICS_METRIC_TYPE_GAUGE,
         .name = "fivegs_servinggwfunction_sm_indataocts1usgw",
         .description = "Number of octets of incoming GTP data packets on the S1-U interface which have been accepted and processed by the GTP-U protocol entity on the S1-U interface.",
+    },
+
+    /* Sessioon */
+    [SGWU_METR_GLOB_GAUGE_SGWU_SESSIONNBR] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "fivegs_sgwufunction_sm_sessionnbr",
+        .description = "Active Sessions",
     },
 };
 

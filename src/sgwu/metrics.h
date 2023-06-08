@@ -13,6 +13,8 @@ extern "C"
     {
         SGWU_METR_GLOB_GAUGE_GTP_OUTDATAOCTS1USGW,
         SGWU_METR_GLOB_GAUGE_GTP_INDATAOCTS1USGW,
+        SGWU_METR_GLOB_GAUGE_SGWU_SESSIONNBR,
+
         _SGWU_METR_GLOB_MAX,
     } sgw_metric_type_global_t;
     extern ogs_metrics_inst_t *sgwu_metrics_inst_global[_SGWU_METR_GLOB_MAX];
