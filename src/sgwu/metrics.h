@@ -19,7 +19,6 @@ extern "C"
         SGWU_METR_GLOB_CTR_SM_REPORTPFCPSESSIONSUCC,
         SGWU_METR_GLOB_CTR_SM_REPORTPFCPSESSIONFAIL,
 
-
         _SGWU_METR_GLOB_MAX,
     } sgw_metric_type_global_t;
     extern ogs_metrics_inst_t *sgwu_metrics_inst_global[_SGWU_METR_GLOB_MAX];

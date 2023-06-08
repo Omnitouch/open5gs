@@ -43,6 +43,9 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
     uint32_t teid;
     uint8_t qfi;
 
+    /* Number or octets sent via uplink or downlink */
+    size_t gtpu_data_length;
+
     ogs_assert(fd != INVALID_SOCKET);
     sock = data;
     ogs_assert(sock);
@@ -123,6 +126,11 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
 
     /* Remove GTP header and send packets to peer NF */
     len = ogs_gtpu_header_len(pkbuf);
+    
+    /* The payload length is buffer length - header length */
+    ogs_assert(len <= pkbuf->len);
+    gtpu_data_length = pkbuf->len - len;
+
     if (len < 0) {
         ogs_error("[DROP] Cannot decode GTPU packet");
         ogs_log_hexdump(OGS_LOG_ERROR, pkbuf->data, pkbuf->len);
@@ -170,6 +178,28 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
         switch(pfcp_object->type) {
         case OGS_PFCP_OBJ_PDR_TYPE:
             pdr = (ogs_pfcp_pdr_t *)pfcp_object;
+            bool is_uplink = false;
+            ogs_pfcp_far_t *far = NULL;
+
+            sess = SGWU_SESS(pdr->sess);
+            ogs_assert(sess);
+
+            far = pdr->far;
+            ogs_assert(far);
+
+            /* Check if FAR is Uplink */
+            if (far->dst_if == OGS_PFCP_INTERFACE_CORE) {
+                is_uplink = true;
+            }
+
+            /* Note these counters will stop when they reaches the max
+             * value of 9,007,199,254,740,992 Bytes, roughly 9 Petabytes */
+            if (is_uplink) {
+                sgwu_metrics_inst_global_add(SGWU_METR_GLOB_GAUGE_GTP_INDATAOCTS1USGW, gtpu_data_length);
+            } else {
+                sgwu_metrics_inst_global_add(SGWU_METR_GLOB_GAUGE_GTP_OUTDATAOCTS1USGW, gtpu_data_length);
+            }
+
             ogs_assert(pdr);
             break;
         default:
@@ -178,10 +208,6 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
         }
 
         ogs_assert(pdr);
-        
-        /* Note this counter will stop when it reaches the max
-         * value of 9,007,199,254,740,992 Bytes, roughly 9 Petabytes */ 
-        sgwu_metrics_inst_global_add(SGWU_METR_GLOB_GAUGE_GTP_INDATAOCTS1USGW, pkbuf->len);
 
         sendbuf = ogs_pkbuf_copy(pkbuf);
         ogs_assert(sendbuf);
