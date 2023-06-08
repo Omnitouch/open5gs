@@ -66,6 +66,23 @@ sgwu_metrics_spec_def_t sgwu_metrics_spec_def_global[_SGWU_METR_GLOB_MAX] = {
         .description = "Number of octets of incoming GTP data packets on the S1-U interface which have been accepted and processed by the GTP-U protocol entity on the S1-U interface.",
     },
 
+    /* PFCP */
+    [SGWU_METR_GLOB_CTR_SM_REPORTPFCPSESSIONATT] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "fivegs_sgwufunction_sm_reportpfcpsessionatt",
+        .description = "Number of attempted PFCP session report",
+    },
+    [SGWU_METR_GLOB_CTR_SM_REPORTPFCPSESSIONSUCC] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "fivegs_sgwufunction_sm_reportpfcpsessionsucc",
+        .description = "Number of successful PFCP session report",
+    },
+    [SGWU_METR_GLOB_CTR_SM_REPORTPFCPSESSIONFAIL] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "fivegs_sgwufunction_sm_reportpfcpsessionfail",
+        .description = "Number of failed PFCP session report",
+    },
+
     /* Sessioon */
     [SGWU_METR_GLOB_GAUGE_SGWU_SESSIONNBR] = {
         .type = OGS_METRICS_METRIC_TYPE_COUNTER,

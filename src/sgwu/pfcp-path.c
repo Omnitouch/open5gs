@@ -313,5 +313,7 @@ int sgwu_pfcp_send_session_report_request(
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
 
+    sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_CTR_SM_REPORTPFCPSESSIONATT);
+
     return rv;
 }
