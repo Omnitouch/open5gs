@@ -122,6 +122,9 @@ typedef struct smf_context_s {
     /* Redis configs */
     redis_server_config_t redis_server_config;
     redis_ip_reuse_t redis_ip_reuse;
+
+    /* Bearer deactivation timer value in seconds */
+    int bearer_deactivation_timer_sec;
 } smf_context_t;
 
 typedef struct smf_gtp_node_s {
@@ -226,6 +229,10 @@ typedef struct smf_bearer_s {
 
     uint8_t num_of_pf_to_delete;
     uint8_t pf_to_delete[OGS_MAX_NUM_OF_FLOW_IN_NAS];
+
+    /* Used to deactivate unused bearers */
+    ogs_timer_t* timer_bearer_deactivation;
+    int bearer_deactivation_timer_sec;
 
     smf_sess_t      *sess;
 } smf_bearer_t;
