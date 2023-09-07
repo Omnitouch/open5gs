@@ -2449,6 +2449,16 @@ smf_bearer_t *smf_bearer_add(smf_sess_t *sess)
 
     ogs_list_init(&bearer->pf_list);
 
+    /* Add timers */
+    bearer->timer_bearer_deactivation = ogs_timer_add(
+            ogs_app()->timer_mgr, smf_timer_bearer_deactivation_expire, bearer);
+
+    if (!bearer->timer_bearer_deactivation) {
+        ogs_error("ogs_timer_add() failed");
+        ogs_pool_free(&smf_bearer_pool, bearer);
+        return NULL;
+    }
+
     /* PDR */
     dl_pdr = ogs_pfcp_pdr_add(&sess->pfcp);
     ogs_assert(dl_pdr);
@@ -2516,6 +2526,8 @@ smf_bearer_t *smf_bearer_add(smf_sess_t *sess)
     /* Include a URR to check bearer is still being used,
      * minimum deactivation timer is a minute */
     if (60 <= smf_self()->bearer_deactivation_timer_sec) {
+        const char *apn = "unknown";
+        
         urr = ogs_pfcp_urr_add(&sess->pfcp);
         ogs_assert(urr);
         bearer->urr = urr;
@@ -2526,26 +2538,22 @@ smf_bearer_t *smf_bearer_add(smf_sess_t *sess)
         urr->time_threshold = smf_self()->bearer_deactivation_timer_sec - 30;
         /* Enable Immediate Start Time Metering */
         urr->meas_info.istm = 1;
-    }
+    
+        ogs_pfcp_pdr_associate_urr(dl_pdr, urr);
+        ogs_pfcp_pdr_associate_urr(ul_pdr, urr);
 
-    ogs_pfcp_pdr_associate_urr(dl_pdr, urr);
-    ogs_pfcp_pdr_associate_urr(ul_pdr, urr);
+        if (bearer->sess)
+            apn = bearer->sess->session.name;
+
+        ogs_info("[APN: '%s'] Starting deactivation timer for bearer, see you in %i seconds", apn, urr->time_threshold);
+
+        ogs_timer_start(bearer->timer_bearer_deactivation,
+                    ogs_time_from_sec(smf_self()->bearer_deactivation_timer_sec));
+    }
 
     bearer->sess = sess;
 
     ogs_list_add(&sess->bearer_list, bearer);
-
-    bearer->timer_bearer_deactivation = ogs_timer_add(
-            ogs_app()->timer_mgr, smf_timer_bearer_deactivation_expire, bearer);
-
-    if (!bearer->timer_bearer_deactivation) {
-        ogs_error("ogs_timer_add() failed");
-        ogs_pool_free(&smf_bearer_pool, bearer);
-        return NULL;
-    }
-
-    ogs_timer_start(bearer->timer_bearer_deactivation,
-                ogs_time_from_sec(smf_self()->bearer_deactivation_timer_sec));
 
     smf_metrics_inst_global_inc(SMF_METR_GLOB_GAUGE_BEARERS_ACTIVE);
     return bearer;

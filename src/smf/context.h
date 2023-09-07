@@ -232,7 +232,6 @@ typedef struct smf_bearer_s {
 
     /* Used to deactivate unused bearers */
     ogs_timer_t* timer_bearer_deactivation;
-    int bearer_deactivation_timer_sec;
 
     smf_sess_t      *sess;
 } smf_bearer_t;

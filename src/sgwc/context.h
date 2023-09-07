@@ -47,6 +47,9 @@ typedef struct sgwc_context_s {
     ogs_hash_t *sgwc_sxa_seid_hash; /* hash table (SGWC-SXA-SEID : Session) */
 
     ogs_list_t sgw_ue_list;    /* SGW_UE List */
+
+    /* Bearer deactivation timer value in seconds */
+    int bearer_deactivation_timer_sec;
 } sgwc_context_t;
 
 typedef struct sgwc_ue_s {
@@ -127,6 +130,9 @@ typedef struct sgwc_bearer_s {
     ogs_list_t      tunnel_list;
     sgwc_sess_t     *sess;
     sgwc_ue_t       *sgwc_ue;
+
+    /* Used to deactivate unused bearers */
+    ogs_timer_t* timer_bearer_deactivation;
 } sgwc_bearer_t;
 
 typedef struct sgwc_tunnel_s {

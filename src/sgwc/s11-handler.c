@@ -1035,9 +1035,8 @@ void sgwc_s11_handle_delete_bearer_response(
      ********************/
     ogs_assert(s11_xact);
     s5c_xact = s11_xact->assoc_xact;
-    ogs_assert(s5c_xact);
 
-    if (s11_xact->xid & OGS_GTP_CMD_XACT_ID)
+    if ((s11_xact->xid & OGS_GTP_CMD_XACT_ID) && (NULL != s5c_xact))
         /* MME received Bearer Resource Modification Request */
         bearer = s5c_xact->data;
     else

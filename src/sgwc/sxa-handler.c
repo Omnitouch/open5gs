@@ -22,7 +22,7 @@
 #include "sxa-handler.h"
 #include "usage_logger.h"
 
-static void log_usage_reports(sgwc_sess_t *sess, ogs_pfcp_session_report_request_t *pfcp_req);
+static void handle_usage_reports(sgwc_sess_t *sess, ogs_pfcp_session_report_request_t *pfcp_req);
 static void log_deletion_usage_reports(sgwc_sess_t *sess, ogs_pfcp_session_deletion_response_t *pfcp_rsp);
 static void log_start_usage_reports(sgwc_sess_t *sess);
 static UsageLoggerData build_usage_logger_data(sgwc_sess_t *sess, char const* event, uint64_t octets_in, uint64_t octets_out);
@@ -1527,7 +1527,7 @@ void sgwc_sxa_handle_session_report_request(
             ogs_error("Cannot find Session in Error Indication");
 
     } else if (report_type.usage_report) {
-        log_usage_reports(sess, pfcp_req);
+        handle_usage_reports(sess, pfcp_req);
     } else {
         ogs_error("Not supported Report Type[%d]", report_type.value);
     }
@@ -1538,13 +1538,16 @@ static void log_start_usage_reports(sgwc_sess_t *sess) {
     log_usage_logger_data(usageLoggerData);
 }
 
-static void log_usage_reports(sgwc_sess_t *sess, ogs_pfcp_session_report_request_t *pfcp_req) {
+static void handle_usage_reports(sgwc_sess_t *sess, ogs_pfcp_session_report_request_t *pfcp_req) {
     int i = 0;
     sgwc_ue_t *sgwc_ue = NULL;
+    sgwc_bearer_t *bearer = NULL;
     
     ogs_assert(sess);
     sgwc_ue = sess->sgwc_ue;
     ogs_assert(sgwc_ue);
+    bearer = sgwc_default_bearer_in_sess(sess);
+    ogs_expect(bearer);
 
     for (i = 0; i < OGS_ARRAY_SIZE(pfcp_req->usage_report); i++) {
         ogs_pfcp_tlv_usage_report_session_report_request_t *usage_report =
@@ -1576,6 +1579,35 @@ static void log_usage_reports(sgwc_sess_t *sess, ogs_pfcp_session_report_request
         if (0 == volume.dlvol) {
             ogs_error("URR did not contain downlink volume measurement!");
             continue;
+        }
+
+        /* Refresh the bearer deactivation timer when data has been used
+         * See sgwc/context.c for more context */
+        /* TODO: Switch to using report_type.user_plane_inactivity_report
+         * at some point */
+        if ((60 <= sgwc_self()->bearer_deactivation_timer_sec) && (NULL != bearer))
+        {
+            const char *apn = "unknown";
+            if (bearer->sess)
+                apn = bearer->sess->session.name;
+
+            if ((1 == volume.ulvol) &&
+                (0 < volume.uplink_volume))
+            {
+                ogs_info("[APN: '%s'] Bearer used %li octets of uplink data, refreshing bearer deactivate timer", apn, volume.uplink_volume);
+                ogs_timer_start(bearer->timer_bearer_deactivation,
+                    ogs_time_from_sec(sgwc_self()->bearer_deactivation_timer_sec));
+            }
+            else if ((1 == volume.dlvol) &&
+                        (0 < volume.downlink_volume))
+            {
+                ogs_info("[APN: '%s'] Bearer used %li octets of downlink data, refreshing bearer deactivate timer", apn, volume.downlink_volume);
+                ogs_timer_start(bearer->timer_bearer_deactivation,
+                    ogs_time_from_sec(sgwc_self()->bearer_deactivation_timer_sec));
+            }
+            else {
+                ogs_info("[APN: '%s'] Bearer used no octets of data", apn);
+            }
         }
 
         usageLoggerData = build_usage_logger_data(sess, "session_update", volume.uplink_volume, volume.downlink_volume);
