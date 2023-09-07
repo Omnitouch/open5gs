@@ -2532,6 +2532,8 @@ smf_bearer_t *smf_bearer_add(smf_sess_t *sess)
         ogs_assert(urr);
         bearer->urr = urr;
 
+        /* TODO: We should switch to urr->rep_triggers.user_plane_inactivity_timer 
+         * at some point. See TS 129.244 8.2.41 for more context */
         urr->meas_method = OGS_PFCP_MEASUREMENT_METHOD_DURATION;
         urr->rep_triggers.time_threshold = 1;
         /* 30 sec buffer between the bearer timer and the usage report */
@@ -3258,15 +3260,21 @@ int smf_maximum_integrity_protected_data_rate_downlink_value2enum(
 }
 
 static void smf_timer_bearer_deactivation_expire(void* data) {
-    ogs_info("Bearer deactivation timer has expired... Deactivating bearer");
+    const char *apn = "unknown";
     
     smf_bearer_t *bearer = (smf_bearer_t*)data;
     ogs_assert(bearer);
+
+    if (bearer->sess)
+        apn = bearer->sess->session.name;
+
+    ogs_info("[APN: '%s'] Bearer deactivation timer has expired... Deactivating bearer", apn);
+    
     ogs_assert(OGS_OK ==
         smf_gtp2_send_delete_bearer_request(
             bearer,
             OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED,
-            OGS_GTP2_CAUSE_LOCAL_DETACH
+            OGS_GTP2_CAUSE_PDN_CONNECTION_INACTIVITY_TIMER_EXPIRES
         )
     );
 }

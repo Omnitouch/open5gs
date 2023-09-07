@@ -1307,9 +1307,14 @@ void smf_n4_handle_session_report_request(
 
             /* Refresh the bearer deactivation timer when data has been used
              * See smf/context.c for more context */
+            /* TODO: Switch to using report_type.user_plane_inactivity_report
+             * at some point */
             if (60 <= smf_self()->bearer_deactivation_timer_sec)
             {
                 const char *apn = "unknown";
+                if (bearer->sess)
+                    apn = bearer->sess->session.name;
+
                 if ((1 == volume.ulvol) &&
                     (0 < volume.uplink_volume))
                 {
