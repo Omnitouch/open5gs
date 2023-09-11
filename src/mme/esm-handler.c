@@ -28,6 +28,8 @@
 #undef OGS_LOG_DOMAIN
 #define OGS_LOG_DOMAIN __esm_log_domain
 
+static bool has_valid_bearers(mme_sess_t *sess);
+
 int esm_handle_pdn_connectivity_request(mme_bearer_t *bearer, 
         ogs_nas_eps_pdn_connectivity_request_t *req, int create_action)
 {
@@ -236,7 +238,8 @@ int esm_handle_information_response(mme_sess_t *sess,
         }
 
         if (SESSION_CONTEXT_IS_AVAILABLE(mme_ue) &&
-            OGS_PDU_SESSION_TYPE_IS_VALID(sess->session->paa.session_type)) {
+            OGS_PDU_SESSION_TYPE_IS_VALID(sess->session->paa.session_type) && 
+            has_valid_bearers(sess)) {
             mme_csmap_t *csmap = mme_csmap_find_by_tai(&mme_ue->tai);
             mme_ue->csmap = csmap;
 
@@ -304,4 +307,23 @@ int esm_handle_bearer_resource_modification_request(
         mme_gtp_send_bearer_resource_command(bearer, message));
 
     return OGS_OK;
+}
+
+/* Temporary fix to address issue caused when calling ogs_asn_ip_to_BIT_STRING
+ * without the bearer having an assigned sgw_s1u_ip. This case arises when
+ * either the SGWC or SMF send a delete bearer request in response to bearer
+ * inactivity timeout occurring */
+static bool has_valid_bearers(mme_sess_t *sess) {
+    mme_bearer_t *bearer = NULL;
+    
+    ogs_assert(sess);
+
+    ogs_list_for_each(&sess->bearer_list, bearer) {
+        if ((0 == bearer->sgw_s1u_ip.ipv4) && 
+            (0 == bearer->sgw_s1u_ip.ipv6)) {
+            return false;
+        }
+    }
+
+    return true;
 }
