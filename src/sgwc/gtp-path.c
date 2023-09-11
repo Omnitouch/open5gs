@@ -268,7 +268,6 @@ int sgwc_gtp2_send_delete_bearer_request(
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_DELETE_BEARER_REQUEST_TYPE;
-    // h.teid = sess->sgw_s5c_teid;
     sgwc_ue = sess->sgwc_ue;
     ogs_assert(sgwc_ue);
     h.teid = sgwc_ue->mme_s11_teid;
@@ -286,7 +285,6 @@ int sgwc_gtp2_send_delete_bearer_request(
         ogs_error("ogs_gtp_xact_local_create() failed");
         return OGS_ERROR;
     }
-    // xact->local_teid = sess->sgwc_n4_teid;
     xact->local_teid = sgwc_ue->sgw_s11_teid;
 
     rv = ogs_gtp_xact_commit(xact);
