@@ -1083,10 +1083,14 @@ void sgwc_s11_handle_delete_bearer_response(
             ogs_error("No Cause");
         }
 
+        /* Release entire session: */
+        ogs_assert(OGS_OK ==
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
     } else if ((1 == rsp->cause.presence) &&
                (OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND == cause_value)) {
+        /* Release entire session: */
         ogs_assert(OGS_OK ==
-            sgwc_pfcp_send_session_deletion_request(sess, s5c_xact, gtpbuf));
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
     } else {
        /*
         * << EPS Bearer IDs >>

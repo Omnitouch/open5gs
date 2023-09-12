@@ -462,11 +462,14 @@ static void sgwu_sess_urr_acc_remove_all(sgwu_sess_t *sess)
 {
     unsigned int i;
     for (i = 0; i < OGS_ARRAY_SIZE(sess->urr_acc); i++) {
-        if (sess->urr_acc[i].t_time_threshold) {
+        /* If we added the timer make sure to delete it */
+        if (NULL != sess->urr_acc[i].t_validity_time) {
             ogs_timer_delete(sess->urr_acc[i].t_validity_time);
             sess->urr_acc[i].t_validity_time = NULL;
+        } else if (NULL != sess->urr_acc[i].t_time_quota) {
             ogs_timer_delete(sess->urr_acc[i].t_time_quota);
             sess->urr_acc[i].t_time_quota = NULL;
+        } else if (NULL != sess->urr_acc[i].t_time_threshold) {
             ogs_timer_delete(sess->urr_acc[i].t_time_threshold);
             sess->urr_acc[i].t_time_threshold = NULL;
         }

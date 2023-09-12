@@ -176,6 +176,7 @@ void sgwc_sess_select_sgwu(sgwc_sess_t *sess);
 
 int sgwc_sess_remove(sgwc_sess_t *sess);
 void sgwc_sess_remove_all(sgwc_ue_t *sgwc_ue);
+void sgwc_sess_remove_all_sync(sgwc_ue_t *sgwc_ue);
 
 sgwc_sess_t *sgwc_sess_find_by_teid(uint32_t teid);
 sgwc_sess_t *sgwc_sess_find_by_seid(uint64_t seid);

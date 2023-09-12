@@ -21,6 +21,7 @@
 
 #include "context.h"
 #include "gtp-path.h"
+#include "pfcp-path.h"
 
 static sgwc_context_t self;
 
@@ -260,7 +261,7 @@ int sgwc_ue_remove(sgwc_ue_t *sgwc_ue)
             &sgwc_ue->sgw_s11_teid, sizeof(sgwc_ue->sgw_s11_teid), NULL);
     ogs_hash_set(self.imsi_ue_hash, sgwc_ue->imsi, sgwc_ue->imsi_len, NULL);
 
-    sgwc_sess_remove_all(sgwc_ue);
+    sgwc_sess_remove_all_sync(sgwc_ue);
 
     ogs_pool_free(&sgwc_s11_teid_pool, sgwc_ue->sgw_s11_teid_node);
     ogs_pool_free(&sgwc_ue_pool, sgwc_ue);
@@ -471,6 +472,18 @@ void sgwc_sess_remove_all(sgwc_ue_t *sgwc_ue)
     ogs_assert(sgwc_ue);
     ogs_list_for_each_safe(&sgwc_ue->sess_list, next_sess, sess)
         sgwc_sess_remove(sess);
+}
+
+void sgwc_sess_remove_all_sync(sgwc_ue_t *sgwc_ue)
+{
+    sgwc_sess_t *sess = NULL, *next_sess = NULL;
+
+    /* Due to CP and U{ separation we need to remove the sessions via the  */
+    ogs_assert(sgwc_ue);
+    ogs_list_for_each_safe(&sgwc_ue->sess_list, next_sess, sess) {
+        ogs_expect(OGS_OK ==
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
+    }
 }
 
 sgwc_sess_t* sgwc_sess_find_by_teid(uint32_t teid)

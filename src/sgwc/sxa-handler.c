@@ -1599,7 +1599,7 @@ static void handle_usage_reports(sgwc_sess_t *sess, ogs_pfcp_session_report_requ
                     ogs_time_from_sec(sgwc_self()->bearer_deactivation_timer_sec));
             }
             else if ((1 == volume.dlvol) &&
-                        (0 < volume.downlink_volume))
+                     (0 < volume.downlink_volume))
             {
                 ogs_info("[APN: '%s'] Bearer used %li octets of downlink data, refreshing bearer deactivate timer", apn, volume.downlink_volume);
                 ogs_timer_start(bearer->timer_bearer_deactivation,
