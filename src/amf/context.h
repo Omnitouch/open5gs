@@ -130,6 +130,7 @@ typedef struct amf_gnb_s {
     ogs_fsm_t       sm;         /* A state machine */
 
     uint32_t        gnb_id;     /* gNB_ID received from gNB */
+    ogs_plmn_id_t   plmn_id;    /* gNB PLMN-ID received from gNB */
     ogs_sctp_sock_t sctp;       /* SCTP socket */
 
     struct {
@@ -760,7 +761,7 @@ amf_sess_t *amf_sess_add(amf_ue_t *amf_ue, uint8_t psi);
     do { \
         ogs_sbi_object_t *sbi_object = NULL; \
         ogs_assert(__sESS); \
-        sbi_object = &sess->sbi; \
+        sbi_object = &(__sESS)->sbi; \
         ogs_assert(sbi_object); \
         \
         ogs_error("AMF_SESS_CLEAR"); \
@@ -821,7 +822,7 @@ void amf_clear_subscribed_info(amf_ue_t *amf_ue);
 
 bool amf_update_allowed_nssai(amf_ue_t *amf_ue);
 bool amf_ue_is_rat_restricted(amf_ue_t *amf_ue);
-int get_ran_ue_load(void);
+int amf_instance_get_load(void);
 
 #ifdef __cplusplus
 }

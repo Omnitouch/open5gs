@@ -28,6 +28,7 @@
 #include "nas-path.h"
 #include "emm-handler.h"
 #include "esm-handler.h"
+#include "mme-gn-handler.h"
 #include "mme-gtp-path.h"
 #include "mme-s11-handler.h"
 #include "mme-fd-path.h"
@@ -82,6 +83,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
     ogs_gtp_node_t *gnode = NULL;
     ogs_gtp_xact_t *xact = NULL;
     ogs_gtp2_message_t gtp_message;
+    ogs_gtp1_message_t gtp1_message;
 
     mme_vlr_t *vlr = NULL;
 
@@ -378,7 +380,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
             if (default_bearer->ebi == bearer->ebi) {
                 /* if the bearer is a default bearer,
                  * remove all session context linked the default bearer */
-                mme_sess_remove(sess);
+                MME_SESS_CLEAR(sess);
             } else {
                 /* if the bearer is not a default bearer,
                  * just remove the bearer context */
@@ -387,7 +389,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
 
         } else if (OGS_FSM_CHECK(&bearer->sm, esm_state_pdn_did_disconnect)) {
             ogs_assert(default_bearer->ebi == bearer->ebi);
-            mme_sess_remove(sess);
+            MME_SESS_CLEAR(sess);
 
         } else if (OGS_FSM_CHECK(&bearer->sm, esm_state_exception)) {
 
@@ -399,7 +401,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
              *
              * Just we'll remove MME session context.
              */
-            mme_sess_remove(sess);
+            MME_SESS_CLEAR(sess);
         }
 
         ogs_pkbuf_free(pkbuf);
@@ -475,7 +477,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
             break;
         case OGS_DIAM_S6A_CMD_CODE_INSERT_SUBSCRIBER_DATA:
             mme_s6a_handle_idr(mme_ue, s6a_message);
-            break;            
+            break;
         default:
             ogs_error("Invalid Type[%d]", s6a_message->cmd_code);
             break;
@@ -682,6 +684,41 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         }
         break;
 
+    case MME_EVENT_GN_MESSAGE:
+        pkbuf = e->pkbuf;
+        ogs_assert(pkbuf);
+
+        if (ogs_gtp1_parse_msg(&gtp1_message, pkbuf) != OGS_OK) {
+            ogs_error("ogs_gtp1_parse_msg() failed");
+            ogs_pkbuf_free(pkbuf);
+            break;
+        }
+
+        gnode = e->gnode;
+        ogs_assert(gnode);
+
+        rv = ogs_gtp1_xact_receive(gnode, &gtp1_message.h, &xact);
+        if (rv != OGS_OK) {
+            ogs_pkbuf_free(pkbuf);
+            break;
+        }
+
+        switch (gtp1_message.h.type) {
+        case OGS_GTP1_ECHO_REQUEST_TYPE:
+            mme_gn_handle_echo_request(xact, &gtp1_message.echo_request);
+            break;
+        case OGS_GTP1_ECHO_RESPONSE_TYPE:
+            mme_gn_handle_echo_response(xact, &gtp1_message.echo_response);
+            break;
+        case OGS_GTP1_RAN_INFORMATION_RELAY_TYPE:
+            mme_gn_handle_ran_information_relay(xact, &gtp1_message.ran_information_relay);
+            break;
+        default:
+            ogs_warn("Not implemented(type:%d)", gtp1_message.h.type);
+            break;
+        }
+        ogs_pkbuf_free(pkbuf);
+        break;
 
     case MME_EVENT_SGSAP_LO_SCTP_COMM_UP:
         sock = e->sock;

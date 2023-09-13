@@ -1089,8 +1089,10 @@ smf_ue_t *smf_ue_add_by_supi(char *supi)
 
     ogs_assert(supi);
 
-    if ((smf_ue = smf_ue_add()) == NULL)
+    if ((smf_ue = smf_ue_add()) == NULL) {
+        ogs_error("smf_ue_add_by_supi() failed");
         return NULL;
+    }
 
     smf_ue->supi = ogs_strdup(supi);
     ogs_assert(smf_ue->supi);
@@ -1539,7 +1541,10 @@ smf_sess_t *smf_sess_add_by_sbi_message(ogs_sbi_message_t *message)
 
     ogs_assert(message);
     SmContextCreateData = message->SmContextCreateData;
-    ogs_assert(SmContextCreateData);
+    if (!SmContextCreateData) {
+        ogs_error("No SmContextCreateData");
+        return NULL;
+    }
 
     if (!SmContextCreateData->supi) {
         ogs_error("No SUPI");
@@ -1554,14 +1559,18 @@ smf_sess_t *smf_sess_add_by_sbi_message(ogs_sbi_message_t *message)
     smf_ue = smf_ue_find_by_supi(SmContextCreateData->supi);
     if (!smf_ue) {
         smf_ue = smf_ue_add_by_supi(SmContextCreateData->supi);
-        if (!smf_ue)
+        if (!smf_ue) {
+            ogs_error("smf_ue_add_by_supi() failed");
             return NULL;
+        }
     }
 
     sess = smf_sess_find_by_psi(smf_ue, SmContextCreateData->pdu_session_id);
     if (sess) {
         ogs_warn("OLD Session Will Release [SUPI:%s,PDU Session identity:%d]",
                 SmContextCreateData->supi, SmContextCreateData->pdu_session_id);
+        smf_metrics_inst_by_slice_add(&sess->plmn_id, &sess->s_nssai,
+                SMF_METR_GAUGE_SM_SESSIONNBR, -1);
         smf_sess_remove(sess);
     }
 
@@ -1643,7 +1652,6 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
         }
         if (!sess->ipv4) {
             ogs_error("ogs_pfcp_ue_ip_alloc() failed[%d]", cause_value);
-            ogs_assert(cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
             return cause_value;
         }
         sess->session.paa.addr = sess->ipv4->addr[0];
@@ -1654,7 +1662,6 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
                 sess->session.name, sess->session.ue_ip.addr6);
         if (!sess->ipv6) {
             ogs_error("ogs_pfcp_ue_ip_alloc() failed[%d]", cause_value);
-            ogs_assert(cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
             return cause_value;
         }
 
@@ -1675,7 +1682,6 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
         }
         if (!sess->ipv4) {
             ogs_error("ogs_pfcp_ue_ip_alloc() failed[%d]", cause_value);
-            ogs_assert(cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
             return cause_value;
         }
         sess->ipv6 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET6,
@@ -3157,7 +3163,7 @@ void smf_qfi_pool_init(smf_sess_t *sess)
 {
     ogs_assert(sess);
 
-    ogs_pool_init(&sess->qfi_pool, OGS_MAX_QOS_FLOW_ID);
+    ogs_pool_create(&sess->qfi_pool, OGS_MAX_QOS_FLOW_ID);
     ogs_pool_sequence_id_generate(&sess->qfi_pool);
 }
 
@@ -3165,14 +3171,14 @@ void smf_qfi_pool_final(smf_sess_t *sess)
 {
     ogs_assert(sess);
 
-    ogs_pool_final(&sess->qfi_pool);
+    ogs_pool_destroy(&sess->qfi_pool);
 }
 
 void smf_pf_identifier_pool_init(smf_bearer_t *bearer)
 {
     ogs_assert(bearer);
 
-    ogs_pool_init(&bearer->pf_identifier_pool, OGS_MAX_NUM_OF_FLOW_IN_BEARER);
+    ogs_pool_create(&bearer->pf_identifier_pool, OGS_MAX_NUM_OF_FLOW_IN_BEARER);
     ogs_pool_sequence_id_generate(&bearer->pf_identifier_pool);
 }
 
@@ -3180,14 +3186,14 @@ void smf_pf_identifier_pool_final(smf_bearer_t *bearer)
 {
     ogs_assert(bearer);
 
-    ogs_pool_final(&bearer->pf_identifier_pool);
+    ogs_pool_destroy(&bearer->pf_identifier_pool);
 }
 
 void smf_pf_precedence_pool_init(smf_sess_t *sess)
 {
     ogs_assert(sess);
 
-    ogs_pool_init(&sess->pf_precedence_pool,
+    ogs_pool_create(&sess->pf_precedence_pool,
             OGS_MAX_NUM_OF_BEARER * OGS_MAX_NUM_OF_FLOW_IN_BEARER);
     ogs_pool_sequence_id_generate(&sess->pf_precedence_pool);
 }
@@ -3196,7 +3202,7 @@ void smf_pf_precedence_pool_final(smf_sess_t *sess)
 {
     ogs_assert(sess);
 
-    ogs_pool_final(&sess->pf_precedence_pool);
+    ogs_pool_destroy(&sess->pf_precedence_pool);
 }
 
 static void stats_add_smf_session(void)
@@ -3213,7 +3219,7 @@ static void stats_remove_smf_session(smf_sess_t *sess)
     ogs_info("[Removed] Number of SMF-Sessions is now %d", num_of_smf_sess);
 }
 
-int get_sess_load(void)
+int smf_instance_get_load(void)
 {
     return (((ogs_pool_size(&smf_sess_pool) -
             ogs_pool_avail(&smf_sess_pool)) * 100) /

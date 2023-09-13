@@ -129,15 +129,14 @@ ogs_pkbuf_t *gmm_build_registration_accept(amf_ue_t *amf_ue)
     network_feature_support->
         ims_voice_over_ps_session_over_3gpp_access_indicator = 1;
 
-    /* Set T3512 */
-    if (amf_self()->time.t3512.value) {
-        rv = ogs_nas_gprs_timer_3_from_sec(
-                &t3512_value->t, amf_self()->time.t3512.value);
-        ogs_assert(rv == OGS_OK);
-        registration_accept->presencemask |=
-            OGS_NAS_5GS_REGISTRATION_ACCEPT_T3512_VALUE_PRESENT;
-        t3512_value->length = 1;
-    }
+    /* Set T3512 : Mandatory in Open5GS */
+    ogs_assert(amf_self()->time.t3512.value);
+    rv = ogs_nas_gprs_timer_3_from_sec(
+            &t3512_value->t, amf_self()->time.t3512.value);
+    ogs_assert(rv == OGS_OK);
+    registration_accept->presencemask |=
+        OGS_NAS_5GS_REGISTRATION_ACCEPT_T3512_VALUE_PRESENT;
+    t3512_value->length = 1;
 
     /* Set T3502 */
     if (amf_self()->time.t3502.value) {
@@ -173,11 +172,16 @@ ogs_pkbuf_t *gmm_build_registration_accept(amf_ue_t *amf_ue)
     return pkbuf;
 }
 
-ogs_pkbuf_t *gmm_build_registration_reject(ogs_nas_5gmm_cause_t gmm_cause)
+ogs_pkbuf_t *gmm_build_registration_reject(
+        amf_ue_t *amf_ue, ogs_nas_5gmm_cause_t gmm_cause)
 {
     ogs_nas_5gs_message_t message;
     ogs_nas_5gs_registration_reject_t *registration_reject =
         &message.gmm.registration_reject;
+    ogs_nas_rejected_nssai_t *rejected_nssai =
+        &registration_reject->rejected_nssai;
+
+    ogs_assert(amf_ue);
 
     memset(&message, 0, sizeof(message));
     message.gmm.h.extended_protocol_discriminator =
@@ -185,6 +189,14 @@ ogs_pkbuf_t *gmm_build_registration_reject(ogs_nas_5gmm_cause_t gmm_cause)
     message.gmm.h.message_type = OGS_NAS_5GS_REGISTRATION_REJECT;
 
     registration_reject->gmm_cause = gmm_cause;
+
+    if (amf_ue->rejected_nssai.num_of_s_nssai) {
+        ogs_nas_build_rejected_nssai(rejected_nssai,
+                amf_ue->rejected_nssai.s_nssai,
+                amf_ue->rejected_nssai.num_of_s_nssai);
+        registration_reject->presencemask |=
+            OGS_NAS_5GS_REGISTRATION_REJECT_REJECTED_NSSAI_PRESENT;
+    }
 
     return ogs_nas_5gs_plain_encode(&message);
 }
