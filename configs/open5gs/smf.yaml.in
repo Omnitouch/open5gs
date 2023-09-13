@@ -650,6 +650,7 @@ smf:
     ctf:
       enabled: auto
     freeDiameter: @sysconfdir@/freeDiameter/smf.conf
+    bearer_deactivation_timer_sec: 10800 # Remove bearers that have not used any data in 3 hours
 
 #
 #  <SBI Client>>
