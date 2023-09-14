@@ -294,6 +294,30 @@ bool udr_nudr_dr_handle_subscription_context(
                 return false;
             }
 
+            if (Amf3GppAccessRegistration->pei) {
+                char *type = NULL, *value = NULL;
+                char *pei = NULL;
+
+                pei = ogs_strdup(Amf3GppAccessRegistration->pei);
+                ogs_assert(pei);
+
+                type = ogs_id_get_type(pei);
+                ogs_assert(type);
+                value = ogs_id_get_value(pei);
+                ogs_assert(value);
+
+                if (strcmp(type, "imeisv") == 0) {
+                    ogs_assert(OGS_OK == ogs_dbi_update_imeisv(supi, value));
+                } else {
+                    ogs_fatal("Unknown Type = %s", type);
+                    ogs_assert_if_reached();
+                }
+
+                ogs_free(pei);
+                ogs_free(type);
+                ogs_free(value);
+            }
+
             memset(&sendmsg, 0, sizeof(sendmsg));
 
             response = ogs_sbi_build_response(
@@ -318,6 +342,48 @@ bool udr_nudr_dr_handle_subscription_context(
 
             /* TODO: parse PatchItemList */
 
+            memset(&sendmsg, 0, sizeof(sendmsg));
+
+            response = ogs_sbi_build_response(
+                    &sendmsg, OGS_SBI_HTTP_STATUS_NO_CONTENT);
+            ogs_assert(response);
+            ogs_assert(true == ogs_sbi_server_send_response(stream, response));
+
+            return true;
+
+        DEFAULT
+            ogs_error("Invalid HTTP method [%s]", recvmsg->h.method);
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(stream,
+                    OGS_SBI_HTTP_STATUS_MEHTOD_NOT_ALLOWED,
+                    recvmsg, "Invalid HTTP method", recvmsg->h.method));
+        END
+        break;
+    CASE(OGS_SBI_RESOURCE_NAME_SMF_REGISTRATIONS)
+        SWITCH(recvmsg->h.method)
+        CASE(OGS_SBI_HTTP_METHOD_PUT)
+            OpenAPI_smf_registration_t *SmfRegistration;
+
+            SmfRegistration = recvmsg->SmfRegistration;
+            if (!SmfRegistration) {
+                ogs_error("[%s] No SmfRegistration", supi);
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(
+                        stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                        recvmsg, "No SmfRegistration", supi));
+                return false;
+            }
+
+            memset(&sendmsg, 0, sizeof(sendmsg));
+
+            response = ogs_sbi_build_response(
+                    &sendmsg, OGS_SBI_HTTP_STATUS_NO_CONTENT);
+            ogs_assert(response);
+            ogs_assert(true == ogs_sbi_server_send_response(stream, response));
+
+            return true;
+
+        CASE(OGS_SBI_HTTP_METHOD_DELETE)
             memset(&sendmsg, 0, sizeof(sendmsg));
 
             response = ogs_sbi_build_response(

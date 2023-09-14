@@ -269,16 +269,13 @@ static void update_authorized_pcc_rule_and_qos(
 }
 
 bool smf_npcf_smpolicycontrol_handle_create(
-        smf_sess_t *sess, ogs_sbi_stream_t *stream, int state,
-        ogs_sbi_message_t *recvmsg)
+        smf_sess_t *sess, int state, ogs_sbi_message_t *recvmsg)
 {
     int rv;
     char buf1[OGS_ADDRSTRLEN];
     char buf2[OGS_ADDRSTRLEN];
 
-    char *strerror = NULL;
     smf_ue_t *smf_ue = NULL;
-
     smf_bearer_t *qos_flow = NULL;
     ogs_pfcp_pdr_t *dl_pdr = NULL;
     ogs_pfcp_pdr_t *ul_pdr = NULL;
@@ -297,23 +294,20 @@ bool smf_npcf_smpolicycontrol_handle_create(
     ogs_sbi_header_t header;
 
     ogs_assert(sess);
-    ogs_assert(stream);
     smf_ue = sess->smf_ue;
     ogs_assert(smf_ue);
 
     ogs_assert(recvmsg);
 
     if (!recvmsg->http.location) {
-        strerror = ogs_msprintf("[%s:%d] No http.location",
-                smf_ue->supi, sess->psi);
-        goto cleanup;
+        ogs_error("[%s:%d] No http.location", smf_ue->supi, sess->psi);
+        return false;
     }
 
     SmPolicyDecision = recvmsg->SmPolicyDecision;
     if (!SmPolicyDecision) {
-        strerror = ogs_msprintf("[%s:%d] No SmPolicyDecision",
-                smf_ue->supi, sess->psi);
-        goto cleanup;
+        ogs_error("[%s:%d] No SmPolicyDecision", smf_ue->supi, sess->psi);
+        return false;
     }
 
     memset(&header, 0, sizeof(header));
@@ -321,17 +315,17 @@ bool smf_npcf_smpolicycontrol_handle_create(
 
     rv = ogs_sbi_parse_header(&message, &header);
     if (rv != OGS_OK) {
-        strerror = ogs_msprintf("[%s:%d] Cannot parse http.location [%s]",
+        ogs_error("[%s:%d] Cannot parse http.location [%s]",
                 smf_ue->supi, sess->psi, recvmsg->http.location);
-        goto cleanup;
+        return false;
     }
 
     if (!message.h.resource.component[1]) {
-        strerror = ogs_msprintf("[%s:%d] No Assocication ID [%s]",
+        ogs_error("[%s:%d] No Assocication ID [%s]",
                 smf_ue->supi, sess->psi, recvmsg->http.location);
 
         ogs_sbi_header_free(&header);
-        goto cleanup;
+        return false;
     }
 
     if (sess->policy_association_id)
@@ -445,9 +439,8 @@ bool smf_npcf_smpolicycontrol_handle_create(
     /* Check if selected UPF is associated with SMF */
     ogs_assert(sess->pfcp_node);
     if (!OGS_FSM_CHECK(&sess->pfcp_node->sm, smf_pfcp_state_associated)) {
-        strerror = ogs_msprintf("[%s:%d] No associated UPF",
-                smf_ue->supi, sess->psi);
-        goto cleanup;
+        ogs_error("[%s:%d] No associated UPF", smf_ue->supi, sess->psi);
+        return false;
     }
 
     /* Remove all previous QoS flow */
@@ -499,6 +492,7 @@ bool smf_npcf_smpolicycontrol_handle_create(
         for (i = 0; i < OGS_MAX_NUM_OF_FRAMED_ROUTES_IN_PDI; i++) {
             const char *route = sess->session.ipv4_framed_routes[i];
             if (!route) break;
+
             if (!dl_pdr->ipv4_framed_routes) {
                 dl_pdr->ipv4_framed_routes =
                     ogs_calloc(OGS_MAX_NUM_OF_FRAMED_ROUTES_IN_PDI,
@@ -506,6 +500,14 @@ bool smf_npcf_smpolicycontrol_handle_create(
                 ogs_assert(dl_pdr->ipv4_framed_routes);
             }
             dl_pdr->ipv4_framed_routes[i] = ogs_strdup(route);
+
+            if (!ul_pdr->ipv4_framed_routes) {
+                ul_pdr->ipv4_framed_routes =
+                    ogs_calloc(OGS_MAX_NUM_OF_FRAMED_ROUTES_IN_PDI,
+                               sizeof(ul_pdr->ipv4_framed_routes[0]));
+                ogs_assert(ul_pdr->ipv4_framed_routes);
+            }
+            ul_pdr->ipv4_framed_routes[i] = ogs_strdup(route);
         }
     }
 
@@ -515,6 +517,7 @@ bool smf_npcf_smpolicycontrol_handle_create(
         for (i = 0; i < OGS_MAX_NUM_OF_FRAMED_ROUTES_IN_PDI; i++) {
             const char *route = sess->session.ipv6_framed_routes[i];
             if (!route) break;
+
             if (!dl_pdr->ipv6_framed_routes) {
                 dl_pdr->ipv6_framed_routes =
                     ogs_calloc(OGS_MAX_NUM_OF_FRAMED_ROUTES_IN_PDI,
@@ -522,6 +525,14 @@ bool smf_npcf_smpolicycontrol_handle_create(
                 ogs_assert(dl_pdr->ipv6_framed_routes);
             }
             dl_pdr->ipv6_framed_routes[i] = ogs_strdup(route);
+
+            if (!ul_pdr->ipv6_framed_routes) {
+                ul_pdr->ipv6_framed_routes =
+                    ogs_calloc(OGS_MAX_NUM_OF_FRAMED_ROUTES_IN_PDI,
+                               sizeof(ul_pdr->ipv6_framed_routes[0]));
+                ogs_assert(ul_pdr->ipv6_framed_routes);
+            }
+            ul_pdr->ipv6_framed_routes[i] = ogs_strdup(route);
         }
     }
 
@@ -633,17 +644,6 @@ bool smf_npcf_smpolicycontrol_handle_create(
             smf_5gc_pfcp_send_session_establishment_request(sess, 0));
 
     return true;
-
-cleanup:
-    ogs_assert(strerror);
-
-    ogs_error("%s", strerror);
-    ogs_assert(true ==
-        ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-            recvmsg, strerror, NULL));
-    ogs_free(strerror);
-
-    return false;
 }
 
 bool smf_npcf_smpolicycontrol_handle_update_notify(
@@ -713,13 +713,19 @@ bool smf_npcf_smpolicycontrol_handle_terminate_notify(
 
     ogs_assert(true == ogs_sbi_send_http_status_no_content(stream));
 
-    memset(&param, 0, sizeof(param));
-    r = smf_sbi_discover_and_send(
-            OGS_SBI_SERVICE_TYPE_NPCF_SMPOLICYCONTROL, NULL,
-            smf_npcf_smpolicycontrol_build_delete,
-            sess, NULL, OGS_PFCP_DELETE_TRIGGER_PCF_INITIATED, &param);
-    ogs_expect(r == OGS_OK);
-    ogs_assert(r != OGS_ERROR);
+    if (sess->policy_association_id) {
+        memset(&param, 0, sizeof(param));
+        r = smf_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NPCF_SMPOLICYCONTROL, NULL,
+                smf_npcf_smpolicycontrol_build_delete,
+                sess, NULL, OGS_PFCP_DELETE_TRIGGER_PCF_INITIATED, &param);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
+    } else {
+        ogs_error("[%s:%d] No PolicyAssociationId. Forcibly remove SESSION",
+                smf_ue->supi, sess->psi);
+        SMF_SESS_CLEAR(sess);
+    }
 
     return true;
 }

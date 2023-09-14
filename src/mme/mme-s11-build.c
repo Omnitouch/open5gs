@@ -152,10 +152,10 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         pgw_addr6 = mme_ue->pgw_addr6;
 
         if (!pgw_addr && !pgw_addr6) {
-            pgw_addr = mme_pgw_addr_find_by_apn(
-                    &mme_self()->pgw_list, AF_INET, session->name);
-            pgw_addr6 = mme_pgw_addr_find_by_apn(
-                    &mme_self()->pgw_list, AF_INET6, session->name);
+            pgw_addr = mme_pgw_addr_find_by_apn_enb(
+                    &mme_self()->pgw_list, AF_INET, sess);
+            pgw_addr6 = mme_pgw_addr_find_by_apn_enb(
+                    &mme_self()->pgw_list, AF_INET6, sess);
 
             ogs_assert(pgw_addr || pgw_addr6);
         }

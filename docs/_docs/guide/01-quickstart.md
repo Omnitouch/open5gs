@@ -68,7 +68,7 @@ With the exception of the SMF and UPF, all config files for the 5G SA core funct
 
 **Note:** Package managers can be used to install Open5GS in *Debian/Ubuntu and openSUSE* environments (for major and minor builds). *CentOS, Fedora, and Mac OSX* require you to [build with source code]({{ site.url }}{{ site.baseurl }}/docs/guide/02-building-open5gs-from-sources).
 {: .notice--warning}
-**Note:** Nighly builds are offered by [Osmocom](https://osmocom.org) on [OBS](https://build.opensuse.org/package/show/network:osmocom:nightly/open5gs). Scroll down to use a nightly build package.
+**Note:** Nighly builds are offered by [Osmocom](https://osmocom.org) on [OBS](https://obs.osmocom.org/package/show/osmocom:nightly/open5gs). Scroll down to use a nightly build package.
 {: .notice--warning}
 
 #### Getting MongoDB
@@ -188,10 +188,19 @@ The WebUI allows you to interactively edit subscriber data. While it is not esse
 1. *Debian and Ubuntu* based Linux distributions can install [Node.js](https://nodejs.org/) as follows:
 
     ```bash
+    # Download and import the Nodesource GPG key
     $ sudo apt update
-    $ sudo apt install curl
-    $ curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-    $ sudo apt install nodejs
+    $ sudo apt install -y ca-certificates curl gnupg
+    $ sudo mkdir -p /etc/apt/keyrings
+    $ curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+
+    # Create deb repository
+    $ NODE_MAJOR=20
+    $ echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+
+    # Run Update and Install
+    $ sudo apt update
+    $ sudo apt install nodejs -y
     ```
 
 2. To install [Node.js](https://nodejs.org/) on *openSUSE*, run the following:

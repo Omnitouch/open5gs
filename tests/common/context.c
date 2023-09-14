@@ -127,7 +127,8 @@ static int test_context_validation(void)
 
     if (test_self()->nr_served_tai[index].list2.num) {
         memcpy(&test_self()->nr_tai,
-            &test_self()->nr_served_tai[index].list2.tai[0], sizeof(ogs_5gs_tai_t));
+            &test_self()->nr_served_tai[index].list2.tai[0],
+            sizeof(ogs_5gs_tai_t));
     } else if (test_self()->nr_served_tai[index].list1.tai[0].num) {
         test_self()->nr_tai.tac =
             test_self()->nr_served_tai[index].list1.tai[0].tac;
@@ -293,7 +294,7 @@ int test_context_parse_config(void)
                                 NULL, self.ngap_port, NULL);
                         ogs_assert(rv == OGS_OK);
                     }
-                } if (!strcmp(amf_key, "tai")) {
+                } else if (!strcmp(amf_key, "tai")) {
                     int num_of_list0 = 0;
                     int num_of_list1 = 0;
                     ogs_5gs_tai0_list_t *list0 = NULL;
@@ -620,10 +621,7 @@ int test_context_parse_config(void)
                         }
                     } while (ogs_yaml_iter_type(&plmn_support_array) ==
                             YAML_SEQUENCE_NODE);
-                } else if (!strcmp(amf_key, "sbi")) {
-                    /* handle config in sbi library */
-                } else
-                    ogs_warn("unknown key `%s`", amf_key);
+                }
             }
         } else if (!strcmp(root_key, "mme")) {
             ogs_yaml_iter_t mme_iter;

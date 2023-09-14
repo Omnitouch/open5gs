@@ -72,7 +72,7 @@ void ogs_pfcp_context_init(void)
     ogs_pool_random_id_generate(&ogs_pfcp_pdr_teid_pool);
 
     pdr_random_to_index = ogs_calloc(
-            sizeof(ogs_pool_id_t), ogs_pfcp_pdr_pool.size);
+            sizeof(ogs_pool_id_t), ogs_pfcp_pdr_pool.size+1);
     ogs_assert(pdr_random_to_index);
     for (i = 0; i < ogs_pfcp_pdr_pool.size; i++)
         pdr_random_to_index[ogs_pfcp_pdr_teid_pool.array[i]] = i;
@@ -319,7 +319,7 @@ int ogs_pfcp_context_parse_config(const char *local, const char *remote)
                             if (ogs_app()->parameter.no_ipv6 == 0 &&
                                 !self.pfcp_advertise6) {
                                 ogs_copyaddrinfo(&self.pfcp_advertise6, addr);
-                                ogs_filteraddrinfo(&self.pfcp_advertise6, AF_INET);
+                                ogs_filteraddrinfo(&self.pfcp_advertise6, AF_INET6);
                             }
                             ogs_freeaddrinfo(addr);
                         }
@@ -756,7 +756,10 @@ ogs_pfcp_node_t *ogs_pfcp_node_new(ogs_sockaddr_t *sa_list)
     ogs_assert(sa_list);
 
     ogs_pool_alloc(&ogs_pfcp_node_pool, &node);
-    ogs_assert(node);
+    if (!node) {
+        ogs_error("No memory: ogs_pool_alloc() failed");
+        return NULL;
+    }
     memset(node, 0, sizeof(ogs_pfcp_node_t));
 
     node->sa_list = sa_list;
@@ -792,6 +795,11 @@ ogs_pfcp_node_t *ogs_pfcp_node_add(
 
     ogs_assert(OGS_OK == ogs_copyaddrinfo(&new, addr));
     node = ogs_pfcp_node_new(new);
+    if (!node) {
+        ogs_error("No memory : ogs_pfcp_node_new() failed");
+        ogs_freeaddrinfo(new);
+        return NULL;
+    }
 
     ogs_assert(node);
     memcpy(&node->addr, new, sizeof node->addr);
@@ -2151,11 +2159,11 @@ void ogs_pfcp_pool_init(ogs_pfcp_sess_t *sess)
 
     sess->obj.type = OGS_PFCP_OBJ_SESS_TYPE;
 
-    ogs_pool_init(&sess->pdr_id_pool, OGS_MAX_NUM_OF_PDR);
-    ogs_pool_init(&sess->far_id_pool, OGS_MAX_NUM_OF_FAR);
-    ogs_pool_init(&sess->urr_id_pool, OGS_MAX_NUM_OF_URR);
-    ogs_pool_init(&sess->qer_id_pool, OGS_MAX_NUM_OF_QER);
-    ogs_pool_init(&sess->bar_id_pool, OGS_MAX_NUM_OF_BAR);
+    ogs_pool_create(&sess->pdr_id_pool, OGS_MAX_NUM_OF_PDR);
+    ogs_pool_create(&sess->far_id_pool, OGS_MAX_NUM_OF_FAR);
+    ogs_pool_create(&sess->urr_id_pool, OGS_MAX_NUM_OF_URR);
+    ogs_pool_create(&sess->qer_id_pool, OGS_MAX_NUM_OF_QER);
+    ogs_pool_create(&sess->bar_id_pool, OGS_MAX_NUM_OF_BAR);
 
     ogs_pool_sequence_id_generate(&sess->pdr_id_pool);
     ogs_pool_sequence_id_generate(&sess->far_id_pool);
@@ -2167,9 +2175,9 @@ void ogs_pfcp_pool_final(ogs_pfcp_sess_t *sess)
 {
     ogs_assert(sess);
 
-    ogs_pool_final(&sess->pdr_id_pool);
-    ogs_pool_final(&sess->far_id_pool);
-    ogs_pool_final(&sess->urr_id_pool);
-    ogs_pool_final(&sess->qer_id_pool);
-    ogs_pool_final(&sess->bar_id_pool);
+    ogs_pool_destroy(&sess->pdr_id_pool);
+    ogs_pool_destroy(&sess->far_id_pool);
+    ogs_pool_destroy(&sess->urr_id_pool);
+    ogs_pool_destroy(&sess->qer_id_pool);
+    ogs_pool_destroy(&sess->bar_id_pool);
 }
