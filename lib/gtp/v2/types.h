@@ -66,6 +66,10 @@ typedef struct ogs_gtp2_extension_header_s {
         uint8_t reflective_qos_indicator:1;,
         uint8_t qos_flow_identifier:6;);
     uint8_t next_type;
+
+/* sizeof(extension_header.array[i]) */
+#define OGS_GTP2_MAX_EXTENSION_HEADER_LEN 4
+
 } __attribute__ ((packed)) ogs_gtp2_extension_header_t;
 
 /* 8.4 Cause */
