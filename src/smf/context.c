@@ -1358,6 +1358,11 @@ smf_sess_t *smf_sess_add_by_gtp1_message(ogs_gtp1_message_t *message)
         return NULL;
     }
 
+    if (OGS_GTP2_RAT_TYPE_EUTRAN_NB_IOT == req->rat_type.u8) {
+        ogs_info("RAT Type OGS_GTP2_RAT_TYPE_EUTRAN_NB_IOT to OGS_GTP2_RAT_TYPE_EUTRAN");
+        req->rat_type.u8 = OGS_GTP2_RAT_TYPE_EUTRAN;
+    }
+
     if ((ogs_fqdn_parse(apn, req->access_point_name.data,
             ogs_min(req->access_point_name.len, OGS_MAX_APN_LEN+1))) <= 0) {
         ogs_error("No APN");
@@ -1415,6 +1420,11 @@ smf_sess_t *smf_sess_add_by_gtp2_message(ogs_gtp2_message_t *message)
     if (req->rat_type.presence == 0) {
         ogs_error("No RAT Type");
         return NULL;
+    }
+
+    if (OGS_GTP2_RAT_TYPE_EUTRAN_NB_IOT == req->rat_type.u8) {
+        ogs_info("RAT Type OGS_GTP2_RAT_TYPE_EUTRAN_NB_IOT to OGS_GTP2_RAT_TYPE_EUTRAN");
+        req->rat_type.u8 = OGS_GTP2_RAT_TYPE_EUTRAN;
     }
 
     ogs_assert(0 < ogs_fqdn_parse(apn, req->access_point_name.data,
