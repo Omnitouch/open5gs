@@ -130,11 +130,57 @@ void upf_pfcp_state_will_associate(ogs_fsm_t *s, upf_event_t *e)
             ogs_expect(true ==
                 ogs_pfcp_handle_heartbeat_request(node, xact,
                     &message->pfcp_heartbeat_request));
+
+            if (NULL != node->t_association) {
+                /* We are performing the association */
+                if (false == node->t_association->running) {
+                    /* Ensure that the timer is running */
+                    ogs_error("We're waiting for a PFCP restoration but we don't have a timer running, how silly!");
+                    ogs_timer_start(node->t_association,
+                        ogs_app()->time.message.pfcp.association_interval);
+                }
+            } else if (true == node->restoration_required) {
+                /* If the peer PFCP entity is performing the association,
+                 * Restoration can be performed immediately. */
+                ogs_error("Looks like we're supposed to do the PFCP restoration ourselves?");
+                pfcp_restoration(node);
+                node->restoration_required = false;
+                OGS_FSM_TRAN(s, upf_pfcp_state_associated);
+            } else {
+                /* We aren't restoring the node and a restoration isn't required.
+                 * we must actually be accociated? */
+                OGS_FSM_TRAN(s, upf_pfcp_state_associated);
+                ogs_error("PFCP state error, maybe we should be in upf_pfcp_state_associated?");
+            }
+            
             break;
         case OGS_PFCP_HEARTBEAT_RESPONSE_TYPE:
             ogs_expect(true ==
                 ogs_pfcp_handle_heartbeat_response(node, xact,
                     &message->pfcp_heartbeat_response));
+
+            if (NULL != node->t_association) {
+                /* We are performing the association */
+                if (false == node->t_association->running) {
+                    /* Ensure that the timer is running */
+                    ogs_error("We're waiting for a PFCP restoration but we don't have a timer running, how silly!");
+                    ogs_timer_start(node->t_association,
+                        ogs_app()->time.message.pfcp.association_interval);
+                }
+            } else if (true == node->restoration_required) {
+                /* If the peer PFCP entity is performing the association,
+                 * Restoration can be performed immediately. */
+                ogs_error("Looks like we're supposed to do the PFCP restoration ourselves?");
+                pfcp_restoration(node);
+                node->restoration_required = false;
+                OGS_FSM_TRAN(s, upf_pfcp_state_associated);
+            } else {
+                /* We aren't restoring the node and a restoration isn't required.
+                 * we must actually be accociated? */
+                OGS_FSM_TRAN(s, upf_pfcp_state_associated);
+                ogs_error("PFCP state error, maybe we should be in upf_pfcp_state_associated?");
+            }
+
             break;
         case OGS_PFCP_ASSOCIATION_SETUP_REQUEST_TYPE:
             ogs_pfcp_up_handle_association_setup_request(node, xact,
@@ -147,7 +193,7 @@ void upf_pfcp_state_will_associate(ogs_fsm_t *s, upf_event_t *e)
             OGS_FSM_TRAN(s, upf_pfcp_state_associated);
             break;
         default:
-            ogs_warn("cannot handle PFCP message type[%d]",
+            ogs_warn("cannot handle PFCP message type[%d], does the other node think we're already associated?",
                     message->h.type);
             break;
         }
