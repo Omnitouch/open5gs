@@ -961,6 +961,41 @@ int mme_context_parse_config(void)
                                 } while (
                                     ogs_yaml_iter_type(&tac_iter) ==
                                         YAML_SEQUENCE_NODE);
+                            } else if (!strcmp(tai_key, "tac-timezone")) {
+                                ogs_yaml_iter_t tac_timezone_iter;
+
+                                ogs_yaml_iter_recurse(&tai_iter, &tac_timezone_iter);
+                                while (ogs_yaml_iter_next(&tac_timezone_iter)) {
+                                    const char *tac_timezone_key =
+                                        ogs_yaml_iter_key(&tac_timezone_iter);
+                                    ogs_assert(tac_timezone_key);
+
+                                    const char *gmt_timezone = ogs_yaml_iter_value(&tac_timezone_iter);
+                                    char *gmt_amount_str = strstr(gmt_timezone, "utc");
+                                    if (NULL == gmt_amount_str) {
+                                        gmt_amount_str = strstr(gmt_timezone, "UTC");
+                                    }
+                                    /* Minimum of 5 chars to make a valid UTC amount: "utc-1" "UTC+1" */
+                                    if ((NULL == gmt_amount_str) || (strlen(gmt_amount_str) < 5)) {
+                                        ogs_error("Timezone value for TAC '%s' was invalid ('%s'), expecting something like 'UTC+11' or 'utc-4'", tac_timezone_key, gmt_timezone);
+                                        continue;
+                                    }
+                                    /* Point to characters after "UTC" / "utc" */
+                                    gmt_amount_str += 3;
+
+                                    if (self.tac_timezone_map_sz < MAX_TAC_TIMEZONE_MAP_SZ) {
+                                        self.tac_timezone_map[self.tac_timezone_map_sz].tac = atoi(tac_timezone_key);
+                                        self.tac_timezone_map[self.tac_timezone_map_sz].gmt_modifier = atoi(gmt_amount_str);
+                                        ogs_info(
+                                            "TAC of %i is associated with timezone UTC%+i",
+                                            self.tac_timezone_map[self.tac_timezone_map_sz].tac,
+                                            self.tac_timezone_map[self.tac_timezone_map_sz].gmt_modifier
+                                        );
+                                        self.tac_timezone_map_sz++;
+                                    } else {
+                                        ogs_error("Cannot have more than %i TAC Timezones specified", MAX_TAC_TIMEZONE_MAP_SZ);
+                                    }
+                                }
                             } else
                                 ogs_warn("unknown key `%s`", tai_key);
                         }
