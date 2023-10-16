@@ -984,12 +984,25 @@ int mme_context_parse_config(void)
                                     gmt_amount_str += 3;
 
                                     if (self.tac_timezone_map_sz < MAX_TAC_TIMEZONE_MAP_SZ) {
+
                                         self.tac_timezone_map[self.tac_timezone_map_sz].tac = atoi(tac_timezone_key);
-                                        self.tac_timezone_map[self.tac_timezone_map_sz].gmt_modifier = atoi(gmt_amount_str);
+                                        /* Add hours */
+                                        self.tac_timezone_map[self.tac_timezone_map_sz].gmt_modifier_sec = atoi(gmt_amount_str) * 60 * 60;
+
+                                        gmt_amount_str = strchr(gmt_amount_str, ':');
+                                        /* Resolution of 15 min so we are expecting exactly 
+                                         * 3 digits (inclusive of ':') when there are minutes */
+                                        if (gmt_amount_str != NULL) {
+                                            /* Move the pointer to the position after ':' */
+                                            ++gmt_amount_str;
+                                            /* Add minutes */
+                                            self.tac_timezone_map[self.tac_timezone_map_sz].gmt_modifier_sec += atoi(gmt_amount_str) * 60;
+                                        }
+                                        
                                         ogs_info(
-                                            "TAC of %i is associated with timezone UTC%+i",
+                                            "TAC of %i is associated with timezone UTC + %i seconds",
                                             self.tac_timezone_map[self.tac_timezone_map_sz].tac,
-                                            self.tac_timezone_map[self.tac_timezone_map_sz].gmt_modifier
+                                            self.tac_timezone_map[self.tac_timezone_map_sz].gmt_modifier_sec
                                         );
                                         self.tac_timezone_map_sz++;
                                     } else {
