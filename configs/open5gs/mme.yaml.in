@@ -318,6 +318,15 @@ logger:
 #  mme:
 #    relative_capacity: 100
 #
+#
+# <TAC Based Time-zoning>
+# mme:
+#   tac-timezone:
+#     100: UTC+11      # Melbourne Time
+#     10100: UTC-3     # Argentina Time
+#     10011: UTC+10:30 # Adelaide Time
+#
+#
 mme:
     freeDiameter: @sysconfdir@/freeDiameter/mme.conf
     s1ap:
