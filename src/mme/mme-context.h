@@ -42,6 +42,7 @@ extern "C" {
 #define CODE_PER_MME                256    /* According to spec it is 256 */
 
 #define MAX_NUM_OF_SERVED_GUMMEI    8
+#define MAX_TAC_TIMEZONE_MAP_SZ     8
 
 extern int __mme_log_domain;
 extern int __emm_log_domain;
@@ -99,6 +100,11 @@ typedef struct {
     bool enabled;
     unsigned expire_time_sec;
 } redis_dup_detection_t;
+
+typedef struct {
+    uint16_t tac;
+    int gmt_modifier_sec;
+} mme_tac_timezone_map_t;
 
 typedef struct mme_context_s {
     const char          *diam_conf_path;  /* MME Diameter conf path */
@@ -240,6 +246,9 @@ typedef struct mme_context_s {
     char dns_base_domain[MAX_DNS_BASE_DOMAIN_NAME];
 
     bool include_local_time_zone;
+
+    int tac_timezone_map_sz;
+    mme_tac_timezone_map_t tac_timezone_map[MAX_TAC_TIMEZONE_MAP_SZ];
 } mme_context_t;
 
 typedef struct mme_sgsn_route_s {

@@ -839,6 +839,8 @@ static int send_to_downlink_emergency(mme_ue_t *mme_ue)
 static int send_to_downlink_default(mme_ue_t *mme_ue) {
     int rv;
     ogs_pkbuf_t *emmbuf = NULL;
+    mme_tac_timezone_map_t *tac_timezone_map = NULL;
+    long gmt_offset;
 
     ogs_nas_eps_message_t message;
     ogs_nas_eps_emm_information_t *emm_information =
@@ -893,13 +895,29 @@ static int send_to_downlink_default(mme_ue_t *mme_ue) {
             OGS_NAS_EPS_EMM_INFORMATION_LOCAL_TIME_ZONE_PRESENT;
     }
 
-    if (local.tm_gmtoff >= 0) {
-        *local_time_zone = OGS_NAS_TIME_TO_BCD(local.tm_gmtoff / 900);
+    /* TAC based timezone stuff */
+    for (int i = 0; i < mme_self()->tac_timezone_map_sz; ++i) {
+        if (mme_self()->tac_timezone_map[i].tac == mme_ue->tai.tac) {
+            tac_timezone_map = &mme_self()->tac_timezone_map[i];
+            break;
+        }
+    }
+
+    gmt_offset = local.tm_gmtoff;
+    if (tac_timezone_map) {
+        gmt_offset = tac_timezone_map->gmt_modifier_sec;
+    }
+
+    /* Why 900? Because gmt_offset is in seconds and the local 
+     * timezone element uses 15 minute chunks. 
+     * offset_mins / (mins_in_hour * mins_in_timezone_chunk)
+     * Why 0x08? Because the bit at index 3 indicates sign */
+    if (gmt_offset >= 0) {
+        *local_time_zone = OGS_NAS_TIME_TO_BCD(gmt_offset / 900);
     } else {
-        *local_time_zone = OGS_NAS_TIME_TO_BCD((-local.tm_gmtoff) / 900);
+        *local_time_zone = OGS_NAS_TIME_TO_BCD((-gmt_offset) / 900);
         *local_time_zone |= 0x08;
     }
-    ogs_debug("    Timezone:0x%x", *local_time_zone);
 
     emm_information->presencemask |=
         OGS_NAS_EPS_EMM_INFORMATION_UNIVERSAL_TIME_AND_LOCAL_TIME_ZONE_PRESENT;
