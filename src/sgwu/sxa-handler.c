@@ -399,6 +399,6 @@ void sgwu_sxa_handle_session_report_response(
         sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_CTR_SM_REPORTPFCPSESSIONFAIL);
         return;
     } else {
-        sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_CTR_SM_REPORTPFCPSESSIONFAIL);
+        sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_CTR_SM_REPORTPFCPSESSIONSUCC);
     }
 }
