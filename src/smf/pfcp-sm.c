@@ -73,6 +73,7 @@ void smf_pfcp_state_will_associate(ogs_fsm_t *s, smf_event_t *e)
     ogs_pfcp_message_t *message = NULL;
 
     ogs_sockaddr_t *addr = NULL;
+    smf_sess_t *sess;
 
     ogs_assert(s);
     ogs_assert(e);
@@ -114,6 +115,15 @@ void smf_pfcp_state_will_associate(ogs_fsm_t *s, smf_event_t *e)
                 ogs_app()->time.message.pfcp.association_interval);
 
             ogs_pfcp_cp_send_association_setup_request(node, node_timeout);
+            break;
+        case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
+            sess = e->sess;
+            sess = smf_sess_cycle(sess);
+            if (!sess) {
+                ogs_warn("Session has already been removed");
+                break;
+            }
+            ogs_fsm_dispatch(&sess->sm, e);
             break;
         default:
             ogs_error("Unknown timer[%s:%d]",
@@ -373,6 +383,15 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
             ogs_assert(OGS_OK ==
                 ogs_pfcp_send_heartbeat_request(node, node_timeout));
             break;
+        case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
+            sess = e->sess;
+            sess = smf_sess_cycle(sess);
+            if (!sess) {
+                ogs_warn("Session has already been removed");
+                break;
+            }
+            ogs_fsm_dispatch(&sess->sm, e);
+            break;
         default:
             ogs_error("Unknown timer[%s:%d]",
                     smf_timer_get_name(e->h.timer_id), e->h.timer_id);
@@ -480,30 +499,36 @@ static void reselect_upf(ogs_pfcp_node_t *node)
     }
 
     ogs_list_for_each(&smf_self()->smf_ue_list, smf_ue) {
-        smf_sess_t *sess = NULL;
-        ogs_assert(smf_ue);
+        smf_sess_t *sess = NULL, *next_sess = NULL;
 
-        ogs_list_for_each(&smf_ue->sess_list, sess) {
-            ogs_assert(sess);
+        ogs_list_for_each_safe(&smf_ue->sess_list, next_sess, sess) {
 
             if (node == sess->pfcp_node) {
                 if (sess->epc) {
                     ogs_error("[%s:%s] EPC restoration is not implemented",
                             smf_ue->imsi_bcd, sess->session.name);
                 } else {
-                    smf_npcf_smpolicycontrol_param_t param;
+                    if (sess->policy_association_id) {
+                        smf_npcf_smpolicycontrol_param_t param;
 
-                    ogs_info("[%s:%d] SMF-initiated Deletion",
-                            smf_ue->supi, sess->psi);
-                    ogs_assert(sess->sm_context_ref);
-                    memset(&param, 0, sizeof(param));
-                    r = smf_sbi_discover_and_send(
-                            OGS_SBI_SERVICE_TYPE_NPCF_SMPOLICYCONTROL, NULL,
-                            smf_npcf_smpolicycontrol_build_delete,
-                            sess, NULL, OGS_PFCP_DELETE_TRIGGER_SMF_INITIATED,
-                            &param);
-                    ogs_expect(r == OGS_OK);
-                    ogs_assert(r != OGS_ERROR);
+                        ogs_info("[%s:%d] SMF-initiated Deletion",
+                                smf_ue->supi, sess->psi);
+                        ogs_assert(sess->sm_context_ref);
+                        memset(&param, 0, sizeof(param));
+                        r = smf_sbi_discover_and_send(
+                                OGS_SBI_SERVICE_TYPE_NPCF_SMPOLICYCONTROL, NULL,
+                                smf_npcf_smpolicycontrol_build_delete,
+                                sess, NULL,
+                                OGS_PFCP_DELETE_TRIGGER_SMF_INITIATED,
+                                &param);
+                        ogs_expect(r == OGS_OK);
+                        ogs_assert(r != OGS_ERROR);
+                    } else {
+                        ogs_error("[%s:%d] No PolicyAssociationId. "
+                                "Forcibly remove SESSION",
+                                smf_ue->supi, sess->psi);
+                        SMF_SESS_CLEAR(sess);
+                    }
                 }
             }
         }

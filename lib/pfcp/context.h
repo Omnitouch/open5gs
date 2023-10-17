@@ -28,6 +28,8 @@
 extern "C" {
 #endif
 
+#include "usage_logger.h"
+
 #define OGS_PFCP_DEFAULT_PDR_PRECEDENCE 255
 #define OGS_PFCP_INDIRECT_PDR_PRECEDENCE 1
 #define OGS_PFCP_UP2CP_PDR_PRECEDENCE 1
@@ -72,6 +74,8 @@ typedef struct ogs_pfcp_context_s {
     ogs_hash_t      *object_teid_hash; /* hash table for PFCP OBJ(TEID) */
     ogs_hash_t      *far_f_teid_hash;  /* hash table for FAR(TEID+ADDR) */
     ogs_hash_t      *far_teid_hash; /* hash table for FAR(TEID) */
+
+    UsageLoggerState usageLoggerState;
 } ogs_pfcp_context_t;
 
 #define OGS_SETUP_PFCP_NODE(__cTX, __pNODE) \

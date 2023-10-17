@@ -103,6 +103,7 @@ void mme_s11_handle_create_session_response(
     ogs_assert(rsp);
 
     ogs_debug("Create Session Response");
+    MME_UE_LIST_CHECK;
 
     /********************
      * Check Transaction
@@ -447,6 +448,9 @@ void mme_s11_handle_create_session_response(
         ogs_fatal("Invalid Create Session Action[%d]", create_action);
         ogs_assert_if_reached();
     }
+
+    /* If we get to here than that means the session was added successfully */
+    mme_metrics_ue_session_add(mme_ue->imsi_bcd, sess->session->name);
 }
 
 void mme_s11_handle_modify_bearer_response(
@@ -464,6 +468,7 @@ void mme_s11_handle_modify_bearer_response(
     ogs_assert(rsp);
 
     ogs_debug("Modify Bearer Response");
+    MME_UE_LIST_CHECK;
 
     /********************
      * Check Transaction
@@ -575,6 +580,7 @@ void mme_s11_handle_delete_session_response(
     ogs_assert(rsp);
 
     ogs_debug("Delete Session Response");
+    MME_UE_LIST_CHECK;
 
     /********************
      * Check Transaction
@@ -748,10 +754,7 @@ void mme_s11_handle_delete_session_response(
         ogs_assert_if_reached();
     }
 
-    if (mme_sess_count(mme_ue) == 1) /* Last Session */
-        CLEAR_SESSION_CONTEXT(mme_ue);
-
-    mme_sess_remove(sess);
+    MME_SESS_CLEAR(sess);
 }
 
 void mme_s11_handle_create_bearer_request(
@@ -925,28 +928,11 @@ void mme_s11_handle_create_bearer_request(
 
     if (OGS_FSM_CHECK(&default_bearer->sm, esm_state_active)) {
         if (ECM_IDLE(mme_ue)) {
-            if (ogs_timer_running(mme_ue->t_implicit_detach.timer)) {
-                /*
-                * TS 24.301 5.3.7
-                * If ISR is not activated, the network behaviour upon expiry of
-                * the mobile reachable timer is network dependent, but typically
-                * the network stops sending paging messages to the UE on the
-                * first expiry, and may take other appropriate actions
-                */
-                ogs_debug("[%s] Paging stopped: Mobile Reachable timer expiry",
-                    mme_ue->imsi_bcd);
-
-                ogs_assert(OGS_OK ==
-                    mme_gtp_send_create_bearer_response(
-                        bearer, OGS_GTP2_CAUSE_UNABLE_TO_PAGE_UE));
-                MME_CLEAR_PAGING_INFO(mme_ue);
-            } else {
-                MME_STORE_PAGING_INFO(mme_ue,
-                    MME_PAGING_TYPE_CREATE_BEARER, bearer);
-                r = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
-                ogs_expect(r == OGS_OK);
-                ogs_assert(r != OGS_ERROR);
-            }
+            MME_STORE_PAGING_INFO(mme_ue,
+                MME_PAGING_TYPE_CREATE_BEARER, bearer);
+            r = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
         } else {
             MME_CLEAR_PAGING_INFO(mme_ue);
             r = nas_eps_send_activate_dedicated_bearer_context_request(bearer);
@@ -1076,28 +1062,11 @@ void mme_s11_handle_update_bearer_request(
     if (req->bearer_contexts.bearer_level_qos.presence == 1 ||
         req->bearer_contexts.tft.presence == 1) {
         if (ECM_IDLE(mme_ue)) {
-            if (ogs_timer_running(mme_ue->t_implicit_detach.timer)) {
-                /*
-                * TS 24.301 5.3.7
-                * If ISR is not activated, the network behaviour upon expiry of
-                * the mobile reachable timer is network dependent, but typically
-                * the network stops sending paging messages to the UE on the
-                * first expiry, and may take other appropriate actions
-                */
-                ogs_debug("[%s] Paging stopped: Mobile Reachable timer expiry",
-                    mme_ue->imsi_bcd);
-
-                ogs_assert(OGS_OK ==
-                    mme_gtp_send_update_bearer_response(
-                        bearer, OGS_GTP2_CAUSE_UNABLE_TO_PAGE_UE));
-                MME_CLEAR_PAGING_INFO(mme_ue);
-            } else {
-                MME_STORE_PAGING_INFO(mme_ue,
-                    MME_PAGING_TYPE_UPDATE_BEARER, bearer);
-                r = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
-                ogs_expect(r == OGS_OK);
-                ogs_assert(r != OGS_ERROR);
-            }
+            MME_STORE_PAGING_INFO(mme_ue,
+                MME_PAGING_TYPE_UPDATE_BEARER, bearer);
+            r = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
         } else {
             MME_CLEAR_PAGING_INFO(mme_ue);
             r = nas_eps_send_modify_bearer_context_request(bearer,
@@ -1234,28 +1203,11 @@ void mme_s11_handle_delete_bearer_request(
     bearer->delete.xact = xact;
 
     if (ECM_IDLE(mme_ue)) {
-        if (ogs_timer_running(mme_ue->t_implicit_detach.timer)) {
-            /*
-            * TS 24.301 5.3.7
-            * If ISR is not activated, the network behaviour upon expiry of
-            * the mobile reachable timer is network dependent, but typically
-            * the network stops sending paging messages to the UE on the
-            * first expiry, and may take other appropriate actions
-            */
-            ogs_debug("[%s] Paging stopped: Mobile Reachable timer expiry",
-                mme_ue->imsi_bcd);
-
-            ogs_assert(OGS_OK ==
-                mme_gtp_send_delete_bearer_response(
-                    bearer, OGS_GTP2_CAUSE_UNABLE_TO_PAGE_UE));
-            MME_CLEAR_PAGING_INFO(mme_ue);
-        } else {
-            MME_STORE_PAGING_INFO(mme_ue,
-                MME_PAGING_TYPE_DELETE_BEARER, bearer);
-            r = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
-            ogs_expect(r == OGS_OK);
-            ogs_assert(r != OGS_ERROR);
-        }
+        MME_STORE_PAGING_INFO(mme_ue,
+            MME_PAGING_TYPE_DELETE_BEARER, bearer);
+        r = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
     } else {
         MME_CLEAR_PAGING_INFO(mme_ue);
         r = nas_eps_send_deactivate_bearer_context_request(bearer);
@@ -1281,6 +1233,7 @@ void mme_s11_handle_release_access_bearers_response(
     ogs_assert(rsp);
 
     ogs_debug("Release Access Bearers Response");
+    MME_UE_LIST_CHECK;
 
     /********************
      * Check Transaction
@@ -1517,27 +1470,11 @@ void mme_s11_handle_downlink_data_notification(
  * before step 9, the MME shall not send S1 interface paging messages
  */
     if (ECM_IDLE(mme_ue)) {
-        if (ogs_timer_running(mme_ue->t_implicit_detach.timer)) {
-            /*
-            * TS 24.301 5.3.7
-            * If ISR is not activated, the network behaviour upon expiry of
-            * the mobile reachable timer is network dependent, but typically
-            * the network stops sending paging messages to the UE on the
-            * first expiry, and may take other appropriate actions
-            */
-            ogs_debug("[%s] Paging stopped: Mobile Reachable timer expiry",
-                mme_ue->imsi_bcd);
-            ogs_assert(OGS_OK ==
-                mme_gtp_send_downlink_data_notification_ack(
-                    bearer, OGS_GTP2_CAUSE_UNABLE_TO_PAGE_UE));
-            MME_CLEAR_PAGING_INFO(mme_ue);
-        } else {
-            MME_STORE_PAGING_INFO(mme_ue,
-                MME_PAGING_TYPE_DOWNLINK_DATA_NOTIFICATION, bearer);
-            r = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
-            ogs_expect(r == OGS_OK);
-            ogs_assert(r != OGS_ERROR);
-        }
+        MME_STORE_PAGING_INFO(mme_ue,
+            MME_PAGING_TYPE_DOWNLINK_DATA_NOTIFICATION, bearer);
+        r = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
     } else if (ECM_CONNECTED(mme_ue)) {
         MME_CLEAR_PAGING_INFO(mme_ue);
         if (cause_value == OGS_GTP2_CAUSE_ERROR_INDICATION_RECEIVED) {

@@ -102,19 +102,27 @@ ogs_timer_t *ogs_timer_add(
 
 void ogs_timer_delete_debug(ogs_timer_t *timer, const char *file_line)
 {
-    ogs_timer_mgr_t *manager;
-    ogs_assert(timer);
-    manager = timer->manager;
-    ogs_assert(manager);
-    timer = ogs_timer_cycle(manager, timer);
-    if (!timer) {
-        ogs_fatal("ogs_timer_delete() failed in %s", file_line);
-        ogs_assert_if_reached();
+    ogs_expect(timer);
+    
+    if (timer) {
+        ogs_timer_mgr_t *manager;
+        manager = timer->manager;
+        ogs_assert(manager);
+        timer = ogs_timer_cycle(manager, timer);
+        ogs_expect(timer);
+        if (!timer) {
+            /* Looks like the timer has already been deleted */
+            ogs_error("ogs_timer_delete() failed in %s, cannot delete a timer that doesn't exist anymore", file_line);
+            return;
+        }
+
+        ogs_timer_stop(timer);
+
+        ogs_pool_free(&manager->pool, timer);
     }
-
-    ogs_timer_stop(timer);
-
-    ogs_pool_free(&manager->pool, timer);
+    else {
+        ogs_warn("ogs_timer_delete() was given a NULL reference to a timer");
+    }
 }
 
 void ogs_timer_start_debug(
@@ -141,28 +149,28 @@ void ogs_timer_start_debug(
 
 void ogs_timer_stop_debug(ogs_timer_t *timer, const char *file_line)
 {
-    ogs_timer_mgr_t *manager = NULL;
-    ogs_assert(timer);
-    manager = timer->manager;
-    ogs_assert(manager);
-    timer = ogs_timer_cycle(manager, timer);
-    ogs_assert(timer);
-    if (!timer) {
-        ogs_fatal("ogs_timer_stop() failed in %s", file_line);
-        ogs_assert_if_reached();
+    ogs_expect(timer);
+
+    if (timer) {
+        ogs_timer_mgr_t *manager = NULL;
+        manager = timer->manager;
+        ogs_assert(manager);
+        timer = ogs_timer_cycle(manager, timer);
+        ogs_expect(timer);
+        if (!timer) {
+            /* Looks like the timer has already been deleted */
+            ogs_error("ogs_timer_stop() failed in %s, cannot stop a timer that doesn't exist anymore", file_line);
+            return;
+        }
+
+        if (timer->running == false)
+            return;
+
+        timer->running = false;
+        ogs_rbtree_delete(&manager->tree, timer);
+    } else {
+        ogs_warn("ogs_timer_delete() was given a NULL reference to a timer");
     }
-
-    if (timer->running == false)
-        return;
-
-    timer->running = false;
-    ogs_rbtree_delete(&manager->tree, timer);
-}
-
-bool ogs_timer_running(ogs_timer_t *timer)
-{
-    ogs_assert(timer);
-    return timer->running;
 }
 
 ogs_time_t ogs_timer_mgr_next(ogs_timer_mgr_t *manager)

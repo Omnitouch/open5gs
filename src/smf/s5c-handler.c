@@ -989,6 +989,9 @@ bool smf_s5c_handle_delete_bearer_response(
             } else {
                 ogs_error("No Cause");
             }
+        } else if (OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND == cause_value) {
+            /* Release entire session: */
+            return true;
         } else {
             ogs_error("GTP Cause [Value:%d]", cause_value);
         }

@@ -86,6 +86,13 @@ sgwc:
       - addr: 127.0.0.3
         port: 9090
 
+    cdr:
+      enabled: True
+      file_capture_period_sec: 1800
+      reporting_period_sec: 10
+      log_dir: /var/log/open5gs
+      sgw_name: SGW-01
+    bearer_deactivation_timer_sec: 10800 # Remove bearers that have not used any data in 3 hours
 
 #
 #  <PFCP Client>>

@@ -101,6 +101,7 @@ ogs_metrics_inst_t *ogs_metrics_inst_new(
         unsigned int num_labels, const char **label_values);
 void ogs_metrics_inst_free(ogs_metrics_inst_t *inst);
 void ogs_metrics_inst_set(ogs_metrics_inst_t *inst, int val);
+void ogs_metrics_inst_set_with_labels(ogs_metrics_inst_t *inst, const char **label_values, int val);
 void ogs_metrics_inst_reset(ogs_metrics_inst_t *inst);
 void ogs_metrics_inst_add(ogs_metrics_inst_t *inst, int val);
 static inline void ogs_metrics_inst_inc(ogs_metrics_inst_t *inst)

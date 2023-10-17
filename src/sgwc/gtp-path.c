@@ -80,7 +80,6 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
         ogs_assert(e);
         e->gnode = gnode;
     } else {
-        e = sgwc_event_new(SGWC_EVT_S11_MESSAGE);
         gnode = ogs_gtp_node_find_by_addr(&sgwc_self()->mme_s11_list, &from);
         if (!gnode) {
             gnode = ogs_gtp_node_add_by_addr(&sgwc_self()->mme_s11_list, &from);
@@ -92,6 +91,7 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
             }
             gnode->sock = data;
         }
+        e = sgwc_event_new(SGWC_EVT_S11_MESSAGE);
         ogs_assert(e);
         e->gnode = gnode;
     }
@@ -246,6 +246,48 @@ int sgwc_gtp_send_downlink_data_notification(
     gtp_xact->local_teid = sgwc_ue->sgw_s11_teid;
 
     rv = ogs_gtp_xact_commit(gtp_xact);
+    ogs_expect(rv == OGS_OK);
+
+    return rv;
+}
+
+int sgwc_gtp2_send_delete_bearer_request(
+        sgwc_bearer_t *bearer, uint8_t pti, uint8_t cause_value)
+{
+    int rv;
+
+    ogs_gtp_xact_t *xact = NULL;
+    ogs_gtp2_header_t h;
+    ogs_pkbuf_t *pkbuf = NULL;
+    sgwc_ue_t *sgwc_ue = NULL;
+    sgwc_sess_t *sess = NULL;
+
+    ogs_assert(bearer);
+    sess = bearer->sess;
+    ogs_assert(sess);
+
+    memset(&h, 0, sizeof(ogs_gtp2_header_t));
+    h.type = OGS_GTP2_DELETE_BEARER_REQUEST_TYPE;
+    sgwc_ue = sess->sgwc_ue;
+    ogs_assert(sgwc_ue);
+    h.teid = sgwc_ue->mme_s11_teid;
+
+    pkbuf = sgwc_s11_build_delete_bearer_request(
+        h.type, bearer, pti, cause_value);
+    if (!pkbuf) {
+        ogs_error("sgwc_s5c_build_delete_bearer_request() failed");
+        return OGS_ERROR;
+    }
+
+    xact = ogs_gtp_xact_local_create(
+        sgwc_ue->gnode, &h, pkbuf, bearer_timeout, bearer);
+    if (!xact) {
+        ogs_error("ogs_gtp_xact_local_create() failed");
+        return OGS_ERROR;
+    }
+    xact->local_teid = sgwc_ue->sgw_s11_teid;
+
+    rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
 
     return rv;

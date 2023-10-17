@@ -32,6 +32,10 @@ void mme_send_delete_session_or_detach(mme_ue_t *mme_ue)
 
     xact_count = mme_ue_xact_count(mme_ue, OGS_GTP_LOCAL_ORIGINATOR);
 
+    if (mme_ue->imsi_bcd) {
+        mme_metrics_ue_connected_clear(mme_ue->imsi_bcd);
+    }
+
     switch (mme_ue->detach_type) {
     case MME_DETACH_TYPE_REQUEST_FROM_UE:
         ogs_debug("Detach Request from UE");

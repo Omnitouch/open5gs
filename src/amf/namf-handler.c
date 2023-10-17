@@ -274,23 +274,18 @@ int amf_namf_comm_handle_n1_n2_message_transfer(
 
                 sendmsg.http.location = ogs_sbi_server_uri(server, &header);
 
-                if (ogs_timer_running(
-                            amf_ue->implicit_deregistration.timer) == true) {
-                    ogs_warn("[%s] Paging failed. Stop", amf_ue->supi);
-                } else {
-                    /* Store Paging Info */
-                    AMF_SESS_STORE_PAGING_INFO(
-                        sess, sendmsg.http.location,
-                        N1N2MessageTransferReqData->n1n2_failure_txf_notif_uri);
+                /* Store Paging Info */
+                AMF_SESS_STORE_PAGING_INFO(
+                    sess, sendmsg.http.location,
+                    N1N2MessageTransferReqData->n1n2_failure_txf_notif_uri);
 
-                    /* Store N2 Transfer message */
-                    AMF_SESS_STORE_N2_TRANSFER(
-                            sess, pdu_session_resource_setup_request, n2buf);
+                /* Store N2 Transfer message */
+                AMF_SESS_STORE_N2_TRANSFER(
+                        sess, pdu_session_resource_setup_request, n2buf);
 
-                    r = ngap_send_paging(amf_ue);
-                    ogs_expect(r == OGS_OK);
-                    ogs_assert(r != OGS_ERROR);
-                }
+                r = ngap_send_paging(amf_ue);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
 
             } else if (CM_CONNECTED(amf_ue)) {
                 r = nas_send_pdu_session_setup_request(sess, NULL, n2buf);
@@ -341,23 +336,18 @@ int amf_namf_comm_handle_n1_n2_message_transfer(
 
             sendmsg.http.location = ogs_sbi_server_uri(server, &header);
 
-            if (ogs_timer_running(
-                        amf_ue->implicit_deregistration.timer) == true) {
-                ogs_warn("[%s] Paging failed. Stop", amf_ue->supi);
-            } else {
-                /* Store Paging Info */
-                AMF_SESS_STORE_PAGING_INFO(
-                        sess, sendmsg.http.location, NULL);
+            /* Store Paging Info */
+            AMF_SESS_STORE_PAGING_INFO(
+                    sess, sendmsg.http.location, NULL);
 
-                /* Store 5GSM Message */
-                AMF_SESS_STORE_5GSM_MESSAGE(sess,
-                        OGS_NAS_5GS_PDU_SESSION_MODIFICATION_COMMAND,
-                        n1buf, n2buf);
+            /* Store 5GSM Message */
+            AMF_SESS_STORE_5GSM_MESSAGE(sess,
+                    OGS_NAS_5GS_PDU_SESSION_MODIFICATION_COMMAND,
+                    n1buf, n2buf);
 
-                r = ngap_send_paging(amf_ue);
-                ogs_expect(r == OGS_OK);
-                ogs_assert(r != OGS_ERROR);
-            }
+            r = ngap_send_paging(amf_ue);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
 
         } else if (CM_CONNECTED(amf_ue)) {
             r = nas_send_pdu_session_modification_command(sess, n1buf, n2buf);
@@ -378,18 +368,53 @@ int amf_namf_comm_handle_n1_n2_message_transfer(
         }
 
         if (CM_IDLE(amf_ue)) {
-            if (n1buf)
-                ogs_pkbuf_free(n1buf);
-            if (n2buf)
-                ogs_pkbuf_free(n2buf);
-
             if (N1N2MessageTransferReqData->is_skip_ind == true &&
                 N1N2MessageTransferReqData->skip_ind == true) {
+
+                if (n1buf)
+                    ogs_pkbuf_free(n1buf);
+                if (n2buf)
+                    ogs_pkbuf_free(n2buf);
+
                 N1N2MessageTransferRspData.cause =
                     OpenAPI_n1_n2_message_transfer_cause_N1_MSG_NOT_TRANSFERRED;
+
             } else {
-                ogs_fatal("[%s] No skipInd", amf_ue->supi);
-                ogs_assert_if_reached();
+                ogs_sbi_server_t *server = NULL;
+                ogs_sbi_header_t header;
+
+                status = OGS_SBI_HTTP_STATUS_ACCEPTED;
+                N1N2MessageTransferRspData.cause =
+                    OpenAPI_n1_n2_message_transfer_cause_ATTEMPTING_TO_REACH_UE;
+
+                /* Location */
+                server = ogs_sbi_server_from_stream(stream);
+                ogs_assert(server);
+
+                memset(&header, 0, sizeof(header));
+                header.service.name = (char *)OGS_SBI_SERVICE_NAME_NAMF_COMM;
+                header.api.version = (char *)OGS_SBI_API_V1;
+                header.resource.component[0] =
+                    (char *)OGS_SBI_RESOURCE_NAME_UE_CONTEXTS;
+                header.resource.component[1] = amf_ue->supi;
+                header.resource.component[2] =
+                    (char *)OGS_SBI_RESOURCE_NAME_N1_N2_MESSAGES;
+                header.resource.component[3] = sess->sm_context_ref;
+
+                sendmsg.http.location = ogs_sbi_server_uri(server, &header);
+
+                /* Store Paging Info */
+                AMF_SESS_STORE_PAGING_INFO(
+                        sess, sendmsg.http.location, NULL);
+
+                /* Store 5GSM Message */
+                AMF_SESS_STORE_5GSM_MESSAGE(sess,
+                        OGS_NAS_5GS_PDU_SESSION_RELEASE_COMMAND,
+                        n1buf, n2buf);
+
+                r = ngap_send_paging(amf_ue);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
             }
 
         } else if (CM_CONNECTED(amf_ue)) {
@@ -400,6 +425,36 @@ int amf_namf_comm_handle_n1_n2_message_transfer(
             ogs_fatal("[%s] Invalid AMF-UE state", amf_ue->supi);
             ogs_assert_if_reached();
         }
+        break;
+
+    case OpenAPI_ngap_ie_type_NULL:
+        /*
+         * No n2InfoContainer. According to TS23.502, this means that SMF has
+         * encountered an error and is rejecting the session.
+         *
+         * TS23.502
+         * 6.3.1.7 4.3.2.2 UE Requested PDU Session Establishment
+         * p100
+         * 11.  ...
+         * If the PDU session establishment failed anywhere between step 5
+         * and step 11, then the Namf_Communication_N1N2MessageTransfer
+         * request shall include the N1 SM container with a PDU Session
+         * Establishment Reject message ...
+         */
+        if (!n1buf) {
+            ogs_error("[%s] No N1 SM Content", amf_ue->supi);
+            return OGS_ERROR;
+        }
+
+        ogs_error("[%d:%d] PDU session establishment reject",
+                sess->psi, sess->pti);
+
+        r = nas_5gs_send_gsm_reject(sess,
+                OGS_NAS_PAYLOAD_CONTAINER_N1_SM_INFORMATION, n1buf);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
+
+        amf_sess_remove(sess);
         break;
 
     default:

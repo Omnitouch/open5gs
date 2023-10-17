@@ -20,6 +20,7 @@
 #include "context.h"
 #include "gtp-path.h"
 #include "pfcp-path.h"
+#include "smf-redis.h"
 
 static smf_context_t self;
 static ogs_diam_config_t g_diam_conf;
@@ -41,6 +42,7 @@ static int num_of_smf_sess = 0;
 
 static void stats_add_smf_session(void);
 static void stats_remove_smf_session(smf_sess_t *sess);
+static void smf_timer_bearer_deactivation_expire(void* data);
 
 int smf_ctf_config_init(smf_ctf_config_t *ctf_config)
 {
@@ -477,6 +479,24 @@ int smf_context_parse_config(void)
                             else
                                 ogs_warn("unknown 'enabled' value `%s`",
                                         enabled);
+                        } else if (!strcmp(ctf_key, "online_charging_apns")) {
+                            ogs_yaml_iter_t online_charging_apns_iter;
+                            ogs_yaml_iter_recurse(&ctf_iter, &online_charging_apns_iter);
+
+                            /* Going through 'online_charging_apns' array */
+                            while (ogs_yaml_iter_next(&online_charging_apns_iter)) {
+                                const char *online_charging_apn = NULL;
+                                online_charging_apn = ogs_yaml_iter_value(&online_charging_apns_iter);
+
+                                if ((NULL != online_charging_apn) && (self.ctf_config.num_online_charging_apns < MAX_ONLINE_CHARGING_APNS)) {
+                                    strncpy(
+                                        self.ctf_config.online_charging_apns[self.ctf_config.num_online_charging_apns],
+                                        online_charging_apn,
+                                        MAX_ONLINE_CHARGING_APNS_STR - 1
+                                    );
+                                    ++self.ctf_config.num_online_charging_apns;
+                                }
+                            }
                         } else
                             ogs_warn("unknown key `%s`", ctf_key);
                     }
@@ -946,6 +966,57 @@ int smf_context_parse_config(void)
                     /* handle config in sbi library */
                 } else if (!strcmp(smf_key, "metrics")) {
                     /* handle config in metrics library */
+                } else if (!strcmp(smf_key, "redis_server")) {
+                    ogs_yaml_iter_t redis_iter;
+                    ogs_yaml_iter_recurse(&smf_iter, &redis_iter);
+
+                    while (ogs_yaml_iter_next(&redis_iter)) {
+                    ogs_info("redis_server");
+                        const char *redis_server_config_key = ogs_yaml_iter_key(&redis_iter);
+                        ogs_assert(redis_server_config_key);
+                        if (!strcmp(redis_server_config_key, "addr")) {
+                            const char *redis_addr = ogs_yaml_iter_value(&redis_iter);
+                            strncpy(self.redis_server_config.address, redis_addr, 16);
+                        } else if (!strcmp(redis_server_config_key, "port")) {
+                            const char *redis_port = ogs_yaml_iter_value(&redis_iter);
+
+                            if (redis_port)
+                                self.redis_server_config.port = atoi(redis_port);
+                        } else
+                            ogs_warn("unknown key `%s`", smf_key);
+                    }
+                } else if (!strcmp(smf_key, "redis_ip_reuse")) {
+                    ogs_yaml_iter_t redis_ip_reuse_iter;
+                    ogs_yaml_iter_recurse(&smf_iter, &redis_ip_reuse_iter);
+
+                    while (ogs_yaml_iter_next(&redis_ip_reuse_iter)) {
+                        const char *redis_ip_reuse_key = ogs_yaml_iter_key(&redis_ip_reuse_iter);
+                        ogs_assert(redis_ip_reuse_key);
+
+                        if (!strcmp(redis_ip_reuse_key, "enabled")) {
+                            const char *redis_ip_reuse_enabled = ogs_yaml_iter_value(&redis_ip_reuse_iter);
+                            if (!strcmp("True", redis_ip_reuse_enabled) ||
+                                !strcmp("true", redis_ip_reuse_enabled)) {
+                                ogs_info("Redis ip reuse functionality has been enabled");
+                                self.redis_ip_reuse.enabled = true;
+                            }
+                            else {
+                                self.redis_ip_reuse.enabled = false;
+                            }
+                        } else if (!strcmp(redis_ip_reuse_key, "hold_time_sec")) {
+                            const char *redis_ip_hold_time_sec = ogs_yaml_iter_value(&redis_ip_reuse_iter);
+                            if (redis_ip_hold_time_sec) {
+                                self.redis_ip_reuse.ip_hold_time_sec = atoi(redis_ip_hold_time_sec);
+                            }
+                        } else
+                            ogs_warn("unknown key `%s`", smf_key);
+                    }
+                } else if (!strcmp(smf_key, "bearer_deactivation_timer_sec")) {
+                    const char *c_bearer_deactivation_timer_sec = ogs_yaml_iter_value(&smf_iter);
+
+                    if (c_bearer_deactivation_timer_sec) {
+                        self.bearer_deactivation_timer_sec = atoi(c_bearer_deactivation_timer_sec);
+                    }
                 } else
                     ogs_warn("unknown key `%s`", smf_key);
             }
@@ -1018,8 +1089,10 @@ smf_ue_t *smf_ue_add_by_supi(char *supi)
 
     ogs_assert(supi);
 
-    if ((smf_ue = smf_ue_add()) == NULL)
+    if ((smf_ue = smf_ue_add()) == NULL) {
+        ogs_error("smf_ue_add_by_supi() failed");
         return NULL;
+    }
 
     smf_ue->supi = ogs_strdup(supi);
     ogs_assert(smf_ue->supi);
@@ -1379,7 +1452,8 @@ smf_sess_t *smf_sess_add_by_gtp2_message(ogs_gtp2_message_t *message)
     if (sess) {
         ogs_info("OLD Session Will Release [IMSI:%s,APN:%s]",
                 smf_ue->imsi_bcd, sess->session.name);
-        smf_sess_remove(sess);
+        ogs_expect(OGS_OK ==
+            smf_epc_pfcp_send_session_deletion_request(sess, NULL));
     }
 
     sess = smf_sess_add_by_apn(smf_ue, apn, req->rat_type.u8);
@@ -1467,7 +1541,10 @@ smf_sess_t *smf_sess_add_by_sbi_message(ogs_sbi_message_t *message)
 
     ogs_assert(message);
     SmContextCreateData = message->SmContextCreateData;
-    ogs_assert(SmContextCreateData);
+    if (!SmContextCreateData) {
+        ogs_error("No SmContextCreateData");
+        return NULL;
+    }
 
     if (!SmContextCreateData->supi) {
         ogs_error("No SUPI");
@@ -1482,14 +1559,18 @@ smf_sess_t *smf_sess_add_by_sbi_message(ogs_sbi_message_t *message)
     smf_ue = smf_ue_find_by_supi(SmContextCreateData->supi);
     if (!smf_ue) {
         smf_ue = smf_ue_add_by_supi(SmContextCreateData->supi);
-        if (!smf_ue)
+        if (!smf_ue) {
+            ogs_error("smf_ue_add_by_supi() failed");
             return NULL;
+        }
     }
 
     sess = smf_sess_find_by_psi(smf_ue, SmContextCreateData->pdu_session_id);
     if (sess) {
         ogs_warn("OLD Session Will Release [SUPI:%s,PDU Session identity:%d]",
                 SmContextCreateData->supi, SmContextCreateData->pdu_session_id);
+        smf_metrics_inst_by_slice_add(&sess->plmn_id, &sess->s_nssai,
+                SMF_METR_GAUGE_SM_SESSIONNBR, -1);
         smf_sess_remove(sess);
     }
 
@@ -1542,6 +1623,17 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
     if (sess->ipv4) {
         ogs_hash_set(smf_self()->ipv4_hash,
                 sess->ipv4->addr, OGS_IPV4_LEN, NULL);
+        if (smf_self()->redis_ip_reuse.enabled) {
+            if (!redis_ip_recycle(sess->smf_ue->imsi_bcd, sess->session.name, sess->ipv4->addr[0])) {
+                ogs_fatal("Failed to recycle IP");
+            } else {
+                char *recycled_ip_str = ogs_ipv4_to_string(sess->ipv4->addr[0]);
+                ogs_debug("IP '%s' has successfully entered the recycling process", recycled_ip_str);
+                ogs_free(recycled_ip_str);
+            }
+
+            ogs_debug("Number of available IPs on redis is now %i", redis_get_num_available_ips());
+        }
         ogs_pfcp_ue_ip_free(sess->ipv4);
     }
     if (sess->ipv6) {
@@ -1551,11 +1643,15 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
     }
 
     if (sess->session.session_type == OGS_PDU_SESSION_TYPE_IPV4) {
-        sess->ipv4 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET,
-                sess->session.name, (uint8_t *)&sess->session.ue_ip.addr);
+        if (smf_self()->redis_ip_reuse.enabled) {
+            sess->ipv4 = redis_ue_ip_alloc(sess->smf_ue->imsi_bcd, sess->session.name);
+            ogs_debug("Number of available IPs on redis is now %i", redis_get_num_available_ips());
+        } else {
+            sess->ipv4 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET,
+                    sess->session.name, (uint8_t *)&sess->session.ue_ip.addr);
+        }
         if (!sess->ipv4) {
             ogs_error("ogs_pfcp_ue_ip_alloc() failed[%d]", cause_value);
-            ogs_assert(cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
             return cause_value;
         }
         sess->session.paa.addr = sess->ipv4->addr[0];
@@ -1566,7 +1662,6 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
                 sess->session.name, sess->session.ue_ip.addr6);
         if (!sess->ipv6) {
             ogs_error("ogs_pfcp_ue_ip_alloc() failed[%d]", cause_value);
-            ogs_assert(cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
             return cause_value;
         }
 
@@ -1578,11 +1673,15 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
         ogs_hash_set(smf_self()->ipv6_hash,
                 sess->ipv6->addr, OGS_IPV6_DEFAULT_PREFIX_LEN >> 3, sess);
     } else if (sess->session.session_type == OGS_PDU_SESSION_TYPE_IPV4V6) {
-        sess->ipv4 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET,
-                sess->session.name, (uint8_t *)&sess->session.ue_ip.addr);
+        if (smf_self()->redis_ip_reuse.enabled) {
+            sess->ipv4 = redis_ue_ip_alloc(sess->smf_ue->imsi_bcd, sess->session.name);
+            ogs_debug("Number of available IPs on redis is now %i", redis_get_num_available_ips());
+        } else {
+            sess->ipv4 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET,
+                    sess->session.name, (uint8_t *)&sess->session.ue_ip.addr);
+        }
         if (!sess->ipv4) {
             ogs_error("ogs_pfcp_ue_ip_alloc() failed[%d]", cause_value);
-            ogs_assert(cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
             return cause_value;
         }
         sess->ipv6 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET6,
@@ -1684,6 +1783,17 @@ void smf_sess_remove(smf_sess_t *sess)
 
     if (sess->ipv4) {
         ogs_hash_set(self.ipv4_hash, sess->ipv4->addr, OGS_IPV4_LEN, NULL);
+        if (smf_self()->redis_ip_reuse.enabled) {
+            if (!redis_ip_recycle(sess->smf_ue->imsi_bcd, sess->session.name, sess->ipv4->addr[0])) {
+                ogs_fatal("Failed to recycle IP");
+            } else {
+                char *recycled_ip_str = ogs_ipv4_to_string(sess->ipv4->addr[0]);
+                ogs_debug("IP '%s' has successfully entered the recycling process", recycled_ip_str);
+                ogs_free(recycled_ip_str);
+            }
+
+            ogs_debug("Number of available IPs on redis is now %i", redis_get_num_available_ips());
+        }
         ogs_pfcp_ue_ip_free(sess->ipv4);
     }
     if (sess->ipv6) {
@@ -2333,6 +2443,7 @@ smf_bearer_t *smf_bearer_add(smf_sess_t *sess)
     ogs_pfcp_pdr_t *ul_pdr = NULL;
     ogs_pfcp_far_t *dl_far = NULL;
     ogs_pfcp_far_t *ul_far = NULL;
+    ogs_pfcp_urr_t *urr = NULL;
 
     ogs_assert(sess);
 
@@ -2343,6 +2454,16 @@ smf_bearer_t *smf_bearer_add(smf_sess_t *sess)
     smf_pf_identifier_pool_init(bearer);
 
     ogs_list_init(&bearer->pf_list);
+
+    /* Add timers */
+    bearer->timer_bearer_deactivation = ogs_timer_add(
+            ogs_app()->timer_mgr, smf_timer_bearer_deactivation_expire, bearer);
+
+    if (!bearer->timer_bearer_deactivation) {
+        ogs_error("ogs_timer_add() failed");
+        ogs_pool_free(&smf_bearer_pool, bearer);
+        return NULL;
+    }
 
     /* PDR */
     dl_pdr = ogs_pfcp_pdr_add(&sess->pfcp);
@@ -2407,6 +2528,37 @@ smf_bearer_t *smf_bearer_add(smf_sess_t *sess)
 
     ul_far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
 
+    /* URR */
+    /* Include a URR to check bearer is still being used,
+     * minimum deactivation timer is a minute */
+    if (60 <= smf_self()->bearer_deactivation_timer_sec) {
+        const char *apn = "unknown";
+        
+        urr = ogs_pfcp_urr_add(&sess->pfcp);
+        ogs_assert(urr);
+        bearer->urr = urr;
+
+        /* TODO: We should switch to urr->rep_triggers.user_plane_inactivity_timer 
+         * at some point. See TS 129.244 8.2.41 for more context */
+        urr->meas_method = OGS_PFCP_MEASUREMENT_METHOD_DURATION;
+        urr->rep_triggers.time_threshold = 1;
+        /* 30 sec buffer between the bearer timer and the usage report */
+        urr->time_threshold = smf_self()->bearer_deactivation_timer_sec - 30;
+        /* Enable Immediate Start Time Metering */
+        urr->meas_info.istm = 1;
+    
+        ogs_pfcp_pdr_associate_urr(dl_pdr, urr);
+        ogs_pfcp_pdr_associate_urr(ul_pdr, urr);
+
+        if (bearer->sess)
+            apn = bearer->sess->session.name;
+
+        ogs_info("[APN: '%s'] Starting deactivation timer for bearer, see you in %i seconds", apn, urr->time_threshold);
+
+        ogs_timer_start(bearer->timer_bearer_deactivation,
+                    ogs_time_from_sec(smf_self()->bearer_deactivation_timer_sec));
+    }
+
     bearer->sess = sess;
 
     ogs_list_add(&sess->bearer_list, bearer);
@@ -2450,6 +2602,10 @@ int smf_bearer_remove(smf_bearer_t *bearer)
 
     if (SMF_IS_QOF_FLOW(bearer))
         ogs_pool_free(&bearer->sess->qfi_pool, bearer->qfi_node);
+
+    /* Remove all bearer timers */
+    ogs_timer_stop(bearer->timer_bearer_deactivation);
+    ogs_timer_delete(bearer->timer_bearer_deactivation);
 
     ogs_pool_free(&smf_bearer_pool, bearer);
 
@@ -2788,7 +2944,11 @@ int smf_pco_build(uint8_t *pco_buf, uint8_t *buffer, int length)
     memset(&pco_ipcp, 0, sizeof(pco_ipcp));
 
     size = ogs_pco_parse(&ue, buffer, length);
-    ogs_assert(size);
+    ogs_expect(size);
+    if (0 == size) {
+        ogs_error("ogs_pco_parse failed");
+        return 0;
+    }
 
     memset(&smf, 0, sizeof(ogs_pco_t));
     smf.ext = ue.ext;
@@ -3003,7 +3163,7 @@ void smf_qfi_pool_init(smf_sess_t *sess)
 {
     ogs_assert(sess);
 
-    ogs_pool_init(&sess->qfi_pool, OGS_MAX_QOS_FLOW_ID);
+    ogs_pool_create(&sess->qfi_pool, OGS_MAX_QOS_FLOW_ID);
     ogs_pool_sequence_id_generate(&sess->qfi_pool);
 }
 
@@ -3011,14 +3171,14 @@ void smf_qfi_pool_final(smf_sess_t *sess)
 {
     ogs_assert(sess);
 
-    ogs_pool_final(&sess->qfi_pool);
+    ogs_pool_destroy(&sess->qfi_pool);
 }
 
 void smf_pf_identifier_pool_init(smf_bearer_t *bearer)
 {
     ogs_assert(bearer);
 
-    ogs_pool_init(&bearer->pf_identifier_pool, OGS_MAX_NUM_OF_FLOW_IN_BEARER);
+    ogs_pool_create(&bearer->pf_identifier_pool, OGS_MAX_NUM_OF_FLOW_IN_BEARER);
     ogs_pool_sequence_id_generate(&bearer->pf_identifier_pool);
 }
 
@@ -3026,14 +3186,14 @@ void smf_pf_identifier_pool_final(smf_bearer_t *bearer)
 {
     ogs_assert(bearer);
 
-    ogs_pool_final(&bearer->pf_identifier_pool);
+    ogs_pool_destroy(&bearer->pf_identifier_pool);
 }
 
 void smf_pf_precedence_pool_init(smf_sess_t *sess)
 {
     ogs_assert(sess);
 
-    ogs_pool_init(&sess->pf_precedence_pool,
+    ogs_pool_create(&sess->pf_precedence_pool,
             OGS_MAX_NUM_OF_BEARER * OGS_MAX_NUM_OF_FLOW_IN_BEARER);
     ogs_pool_sequence_id_generate(&sess->pf_precedence_pool);
 }
@@ -3042,7 +3202,7 @@ void smf_pf_precedence_pool_final(smf_sess_t *sess)
 {
     ogs_assert(sess);
 
-    ogs_pool_final(&sess->pf_precedence_pool);
+    ogs_pool_destroy(&sess->pf_precedence_pool);
 }
 
 static void stats_add_smf_session(void)
@@ -3059,7 +3219,7 @@ static void stats_remove_smf_session(smf_sess_t *sess)
     ogs_info("[Removed] Number of SMF-Sessions is now %d", num_of_smf_sess);
 }
 
-int get_sess_load(void)
+int smf_instance_get_load(void)
 {
     return (((ogs_pool_size(&smf_sess_pool) -
             ogs_pool_avail(&smf_sess_pool)) * 100) /
@@ -3103,4 +3263,24 @@ int smf_maximum_integrity_protected_data_rate_downlink_value2enum(
 {
     ogs_assert(value);
     return smf_maximum_integrity_protected_data_rate_uplink_value2enum(value);
+}
+
+static void smf_timer_bearer_deactivation_expire(void* data) {
+    const char *apn = "unknown";
+    
+    smf_bearer_t *bearer = (smf_bearer_t*)data;
+    ogs_assert(bearer);
+
+    if (bearer->sess)
+        apn = bearer->sess->session.name;
+
+    ogs_info("[APN: '%s'] Bearer deactivation timer has expired... Deactivating bearer", apn);
+    
+    ogs_assert(OGS_OK ==
+        smf_gtp2_send_delete_bearer_request(
+            bearer,
+            OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED,
+            OGS_GTP2_CAUSE_PDN_CONNECTION_INACTIVITY_TIMER_EXPIRES
+        )
+    );
 }

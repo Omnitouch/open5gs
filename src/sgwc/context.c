@@ -20,6 +20,8 @@
 #include <yaml.h>
 
 #include "context.h"
+#include "gtp-path.h"
+#include "pfcp-path.h"
 
 static sgwc_context_t self;
 
@@ -40,6 +42,7 @@ static int num_of_sgwc_sess = 0;
 
 static void stats_add_sgwc_session(void);
 static void stats_remove_sgwc_session(void);
+static void sgwc_timer_bearer_deactivation_expire(void* data);
 
 void sgwc_context_init(void)
 {
@@ -148,6 +151,14 @@ int sgwc_context_parse_config(void)
                     /* handle config in pfcp library */
                 } else if (!strcmp(sgwc_key, "metrics")) {
                     /* handle config in metrics library */
+                } else if (!strcmp(sgwc_key, "cdr")) {
+                    /* handle config in pfcp library */
+                } else if (!strcmp(sgwc_key, "bearer_deactivation_timer_sec")) {
+                    const char *c_bearer_deactivation_timer_sec = ogs_yaml_iter_value(&sgwc_iter);
+
+                    if (c_bearer_deactivation_timer_sec) {
+                        self.bearer_deactivation_timer_sec = atoi(c_bearer_deactivation_timer_sec);
+                    }
                 } else
                     ogs_warn("unknown key `%s`", sgwc_key);
             }
@@ -252,7 +263,7 @@ int sgwc_ue_remove(sgwc_ue_t *sgwc_ue)
             &sgwc_ue->sgw_s11_teid, sizeof(sgwc_ue->sgw_s11_teid), NULL);
     ogs_hash_set(self.imsi_ue_hash, sgwc_ue->imsi, sgwc_ue->imsi_len, NULL);
 
-    sgwc_sess_remove_all(sgwc_ue);
+    sgwc_sess_remove_all_sync(sgwc_ue);
 
     ogs_pool_free(&sgwc_s11_teid_pool, sgwc_ue->sgw_s11_teid_node);
     ogs_pool_free(&sgwc_ue_pool, sgwc_ue);
@@ -467,6 +478,18 @@ void sgwc_sess_remove_all(sgwc_ue_t *sgwc_ue)
         sgwc_sess_remove(sess);
 }
 
+void sgwc_sess_remove_all_sync(sgwc_ue_t *sgwc_ue)
+{
+    sgwc_sess_t *sess = NULL, *next_sess = NULL;
+
+    /* Due to CP and U{ separation we need to remove the sessions via the  */
+    ogs_assert(sgwc_ue);
+    ogs_list_for_each_safe(&sgwc_ue->sess_list, next_sess, sess) {
+        ogs_expect(OGS_OK ==
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
+    }
+}
+
 sgwc_sess_t* sgwc_sess_find_by_teid(uint32_t teid)
 {
     return sgwc_sess_find_by_seid(teid);
@@ -538,7 +561,9 @@ int sgwc_sess_pfcp_xact_count(
 sgwc_bearer_t *sgwc_bearer_add(sgwc_sess_t *sess)
 {
     sgwc_bearer_t *bearer = NULL;
-    sgwc_tunnel_t *tunnel = NULL;
+    sgwc_tunnel_t *dl_tunnel = NULL;
+    sgwc_tunnel_t *ul_tunnel = NULL;
+    ogs_pfcp_urr_t *urr = NULL;
     sgwc_ue_t *sgwc_ue = NULL;
 
     ogs_assert(sess);
@@ -552,13 +577,67 @@ sgwc_bearer_t *sgwc_bearer_add(sgwc_sess_t *sess)
     bearer->sgwc_ue = sgwc_ue;
     bearer->sess = sess;
 
+    /* Add timers */
+    bearer->timer_bearer_deactivation = ogs_timer_add(
+        ogs_app()->timer_mgr, sgwc_timer_bearer_deactivation_expire, bearer);
+
+    if (!bearer->timer_bearer_deactivation) {
+        ogs_error("ogs_timer_add() failed");
+        ogs_pool_free(&sgwc_bearer_pool, bearer);
+        return NULL;
+    }
+
     /* Downlink */
-    tunnel = sgwc_tunnel_add(bearer, OGS_GTP2_F_TEID_S5_S8_SGW_GTP_U);
-    ogs_assert(tunnel);
+    dl_tunnel = sgwc_tunnel_add(bearer, OGS_GTP2_F_TEID_S5_S8_SGW_GTP_U);
+    ogs_assert(dl_tunnel);
 
     /* Uplink */
-    tunnel = sgwc_tunnel_add(bearer, OGS_GTP2_F_TEID_S1_U_SGW_GTP_U);
-    ogs_assert(tunnel);
+    ul_tunnel = sgwc_tunnel_add(bearer, OGS_GTP2_F_TEID_S1_U_SGW_GTP_U);
+    ogs_assert(ul_tunnel);
+
+    /* If usage logging enabled create a new URR */
+    if (ogs_pfcp_self()->usageLoggerState.enabled) {
+        urr = ogs_pfcp_urr_add(&sess->pfcp);
+        ogs_assert(urr);
+
+        urr->meas_method = OGS_PFCP_MEASUREMENT_METHOD_DURATION;
+        urr->rep_triggers.time_threshold = 1;
+        urr->time_threshold = ogs_pfcp_self()->usageLoggerState.reporting_period_sec;
+        /* Enable Immediate Start Time Metering */
+        urr->meas_info.istm = 1;
+
+        ogs_pfcp_pdr_associate_urr(dl_tunnel->pdr, urr);
+        ogs_pfcp_pdr_associate_urr(ul_tunnel->pdr, urr);
+    }
+
+    /* Include a URR to check bearer is still being used,
+     * minimum deactivation timer is a minute */
+    if (60 <= sgwc_self()->bearer_deactivation_timer_sec) {
+        const char *apn = "unknown";
+        
+        urr = ogs_pfcp_urr_add(&sess->pfcp);
+        ogs_assert(urr);
+
+        /* TODO: We should switch to urr->rep_triggers.user_plane_inactivity_timer 
+         * at some point. See TS 129.244 8.2.41 for more context */
+        urr->meas_method = OGS_PFCP_MEASUREMENT_METHOD_DURATION;
+        urr->rep_triggers.time_threshold = 1;
+        /* 30 sec buffer between the bearer timer and the usage report */
+        urr->time_threshold = sgwc_self()->bearer_deactivation_timer_sec - 30;
+        /* Enable Immediate Start Time Metering */
+        urr->meas_info.istm = 1;
+
+        ogs_pfcp_pdr_associate_urr(dl_tunnel->pdr, urr);
+        ogs_pfcp_pdr_associate_urr(ul_tunnel->pdr, urr);
+
+        if (bearer->sess)
+            apn = bearer->sess->session.name;
+
+        ogs_info("[APN: '%s'] Starting deactivation timer for bearer, see you in %i seconds", apn, urr->time_threshold);
+
+        ogs_timer_start(bearer->timer_bearer_deactivation,
+            ogs_time_from_sec(sgwc_self()->bearer_deactivation_timer_sec));
+    }
 
     ogs_list_add(&sess->bearer_list, bearer);
 
@@ -573,6 +652,10 @@ int sgwc_bearer_remove(sgwc_bearer_t *bearer)
     ogs_list_remove(&bearer->sess->bearer_list, bearer);
 
     sgwc_tunnel_remove_all(bearer);
+
+    /* Remove all bearer timers */
+    ogs_timer_stop(bearer->timer_bearer_deactivation);
+    ogs_timer_delete(bearer->timer_bearer_deactivation);
 
     ogs_pool_free(&sgwc_bearer_pool, bearer);
 
@@ -887,4 +970,24 @@ static void stats_remove_sgwc_session(void)
 {
     num_of_sgwc_sess = num_of_sgwc_sess - 1;
     ogs_info("[Removed] Number of SGWC-Sessions is now %d", num_of_sgwc_sess);
+}
+
+static void sgwc_timer_bearer_deactivation_expire(void* data) {
+    const char *apn = "unknown";
+    sgwc_bearer_t *bearer = (sgwc_bearer_t*)data;
+
+    ogs_assert(bearer);
+
+    if (bearer->sess)
+        apn = bearer->sess->session.name;
+
+    ogs_info("[APN: '%s'] Bearer deactivation timer has expired... Deactivating bearer", apn);
+    
+    ogs_assert(OGS_OK ==
+        sgwc_gtp2_send_delete_bearer_request(
+            bearer,
+            OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED,
+            OGS_GTP2_CAUSE_PDN_CONNECTION_INACTIVITY_TIMER_EXPIRES
+        )
+    );
 }

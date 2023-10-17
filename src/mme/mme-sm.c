@@ -28,13 +28,14 @@
 #include "nas-path.h"
 #include "emm-handler.h"
 #include "esm-handler.h"
+#include "mme-gn-handler.h"
 #include "mme-gtp-path.h"
 #include "mme-s11-handler.h"
 #include "mme-fd-path.h"
 #include "mme-s6a-handler.h"
 #include "mme-s13-handler.h"
 #include "mme-path.h"
-#include <hiredis.h>
+#include "mme-redis.h"
 
 void mme_state_initial(ogs_fsm_t *s, mme_event_t *e)
 {
@@ -50,50 +51,6 @@ void mme_state_final(ogs_fsm_t *s, mme_event_t *e)
     mme_sm_debug(e);
 
     ogs_assert(s);
-}
-
-static bool is_messgae_dup(uint8_t *buf, size_t buf_sz) {
-    bool is_dup = true;
-    redisReply *reply = NULL;
-    redisContext *c = redisConnect(
-        mme_self()->redis_config.address,
-        mme_self()->redis_config.port
-    );
-
-    if (c != NULL && c->err) {
-        /* If we cannot connect to redis 
-         * we don't want to cripple the system */
-        ogs_fatal("%s - Redis config {address: '%s', port: %i, expire_time_sec: %i}",
-            c->errstr,
-            mme_self()->redis_config.address,
-            mme_self()->redis_config.port,
-            mme_self()->redis_config.expire_time_sec
-        );
-        return false;
-    }
-
-    /* Have we seen this exact message recently? */
-    reply = redisCommand(c, "GET %b", buf, buf_sz);
-
-    if (reply->type != REDIS_REPLY_NIL) {
-        ogs_debug("S1AP message was a duplicate");
-        is_dup = true;
-    }
-    else {
-        ogs_debug("S1AP message was not a duplicate");
-        is_dup = false;
-    }
-    freeReplyObject(reply);
-
-    /* Tell redis to remember this message for 3 seconds */
-    reply = redisCommand(c, "INCR %b", buf, buf_sz);
-    freeReplyObject(reply);
-    reply = redisCommand(c, "EXPIRE %b %i", buf, buf_sz, mme_self()->redis_config.expire_time_sec);
-    freeReplyObject(reply);
-
-    redisFree(c);
-
-    return is_dup;
 }
 
 void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
@@ -126,6 +83,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
     ogs_gtp_node_t *gnode = NULL;
     ogs_gtp_xact_t *xact = NULL;
     ogs_gtp2_message_t gtp_message;
+    ogs_gtp1_message_t gtp1_message;
 
     mme_vlr_t *vlr = NULL;
 
@@ -239,8 +197,8 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         rc = ogs_s1ap_decode(&s1ap_message, pkbuf);
 
         bool is_dup = false;
-        if (mme_self()->redis_config.enabled) {
-            is_dup = is_messgae_dup(pkbuf->data, pkbuf->len);
+        if (mme_self()->redis_dup_detection.enabled) {
+            is_dup = redis_is_message_dup(pkbuf->data, pkbuf->len);
         }
 
         /* If the message is a duplicate then
@@ -422,7 +380,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
             if (default_bearer->ebi == bearer->ebi) {
                 /* if the bearer is a default bearer,
                  * remove all session context linked the default bearer */
-                mme_sess_remove(sess);
+                MME_SESS_CLEAR(sess);
             } else {
                 /* if the bearer is not a default bearer,
                  * just remove the bearer context */
@@ -431,7 +389,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
 
         } else if (OGS_FSM_CHECK(&bearer->sm, esm_state_pdn_did_disconnect)) {
             ogs_assert(default_bearer->ebi == bearer->ebi);
-            mme_sess_remove(sess);
+            MME_SESS_CLEAR(sess);
 
         } else if (OGS_FSM_CHECK(&bearer->sm, esm_state_exception)) {
 
@@ -443,7 +401,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
              *
              * Just we'll remove MME session context.
              */
-            mme_sess_remove(sess);
+            MME_SESS_CLEAR(sess);
         }
 
         ogs_pkbuf_free(pkbuf);
@@ -519,7 +477,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
             break;
         case OGS_DIAM_S6A_CMD_CODE_INSERT_SUBSCRIBER_DATA:
             mme_s6a_handle_idr(mme_ue, s6a_message);
-            break;            
+            break;
         default:
             ogs_error("Invalid Type[%d]", s6a_message->cmd_code);
             break;
@@ -726,6 +684,41 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         }
         break;
 
+    case MME_EVENT_GN_MESSAGE:
+        pkbuf = e->pkbuf;
+        ogs_assert(pkbuf);
+
+        if (ogs_gtp1_parse_msg(&gtp1_message, pkbuf) != OGS_OK) {
+            ogs_error("ogs_gtp1_parse_msg() failed");
+            ogs_pkbuf_free(pkbuf);
+            break;
+        }
+
+        gnode = e->gnode;
+        ogs_assert(gnode);
+
+        rv = ogs_gtp1_xact_receive(gnode, &gtp1_message.h, &xact);
+        if (rv != OGS_OK) {
+            ogs_pkbuf_free(pkbuf);
+            break;
+        }
+
+        switch (gtp1_message.h.type) {
+        case OGS_GTP1_ECHO_REQUEST_TYPE:
+            mme_gn_handle_echo_request(xact, &gtp1_message.echo_request);
+            break;
+        case OGS_GTP1_ECHO_RESPONSE_TYPE:
+            mme_gn_handle_echo_response(xact, &gtp1_message.echo_response);
+            break;
+        case OGS_GTP1_RAN_INFORMATION_RELAY_TYPE:
+            mme_gn_handle_ran_information_relay(xact, &gtp1_message.ran_information_relay);
+            break;
+        default:
+            ogs_warn("Not implemented(type:%d)", gtp1_message.h.type);
+            break;
+        }
+        ogs_pkbuf_free(pkbuf);
+        break;
 
     case MME_EVENT_SGSAP_LO_SCTP_COMM_UP:
         sock = e->sock;

@@ -28,9 +28,12 @@ struct sess_state {
 
     os0_t       peer_host;          /* Peer Host */
 
-#define MAX_CC_REQUEST_NUMBER 64
+#define NUM_CC_REQUEST_SLOT 4
     smf_sess_t *sess;
-    ogs_gtp_xact_t *xact[MAX_CC_REQUEST_NUMBER];
+    struct {
+        uint32_t cc_req_no;
+        ogs_gtp_xact_t *ptr;
+    } xact_data[NUM_CC_REQUEST_SLOT];
 
     uint32_t cc_request_type;
     uint32_t cc_request_number;
@@ -103,6 +106,7 @@ void smf_gx_send_ccr(smf_sess_t *sess, ogs_gtp_xact_t *xact,
     struct sockaddr_in sin;
     struct sockaddr_in6 sin6;
     uint32_t charging_id;
+    uint32_t req_slot;
 
     ogs_assert(sess);
 
@@ -130,7 +134,7 @@ void smf_gx_send_ccr(smf_sess_t *sess, ogs_gtp_xact_t *xact,
         ogs_assert(ret == 0);
         ogs_assert(new == 0);
 
-        ogs_debug("    Found GX Session-Id: [%s]", sess->gx_sid);
+        ogs_debug("    Found Gx Session-Id: [%s]", sess->gx_sid);
 
         /* Add Session-Id to the message */
         ret = ogs_diam_message_session_id_set(req, (os0_t)sess->gx_sid, sidlen);
@@ -191,11 +195,12 @@ void smf_gx_send_ccr(smf_sess_t *sess, ogs_gtp_xact_t *xact,
 
     ogs_debug("    CC Request Type[%d] Number[%d]",
         sess_data->cc_request_type, sess_data->cc_request_number);
-    ogs_assert(sess_data->cc_request_number <= MAX_CC_REQUEST_NUMBER);
 
     /* Update session state */
     sess_data->sess = sess;
-    sess_data->xact[sess_data->cc_request_number] = xact;
+    req_slot = sess_data->cc_request_number % NUM_CC_REQUEST_SLOT;
+    sess_data->xact_data[req_slot].ptr = xact;
+    sess_data->xact_data[req_slot].cc_req_no = sess_data->cc_request_number;
 
     /* Set Origin-Host & Origin-Realm */
     ret = fd_msg_add_origin(req, 0);
@@ -499,7 +504,7 @@ void smf_gx_send_ccr(smf_sess_t *sess, ogs_gtp_xact_t *xact,
         ogs_assert(ret == 0);
 
         /* 3GPP-User-Location-Info, 3GPP TS 29.061 16.4.7.2 22 */
-        smf_fd_msg_avp_add_3gpp_uli(sess, avpch1);
+        smf_fd_msg_avp_add_3gpp_uli(sess, req);
 
         /* Set 3GPP-MS-Timezone */
         if (sess->gtp.ue_timezone.presence &&
@@ -583,6 +588,34 @@ void smf_gx_send_ccr(smf_sess_t *sess, ogs_gtp_xact_t *xact,
         ret = fd_msg_avp_new(ogs_diam_gx_online, 0, &avp);
         ogs_assert(ret == 0);
         val.u32 = OGS_DIAM_GX_DISABLE_ONLINE;
+
+        bool enable_online = false;
+        if (((SMF_CTF_ENABLED_AUTO == smf_self()->ctf_config.enabled)) ||
+            ((SMF_CTF_ENABLED_YES == smf_self()->ctf_config.enabled))) {
+            int i = 0;
+
+            /* Charge unless an APN whitelist was specified */
+            enable_online = true;
+
+            for (i = 0; i < smf_self()->ctf_config.num_online_charging_apns; ++i) {
+                enable_online = false;
+                char* apn = smf_self()->ctf_config.online_charging_apns[i];
+
+                if (!strcmp(apn, sess->session.name)) {
+                    enable_online = true;
+                    break;
+                }
+            }
+        }
+
+        if (enable_online) {
+            ogs_debug("Enabling online charging for APN '%s'", sess->session.name);
+            val.u32 = OGS_DIAM_GX_ENABLE_ONLINE;
+        } else {
+            ogs_debug("Disabling online charging for APN '%s'", sess->session.name);
+            val.u32 = OGS_DIAM_GX_DISABLE_ONLINE;
+        }
+
         ret = fd_msg_avp_setvalue(avp, &val);
         ogs_assert(ret == 0);
         ret = fd_msg_avp_add(req, MSG_BRW_LAST_CHILD, avp);
@@ -713,7 +746,7 @@ static void smf_gx_cca_cb(void *data, struct msg **msg)
     ogs_gtp_xact_t *xact = NULL;
     smf_sess_t *sess = NULL;
     ogs_diam_gx_message_t *gx_message = NULL;
-    uint32_t cc_request_number = 0;
+    uint32_t req_slot, cc_request_number = 0;
 
     ogs_debug("[Credit-Control-Answer]");
 
@@ -755,11 +788,13 @@ static void smf_gx_cca_cb(void *data, struct msg **msg)
     ret = fd_msg_avp_hdr(avp, &hdr);
     ogs_assert(ret == 0);
     cc_request_number = hdr->avp_value->i32;
+    req_slot = cc_request_number % NUM_CC_REQUEST_SLOT;
 
     ogs_debug("    CC-Request-Number[%d]", cc_request_number);
 
-    xact = sess_data->xact[cc_request_number];
+    xact = sess_data->xact_data[req_slot].ptr;
     sess = sess_data->sess;
+    ogs_assert(sess_data->xact_data[req_slot].cc_req_no == cc_request_number);
     ogs_assert(sess);
 
     gx_message = ogs_calloc(1, sizeof(ogs_diam_gx_message_t));

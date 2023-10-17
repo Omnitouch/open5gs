@@ -348,7 +348,8 @@ int ogs_pco_parse(ogs_pco_t *pco, unsigned char *data, int data_len)
     pco->configuration_protocol = source->configuration_protocol;
     size++;
 
-    while(size < data_len && i < OGS_MAX_NUM_OF_PROTOCOL_OR_CONTAINER_ID) {
+    while((size < data_len) && 
+          (i < OGS_MAX_NUM_OF_PROTOCOL_OR_CONTAINER_ID)) {
         ogs_pco_id_t *id = &pco->ids[i];
         ogs_assert(size + sizeof(id->id) <= data_len);
         memcpy(&id->id, data + size, sizeof(id->id));
@@ -365,7 +366,12 @@ int ogs_pco_parse(ogs_pco_t *pco, unsigned char *data, int data_len)
         i++;
     }
     pco->num_of_id = i;
-    ogs_assert(size == data_len);
+
+    ogs_expect(size == data_len);
+    if (size != data_len) {
+        ogs_error("Failed to encode PCO, expected to encode %d bytes but got %d", data_len, size);
+        return 0;
+    }
     
     return size;
 }

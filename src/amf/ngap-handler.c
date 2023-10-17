@@ -22,6 +22,36 @@
 #include "sbi-path.h"
 #include "nas-path.h"
 
+static bool maximum_number_of_gnbs_is_reached(void)
+{
+    amf_gnb_t *gnb = NULL, *next_gnb = NULL;
+    int number_of_gnbs_online = 0;
+
+    ogs_list_for_each_safe(&amf_self()->gnb_list, next_gnb, gnb) {
+        if (gnb->state.ng_setup_success) {
+            number_of_gnbs_online++;
+        }
+    }
+
+    return number_of_gnbs_online >= ogs_app()->max.peer;
+}
+
+static bool gnb_plmn_id_is_foreign(amf_gnb_t *gnb)
+{
+    int i, j;
+
+    for (i = 0; i < gnb->num_of_supported_ta_list; i++) {
+        for (j = 0; j < gnb->supported_ta_list[i].num_of_bplmn_list; j++) {
+            if (memcmp(&gnb->plmn_id,
+                        &gnb->supported_ta_list[i].bplmn_list[j].plmn_id,
+                        OGS_PLMN_ID_LEN) == 0)
+                return false;
+        }
+    }
+
+    return true;
+}
+
 static bool served_tai_is_found(amf_gnb_t *gnb)
 {
     int i, j;
@@ -81,20 +111,6 @@ static bool s_nssai_is_found(amf_gnb_t *gnb)
     }
 
     return false;
-}
-
-static bool maximum_number_of_gnbs_is_reached(void)
-{
-    amf_gnb_t *gnb = NULL, *next_gnb = NULL;
-    int number_of_gnbs_online = 0;
-
-    ogs_list_for_each_safe(&amf_self()->gnb_list, next_gnb, gnb) {
-        if (gnb->state.ng_setup_success) {
-            number_of_gnbs_online++;
-        }
-    }
-
-    return number_of_gnbs_online >= ogs_app()->max.peer;
 }
 
 void ngap_handle_ng_setup_request(amf_gnb_t *gnb, ogs_ngap_message_t *message)
@@ -177,6 +193,11 @@ void ngap_handle_ng_setup_request(amf_gnb_t *gnb, ogs_ngap_message_t *message)
 
     ogs_ngap_GNB_ID_to_uint32(&globalGNB_ID->gNB_ID, &gnb_id);
     ogs_debug("    IP[%s] GNB_ID[0x%x]", OGS_ADDR(gnb->sctp.addr, buf), gnb_id);
+
+    memcpy(&gnb->plmn_id,
+            globalGNB_ID->pLMNIdentity.buf, sizeof(gnb->plmn_id));
+    ogs_debug("    PLMN_ID[MCC:%d MNC:%d]",
+            ogs_plmn_id_mcc(&gnb->plmn_id), ogs_plmn_id_mnc(&gnb->plmn_id));
 
     if (PagingDRX)
         ogs_debug("    PagingDRX[%ld]", *PagingDRX);
@@ -297,11 +318,19 @@ void ngap_handle_ng_setup_request(amf_gnb_t *gnb, ogs_ngap_message_t *message)
         return;
     }
 
-    if (gnb->num_of_supported_ta_list == 0) {
+    /*
+     * TS38.413
+     * Section 8.7.1.4 Abnormal Conditions
+     *
+     * If the AMF does not identify any of the PLMNs/SNPNs indicated
+     * in the NG SETUP REQUEST message, it shall reject the NG Setup
+     * procedure with an appropriate cause value.
+     */
+    if (gnb_plmn_id_is_foreign(gnb)) {
         ogs_warn("NG-Setup failure:");
-        ogs_warn("    No supported TA exist in NG-Setup request");
-        group = NGAP_Cause_PR_protocol;
-        cause = NGAP_CauseProtocol_message_not_compatible_with_receiver_state;
+        ogs_warn("    globalGNB_ID PLMN-ID is foreign");
+        group = NGAP_Cause_PR_misc;
+        cause = NGAP_CauseMisc_unknown_PLMN_or_SNPN;
 
         r = ngap_send_ng_setup_failure(gnb, group, cause);
         ogs_expect(r == OGS_OK);
@@ -1019,6 +1048,22 @@ void ngap_handle_initial_context_setup_response(
                 AMF_SESS_CLEAR_5GSM_MESSAGE(sess);
 
                 break;
+            case OGS_NAS_5GS_PDU_SESSION_RELEASE_COMMAND:
+                r = nas_send_pdu_session_release_command(sess,
+                            sess->gsm_message.n1buf, sess->gsm_message.n2buf);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
+
+                /* n1buf is de-allocated
+                 * in gmm_build_dl_nas_transport() */
+                sess->gsm_message.n1buf = NULL;
+                /* n2buf is de-allocated
+                 * in ngap_build_pdu_session_resource_modify_request() */
+                sess->gsm_message.n2buf = NULL;
+
+                AMF_SESS_CLEAR_5GSM_MESSAGE(sess);
+
+                break;
             default:
                 ogs_fatal("Unknown GSM Message Type[%d]",
                         sess->gsm_message.type);
@@ -1644,8 +1689,31 @@ void ngap_handle_ue_context_release_action(ran_ue_t *ran_ue)
          * to prevent retransmission of NAS messages.
          */
         CLEAR_AMF_UE_ALL_TIMERS(amf_ue);
+    }
+
+    switch (ran_ue->ue_ctx_rel_action) {
+    case NGAP_UE_CTX_REL_NG_CONTEXT_REMOVE:
+        ogs_debug("    Action: NG context remove");
+        ran_ue_remove(ran_ue);
+        break;
+    case NGAP_UE_CTX_REL_NG_REMOVE_AND_UNLINK:
+        ogs_debug("    Action: NG normal release");
+        ran_ue_remove(ran_ue);
+        if (!amf_ue) {
+            ogs_error("No UE(amf-ue) Context");
+            return;
+        }
+        amf_ue_deassociate(amf_ue);
 
         /*
+         * When AMF release the NAS signalling connection,
+         * ran_ue context is removed by ran_ue_remove() and
+         * amf_ue/ran_ue is de-associated by amf_ue_deassociate().
+         *
+         * In this case, implicit deregistration is attempted
+         * by the mobile reachable timer according to the standard document,
+         * and amf_ue will be removed by amf_ue_remove().
+         *
          * TS 24.501
          * 5.3.7 Handling of the periodic registration update timer and
          *
@@ -1664,28 +1732,11 @@ void ngap_handle_ue_context_release_action(ran_ue_t *ran_ue)
          * TODO: If the UE is registered for emergency services, the AMF shall
          * set the mobile reachable timer with a value equal to timer T3512.
          */
-        if (OGS_FSM_CHECK(&amf_ue->sm, gmm_state_registered) &&
-            ran_ue->ue_ctx_rel_action == NGAP_UE_CTX_REL_NG_REMOVE_AND_UNLINK) {
+        ogs_timer_start(amf_ue->mobile_reachable.timer,
+                ogs_time_from_sec(amf_self()->time.t3512.value + 240));
 
-            ogs_timer_start(amf_ue->mobile_reachable.timer,
-                    ogs_time_from_sec(amf_self()->time.t3512.value + 240));
-        }
-    }
+        break;
 
-    switch (ran_ue->ue_ctx_rel_action) {
-    case NGAP_UE_CTX_REL_NG_CONTEXT_REMOVE:
-        ogs_debug("    Action: NG context remove");
-        ran_ue_remove(ran_ue);
-        break;
-    case NGAP_UE_CTX_REL_NG_REMOVE_AND_UNLINK:
-        ogs_debug("    Action: NG normal release");
-        ran_ue_remove(ran_ue);
-        if (!amf_ue) {
-            ogs_error("No UE(amf-ue) Context");
-            return;
-        }
-        amf_ue_deassociate(amf_ue);
-        break;
     case NGAP_UE_CTX_REL_UE_CONTEXT_REMOVE:
         ogs_debug("    Action: UE context remove");
         ran_ue_remove(ran_ue);

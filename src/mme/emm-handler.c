@@ -35,6 +35,7 @@
 static int send_to_downlink_default(mme_ue_t *mme_ue);
 static int send_to_downlink_emergency(mme_ue_t *mme_ue);
 static uint8_t emm_cause_from_access_control(ogs_plmn_id_t *plmn_id);
+static uint8_t get_daylight_saving_time(void);
 
 int emm_handle_attach_request(mme_ue_t *mme_ue,
         ogs_nas_eps_attach_request_t *attach_request, ogs_pkbuf_t *pkbuf)
@@ -55,6 +56,8 @@ int emm_handle_attach_request(mme_ue_t *mme_ue,
                     &attach_request->esm_message_container;
 
     char imsi_bcd[OGS_MAX_IMSI_BCD_LEN+1];
+
+    MME_UE_LIST_CHECK;
 
     ogs_assert(mme_ue);
     enb_ue = enb_ue_cycle(mme_ue->enb_ue);
@@ -265,6 +268,7 @@ int emm_handle_attach_complete(
 
     ogs_assert(mme_ue);
     ogs_info("    IMSI[%s]", mme_ue->imsi_bcd);
+    MME_UE_LIST_CHECK;
 
     rv = nas_eps_send_emm_to_esm(
             mme_ue, &attach_complete->esm_message_container);
@@ -277,6 +281,10 @@ int emm_handle_attach_complete(
         rv = send_to_downlink_emergency(mme_ue);
     } else {
         rv = send_to_downlink_default(mme_ue);
+    }
+
+    if (mme_ue->imsi_bcd) {
+        mme_metrics_ue_connected_add(mme_ue->imsi_bcd);
     }
 
     return rv;
@@ -705,6 +713,7 @@ int emm_handle_security_mode_complete(mme_ue_t *mme_ue,
     ogs_nas_mobile_identity_t *imeisv = &security_mode_complete->imeisv;
 
     ogs_assert(mme_ue);
+    MME_UE_LIST_CHECK;
 
     if (security_mode_complete->presencemask &
         OGS_NAS_EPS_SECURITY_MODE_COMMAND_IMEISV_REQUEST_PRESENT) {
@@ -879,8 +888,10 @@ static int send_to_downlink_default(mme_ue_t *mme_ue) {
             &mme_self()->short_name, sizeof(ogs_nas_network_name_t));
     }
 
-    emm_information->presencemask |=
-        OGS_NAS_EPS_EMM_INFORMATION_LOCAL_TIME_ZONE_PRESENT;
+    if (true == mme_self()->include_local_time_zone) {
+        emm_information->presencemask |=
+            OGS_NAS_EPS_EMM_INFORMATION_LOCAL_TIME_ZONE_PRESENT;
+    }
 
     if (local.tm_gmtoff >= 0) {
         *local_time_zone = OGS_NAS_TIME_TO_BCD(local.tm_gmtoff / 900);
@@ -909,6 +920,7 @@ static int send_to_downlink_default(mme_ue_t *mme_ue) {
     emm_information->presencemask |=
         OGS_NAS_EPS_EMM_INFORMATION_NETWORK_DAYLIGHT_SAVING_TIME_PRESENT;
     network_daylight_saving_time->length = 1;
+    network_daylight_saving_time->value = get_daylight_saving_time();
 
     emmbuf = nas_eps_security_encode(mme_ue, &message);
     if (NULL == emmbuf) {
@@ -950,4 +962,31 @@ static uint8_t emm_cause_from_access_control(ogs_plmn_id_t *plmn_id)
         return mme_self()->default_reject_cause;
 
     return OGS_NAS_EMM_CAUSE_PLMN_NOT_ALLOWED;
+}
+
+static uint8_t get_daylight_saving_time(void) {
+    time_t current_time;
+    struct tm *time_info;
+    int is_dst;
+
+    /* Get the current time */
+    time(&current_time);
+    
+    /* Convert the current time to local time */
+    time_info = localtime(&current_time);
+
+    /* Check if DST is in effect */
+    is_dst = time_info->tm_isdst;
+
+    if (is_dst > 0) {
+        ogs_debug("Daylight Saving Time (DST) is currently in effect");
+        return 1;
+    } else if (is_dst == 0) {
+        ogs_debug("Daylight Saving Time (DST) is NOT currently in effect");
+        return 0;
+    } else {
+        ogs_debug("DST status is unknown");
+    }
+
+    return 0;
 }

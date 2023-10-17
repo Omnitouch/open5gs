@@ -358,8 +358,8 @@ void smf_5gc_n4_handle_session_modification_response(
         char *strerror = ogs_msprintf(
                 "PFCP Cause [%d] : Not Accepted", rsp->cause.u8);
         if (stream)
-            smf_sbi_send_sm_context_update_error(
-                    stream, status, strerror, NULL, NULL, NULL);
+            smf_sbi_send_sm_context_update_error_log(
+                    stream, status, strerror, NULL);
         ogs_error("%s", strerror);
         ogs_free(strerror);
         return;
@@ -369,8 +369,8 @@ void smf_5gc_n4_handle_session_modification_response(
 
     if (sess->upf_n3_addr == NULL && sess->upf_n3_addr6 == NULL) {
         if (stream)
-            smf_sbi_send_sm_context_update_error(
-                    stream, status, "No UP F_TEID", NULL, NULL, NULL);
+            smf_sbi_send_sm_context_update_error_log(
+                    stream, status, "No UP F_TEID", NULL);
         return;
     }
 
@@ -396,14 +396,17 @@ void smf_5gc_n4_handle_session_modification_response(
                     sess, stream, OpenAPI_ho_state_COMPLETED);
 
         } else {
-            sess->paging.ue_requested_pdu_session_establishment_done = true;
-
             if (sess->up_cnx_state == OpenAPI_up_cnx_state_ACTIVATING) {
                 sess->up_cnx_state = OpenAPI_up_cnx_state_ACTIVATED;
                 smf_sbi_send_sm_context_updated_data_up_cnx_state(
                         sess, stream, OpenAPI_up_cnx_state_ACTIVATED);
             } else {
-                ogs_assert(true == ogs_sbi_send_http_status_no_content(stream));
+                int r = smf_sbi_discover_and_send(
+                        OGS_SBI_SERVICE_TYPE_NUDM_UECM, NULL,
+                        smf_nudm_uecm_build_registration,
+                        sess, stream, SMF_UECM_STATE_REGISTERED, NULL);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
             }
         }
 
@@ -696,8 +699,8 @@ int smf_5gc_n4_handle_session_deletion_response(
         } else if (trigger == OGS_PFCP_DELETE_TRIGGER_UE_REQUESTED ||
             trigger == OGS_PFCP_DELETE_TRIGGER_AMF_UPDATE_SM_CONTEXT) {
             ogs_assert(stream);
-            smf_sbi_send_sm_context_update_error(
-                stream, status, strerror, NULL, NULL, NULL);
+            smf_sbi_send_sm_context_update_error_log(
+                stream, status, strerror, NULL);
         } else if (trigger == OGS_PFCP_DELETE_TRIGGER_AMF_RELEASE_SM_CONTEXT) {
             ogs_assert(stream);
             ogs_assert(true ==
@@ -828,6 +831,7 @@ void smf_epc_n4_handle_session_modification_response(
         ogs_pfcp_session_modification_response_t *rsp)
 {
     int i;
+    int rv;
 
     smf_bearer_t *bearer = NULL;
     ogs_gtp_xact_t *gtp_xact = NULL;
@@ -1056,7 +1060,8 @@ void smf_epc_n4_handle_session_modification_response(
             if (gtp_xact->gtp_version == 1) {
 
                 bearer = gtp_xact->data;
-                smf_gtp1_send_update_pdp_context_response(bearer, gtp_xact);
+                rv = smf_gtp1_send_update_pdp_context_response(bearer, gtp_xact);
+                ogs_expect(rv == OGS_OK);
 
             } else {
 
@@ -1195,6 +1200,7 @@ void smf_n4_handle_session_report_request(
         ogs_pfcp_downlink_data_service_information_t *info = NULL;
         uint8_t paging_policy_indication_value = 0;
         uint8_t qfi = 0;
+        smf_n1_n2_message_transfer_param_t param;
 
         if (pfcp_req->downlink_data_report.presence) {
             if (pfcp_req->downlink_data_report.
@@ -1259,9 +1265,21 @@ void smf_n4_handle_session_report_request(
             return;
         }
 
-        if (sess->paging.ue_requested_pdu_session_establishment_done == true) {
-            smf_n1_n2_message_transfer_param_t param;
-
+        switch (sess->up_cnx_state) {
+        case OpenAPI_up_cnx_state_NULL:
+            /* UE Requested PDU Session is NOT established */
+            break;
+        case OpenAPI_up_cnx_state_ACTIVATED:
+            ogs_error("[%s:%s] PDU Session had already been ACTIVATED",
+                smf_ue->imsi_bcd, sess->session.name);
+            break;
+        case OpenAPI_up_cnx_state_ACTIVATING:
+#if OGS_SBI_DISABLE_NETWORK_SERVICE_REQUEST_WHILE_ACTIVATING == 1
+            ogs_warn("[%s:%s] UE is being triggering Service Request",
+                smf_ue->imsi_bcd, sess->session.name);
+            break;
+#endif
+        case OpenAPI_up_cnx_state_DEACTIVATED:
             memset(&param, 0, sizeof(param));
             param.state = SMF_NETWORK_TRIGGERED_SERVICE_REQUEST;
             param.n2smbuf =
@@ -1271,6 +1289,14 @@ void smf_n4_handle_session_report_request(
             param.n1n2_failure_txf_notif_uri = true;
 
             smf_namf_comm_send_n1_n2_message_transfer(sess, &param);
+            break;
+        case OpenAPI_up_cnx_state_SUSPENDED:
+            ogs_error("[%s:%s] PDU Session had been SUSPENDED",
+                smf_ue->imsi_bcd, sess->session.name);
+            break;
+        default:
+            ogs_error("Invalid UpCnxState[%d]", sess->up_cnx_state);
+            break;
         }
     }
 
@@ -1302,6 +1328,36 @@ void smf_n4_handle_session_report_request(
                 sess->gy.ul_octets += volume.uplink_volume;
             if (volume.dlvol)
                 sess->gy.dl_octets += volume.downlink_volume;
+
+            /* Refresh the bearer deactivation timer when data has been used
+             * See smf/context.c for more context */
+            /* TODO: Switch to using report_type.user_plane_inactivity_report
+             * at some point */
+            if (60 <= smf_self()->bearer_deactivation_timer_sec)
+            {
+                const char *apn = "unknown";
+                if (bearer->sess)
+                    apn = bearer->sess->session.name;
+
+                if ((1 == volume.ulvol) &&
+                    (0 < volume.uplink_volume))
+                {
+                    ogs_info("[APN: '%s'] Bearer used %li octets of uplink data, refreshing bearer deactivate timer", apn, volume.uplink_volume);
+                    ogs_timer_start(bearer->timer_bearer_deactivation,
+                        ogs_time_from_sec(smf_self()->bearer_deactivation_timer_sec));
+                }
+                else if ((1 == volume.dlvol) &&
+                         (0 < volume.downlink_volume))
+                {
+                    ogs_info("[APN: '%s'] Bearer used %li octets of downlink data, refreshing bearer deactivate timer", apn, volume.downlink_volume);
+                    ogs_timer_start(bearer->timer_bearer_deactivation,
+                        ogs_time_from_sec(smf_self()->bearer_deactivation_timer_sec));
+                }
+                else {
+                    ogs_info("[APN: '%s'] Bearer used no octets of data", apn);
+                }
+            }
+
             sess->gy.duration += use_rep->duration_measurement.u32;
             ogs_pfcp_parse_usage_report_trigger(
                     &rep_trig, &use_rep->usage_report_trigger);

@@ -23,6 +23,7 @@
 #include "pfcp-path.h"
 #include "sbi-path.h"
 #include "metrics.h"
+#include "smf-redis.h"
 
 static ogs_thread_t *thread;
 static void smf_main(void *data);
@@ -86,6 +87,8 @@ int smf_initialize(void)
     thread = ogs_thread_create(smf_main, NULL);
     if (!thread) return OGS_ERROR;
 
+    smf_redis_init();
+
     initialized = 1;
 
     return OGS_OK;
@@ -130,6 +133,8 @@ void smf_terminate(void)
     smf_fd_final();
 
     smf_context_final();
+
+    smf_redis_final();
 
     ogs_pfcp_context_final();
     ogs_sbi_context_final();

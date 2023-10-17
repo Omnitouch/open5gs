@@ -20,13 +20,15 @@
 #include "ogs-gtp.h"
 
 #include "mme-event.h"
+#include "mme-gn-build.h"
 #include "mme-gtp-path.h"
 #include "mme-path.h"
 #include "s1ap-path.h"
 #include "mme-s11-build.h"
 #include "mme-sm.h"
+#include "dns_resolvers.h"
 
-static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
+static void _gtpv1v2_c_recv_cb(short when, ogs_socket_t fd, void *data)
 {
     int rv;
     char buf[OGS_ADDRSTRLEN];
@@ -36,6 +38,8 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_sockaddr_t from;
     mme_sgw_t *sgw = NULL;
+    mme_sgsn_t *sgsn = NULL;
+    uint8_t gtp_ver;
 
     ogs_assert(fd != INVALID_SOCKET);
 
@@ -53,17 +57,38 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
 
     ogs_pkbuf_trim(pkbuf, size);
 
-    sgw = mme_sgw_find_by_addr(&from);
-    if (!sgw) {
-        ogs_error("Unknown SGW : %s", OGS_ADDR(&from, buf));
+    gtp_ver = ((ogs_gtp2_header_t *)pkbuf->data)->version;
+    switch (gtp_ver) {
+    case 1:
+        sgsn = mme_sgsn_find_by_addr(&from);
+        if (!sgsn) {
+            ogs_error("Unknown SGSN : %s", OGS_ADDR(&from, buf));
+            ogs_pkbuf_free(pkbuf);
+            return;
+        }
+        ogs_assert(sgsn);
+        e = mme_event_new(MME_EVENT_GN_MESSAGE);
+        ogs_assert(e);
+        e->gnode = &sgsn->gnode;
+        break;
+    case 2:
+        sgw = mme_sgw_find_by_addr(&from);
+        if (!sgw) {
+            ogs_error("Unknown SGW : %s", OGS_ADDR(&from, buf));
+            ogs_pkbuf_free(pkbuf);
+            return;
+        }
+        ogs_assert(sgw);
+        e = mme_event_new(MME_EVENT_S11_MESSAGE);
+        ogs_assert(e);
+        e->gnode = &sgw->gnode;
+        break;
+    default:
+        ogs_warn("Rx unexpected GTP version %u", gtp_ver);
         ogs_pkbuf_free(pkbuf);
         return;
     }
-    ogs_assert(sgw);
 
-    e = mme_event_new(MME_EVENT_S11_MESSAGE);
-    ogs_assert(e);
-    e->gnode = (ogs_gtp_node_t *)sgw;
     e->pkbuf = pkbuf;
 
     rv = ogs_queue_push(ogs_app()->queue, e);
@@ -159,13 +184,14 @@ int mme_gtp_open(void)
     ogs_socknode_t *node = NULL;
     ogs_sock_t *sock = NULL;
     mme_sgw_t *sgw = NULL;
+    mme_sgsn_t *sgsn = NULL;
 
     ogs_list_for_each(&ogs_gtp_self()->gtpc_list, node) {
         sock = ogs_gtp_server(node);
         if (!sock) return OGS_ERROR;
 
         node->poll = ogs_pollset_add(ogs_app()->pollset,
-                OGS_POLLIN, sock->fd, _gtpv2_c_recv_cb, sock);
+                OGS_POLLIN, sock->fd, _gtpv1v2_c_recv_cb, sock);
         ogs_assert(node->poll);
     }
     ogs_list_for_each(&ogs_gtp_self()->gtpc_list6, node) {
@@ -173,22 +199,23 @@ int mme_gtp_open(void)
         if (!sock) return OGS_ERROR;
 
         node->poll = ogs_pollset_add(ogs_app()->pollset,
-                OGS_POLLIN, sock->fd, _gtpv2_c_recv_cb, sock);
+                OGS_POLLIN, sock->fd, _gtpv1v2_c_recv_cb, sock);
         ogs_assert(node->poll);
     }
 
     OGS_SETUP_GTPC_SERVER;
 
-    mme_self()->pgw_addr = mme_pgw_addr_find_by_apn(
-            &mme_self()->pgw_list, AF_INET, NULL);
-    mme_self()->pgw_addr6 = mme_pgw_addr_find_by_apn(
-            &mme_self()->pgw_list, AF_INET6, NULL);
-    ogs_assert(mme_self()->pgw_addr || mme_self()->pgw_addr6);
-
     ogs_list_for_each(&mme_self()->sgw_list, sgw) {
         rv = ogs_gtp_connect(
                 ogs_gtp_self()->gtpc_sock, ogs_gtp_self()->gtpc_sock6,
-                (ogs_gtp_node_t *)sgw);
+                &sgw->gnode);
+        ogs_assert(rv == OGS_OK);
+    }
+
+    ogs_list_for_each(&mme_self()->sgsn_list, sgsn) {
+        rv = ogs_gtp_connect(
+                ogs_gtp_self()->gtpc_sock, ogs_gtp_self()->gtpc_sock6,
+                &sgsn->gnode);
         ogs_assert(rv == OGS_OK);
     }
 
@@ -228,6 +255,27 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
     if (!pkbuf) {
         ogs_error("mme_s11_build_create_session_request() failed");
         return OGS_ERROR;
+    }
+
+    if (mme_self()->dns_target_sgw) {
+        char ipv4[INET_ADDRSTRLEN] = "";
+        ResolverContext context = {};
+        /* We do not include the APN for SGW lookups */
+        snprintf(context.mnc, DNS_RESOLVERS_MAX_MNC_STR, "%03u", ogs_plmn_id_mnc(&mme_ue->tai.plmn_id));
+        snprintf(context.mcc, DNS_RESOLVERS_MAX_MCC_STR, "%03u", ogs_plmn_id_mcc(&mme_ue->tai.plmn_id));
+        strncpy(context.target, "sgw", DNS_RESOLVERS_MAX_TARGET_STR);
+        strncpy(context.interface, "s11", DNS_RESOLVERS_MAX_INTERFACE_STR);
+        strncpy(context.protocol, "gtp", DNS_RESOLVERS_MAX_PROTOCOL_STR);
+        strncpy(context.domain_suffix, mme_self()->dns_base_domain, DNS_RESOLVERS_MAX_DOMAIN_SUFFIX_STR);
+
+        if (true == resolve_naptr(&context, ipv4, INET_ADDRSTRLEN)) {
+            /* Clobber the SGW addr if we resolved */
+            ogs_info("Successfully clobbered the SGW IP in CSR with '%s'", ipv4);
+            ogs_ipv4_from_string((uint32_t*)&sgw_ue->gnode->addr.sa.sa_data[2], ipv4);
+        }
+        else {
+            ogs_warn("Failed to resolve dns and update SGW IP in CSR");
+        }
     }
 
     xact = ogs_gtp_xact_local_create(sgw_ue->gnode, &h, pkbuf, timeout, sess);
@@ -319,6 +367,9 @@ int mme_gtp_send_delete_session_request(
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
 
+    /* If we make it here than that means we have successfully sent the delete session */
+    mme_metrics_ue_session_clear(mme_ue->imsi_bcd, sess->session->name);
+
     return rv;
 }
 
@@ -336,7 +387,7 @@ void mme_gtp_send_delete_all_sessions(mme_ue_t *mme_ue, int action)
         if (MME_HAVE_SGW_S1U_PATH(sess)) {
             mme_gtp_send_delete_session_request(sgw_ue, sess, action);
         } else {
-            mme_sess_remove(sess);
+            MME_SESS_CLEAR(sess);
         }
     }
 }
@@ -719,6 +770,44 @@ int mme_gtp_send_bearer_resource_command(
     }
     xact->xid |= OGS_GTP_CMD_XACT_ID;
     xact->local_teid = mme_ue->mme_s11_teid;
+
+    rv = ogs_gtp_xact_commit(xact);
+    ogs_expect(rv == OGS_OK);
+
+    return rv;
+}
+
+
+int mme_gtp1_send_ran_information_relay(
+        mme_sgsn_t *sgsn, const uint8_t *buf, size_t len,
+        const ogs_nas_rai_t *rai, uint16_t cell_id)
+{
+    int rv;
+    ogs_gtp1_header_t h;
+    ogs_pkbuf_t *pkbuf = NULL;
+    ogs_gtp_xact_t *xact = NULL;
+
+    ogs_assert(sgsn);
+    ogs_assert(buf);
+
+    memset(&h, 0, sizeof(ogs_gtp1_header_t));
+    h.type = OGS_GTP1_RAN_INFORMATION_RELAY_TYPE;
+    h.teid = 0;
+
+    pkbuf = mme_gn_build_ran_information_relay(h.type, buf, len, rai, cell_id);
+    if (!pkbuf) {
+        ogs_error("mme_gn_build_ran_information_relay() failed");
+        return OGS_ERROR;
+    }
+
+    xact = ogs_gtp1_xact_local_create(&sgsn->gnode, &h, pkbuf, NULL, NULL);
+    if (!xact) {
+        ogs_error("ogs_gtp1_xact_local_create() failed");
+        return OGS_ERROR;
+    }
+    /* TS 29.060 8.2: "The RAN Information Relay message, where the Tunnel
+     * Endpoint Identifier shall be set to all zeroes." */
+    xact->local_teid = 0;
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);

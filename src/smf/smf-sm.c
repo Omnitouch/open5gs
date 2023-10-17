@@ -136,7 +136,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         case OGS_GTP2_CREATE_SESSION_REQUEST_TYPE:
             smf_metrics_inst_global_inc(SMF_METR_GLOB_CTR_S5C_RX_CREATESESSIONREQ);
             smf_metrics_inst_gtp_node_inc(smf_gnode->metrics, SMF_METR_GTP_NODE_CTR_S5C_RX_CREATESESSIONREQ);
-            if (gtp2_message.h.teid == 0) {
+            if ((0 == gtp2_message.h.teid) || (NULL != sess)) {
                 ogs_expect(!sess);
                 sess = smf_sess_add_by_gtp2_message(&gtp2_message);
                 if (sess)
@@ -508,11 +508,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                         if (!sbi_message.h.resource.component[1]) {
                             ogs_error("No smContextRef [%s]",
                                     sbi_message.h.resource.component[1]);
-                            smf_sbi_send_sm_context_update_error(stream,
-                                    OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                            smf_sbi_send_sm_context_update_error_log(
+                                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
                                     "No smContextRef",
-                                    sbi_message.h.resource.component[1],
-                                    NULL, NULL);
+                                    sbi_message.h.resource.component[1]);
                             break;
                         }
 
@@ -521,15 +520,26 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
                         if (!sess) {
                             ogs_warn("Not found [%s]", sbi_message.h.uri);
-                            smf_sbi_send_sm_context_update_error(stream,
-                                    OGS_SBI_HTTP_STATUS_NOT_FOUND, "Not found",
-                                    sbi_message.h.uri, NULL, NULL);
+                            smf_sbi_send_sm_context_update_error_log(
+                                    stream, OGS_SBI_HTTP_STATUS_NOT_FOUND,
+                                    "Not found", sbi_message.h.uri);
                         }
                         break;
 
                     DEFAULT
                         sess = smf_sess_add_by_sbi_message(&sbi_message);
-                        ogs_assert(sess);
+                        if (!sess) {
+                            ogs_error("smf_sess_add_by_sbi_message() failed");
+                            smf_sbi_send_sm_context_create_error(stream,
+                                    OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                                    OGS_SBI_APP_ERRNO_NULL,
+                                    "smf_sess_add_by_sbi_message() failed",
+                                    NULL, NULL);
+                            break;
+                        }
+
+                        smf_metrics_inst_by_slice_add(NULL, NULL,
+                                SMF_METR_CTR_SM_PDUSESSIONCREATIONREQ, 1);
                     END
                     break;
 
@@ -789,9 +799,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 ogs_error("Session has already been removed");
                 break;
             }
-            smf_ue = sess->smf_ue;
-            ogs_assert(smf_ue);
-            smf_ue = smf_ue_cycle(smf_ue);
+            smf_ue = smf_ue_cycle(sess->smf_ue);
             ogs_assert(smf_ue);
             ogs_assert(OGS_FSM_STATE(&sess->sm));
 
@@ -799,6 +807,88 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             e->h.sbi.message = &sbi_message;
 
             ogs_fsm_dispatch(&sess->sm, e);
+            break;
+
+        CASE(OGS_SBI_SERVICE_NAME_NUDM_UECM)
+            int state = 0;
+            bool unknown_res_status = false;
+
+            sbi_xact = e->h.sbi.data;
+            ogs_assert(sbi_xact);
+
+            sbi_xact = ogs_sbi_xact_cycle(sbi_xact);
+            if (!sbi_xact) {
+                /* CLIENT_WAIT timer could remove SBI transaction
+                 * before receiving SBI message */
+                ogs_error("SBI transaction has already been removed");
+                break;
+            }
+
+            sess = (smf_sess_t *)sbi_xact->sbi_object;
+            ogs_assert(sess);
+
+            stream = sbi_xact->assoc_stream;
+            state = sbi_xact->state;
+            ogs_assert(state);
+
+            ogs_sbi_xact_remove(sbi_xact);
+
+            sess = smf_sess_cycle(sess);
+            if (!sess) {
+                ogs_error("Session has already been removed");
+                break;
+            }
+            smf_ue = smf_ue_cycle(sess->smf_ue);
+            ogs_assert(smf_ue);
+
+            if (state == SMF_UECM_STATE_REGISTERED) {
+                /* SMF Registration */
+                if (sbi_message.res_status != OGS_SBI_HTTP_STATUS_OK &&
+                    sbi_message.res_status != OGS_SBI_HTTP_STATUS_CREATED)
+                    unknown_res_status = true;
+            } else if (state == SMF_UECM_STATE_DEREGISTERED_BY_AMF ||
+                        state == SMF_UECM_STATE_DEREGISTERED_BY_N1_N2_RELEASE) {
+                /* SMF Deregistration */
+                if (sbi_message.res_status != OGS_SBI_HTTP_STATUS_NO_CONTENT)
+                    unknown_res_status = true;
+            } else {
+                ogs_fatal("Unknown state [%d]", state);
+                ogs_assert_if_reached();
+            }
+
+            if (unknown_res_status == true) {
+                char *strerror = ogs_msprintf(
+                    "[%s:%d] HTTP response error [%d] state [%d]",
+                    smf_ue->supi, sess->psi, sbi_message.res_status, state);
+                ogs_assert(strerror);
+
+                ogs_error("%s", strerror);
+                if (stream)
+                    ogs_assert(true ==
+                        ogs_sbi_server_send_error(stream,
+                            OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                            NULL, strerror, NULL));
+                ogs_free(strerror);
+
+                OGS_FSM_TRAN(s, smf_gsm_state_exception);
+                break;
+            }
+
+            if (state == SMF_UECM_STATE_REGISTERED) {
+                /* SMF Registration */
+                ogs_assert(stream);
+                ogs_assert(true == ogs_sbi_send_http_status_no_content(stream));
+            } else if (state == SMF_UECM_STATE_DEREGISTERED_BY_AMF) {
+                /* SMF Deregistration */
+                ogs_assert(stream);
+                ogs_assert(true == ogs_sbi_send_http_status_no_content(stream));
+                SMF_SESS_CLEAR(sess);
+            } else if (state == SMF_UECM_STATE_DEREGISTERED_BY_N1_N2_RELEASE) {
+                /* SMF Deregistration */
+                ogs_assert(true == smf_sbi_send_sm_context_status_notify(sess));
+                SMF_SESS_CLEAR(sess);
+            }
+
             break;
 
         DEFAULT
@@ -822,7 +912,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             ogs_assert(nf_instance);
             ogs_assert(OGS_FSM_STATE(&nf_instance->sm));
 
-            ogs_sbi_self()->nf_instance->load = get_sess_load();
+            ogs_sbi_self()->nf_instance->load = smf_instance_get_load();
 
             ogs_fsm_dispatch(&nf_instance->sm, e);
             if (OGS_FSM_CHECK(&nf_instance->sm, ogs_sbi_nf_state_exception))

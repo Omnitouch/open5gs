@@ -156,6 +156,10 @@ int sgsap_send_detach_indication(mme_ue_t *mme_ue)
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_assert(mme_ue);
 
+    if (0 != mme_ue->imsi_bcd) {
+        mme_metrics_ue_connected_clear(mme_ue->imsi_bcd);
+    }
+
     pkbuf = sgsap_build_detach_indication(mme_ue);
     if (!pkbuf) {
         ogs_error("sgsap_build_detach_indication() failed");

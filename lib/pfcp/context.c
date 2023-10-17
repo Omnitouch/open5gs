@@ -72,7 +72,7 @@ void ogs_pfcp_context_init(void)
     ogs_pool_random_id_generate(&ogs_pfcp_pdr_teid_pool);
 
     pdr_random_to_index = ogs_calloc(
-            sizeof(ogs_pool_id_t), ogs_pfcp_pdr_pool.size);
+            sizeof(ogs_pool_id_t), ogs_pfcp_pdr_pool.size+1);
     ogs_assert(pdr_random_to_index);
     for (i = 0; i < ogs_pfcp_pdr_pool.size; i++)
         pdr_random_to_index[ogs_pfcp_pdr_teid_pool.array[i]] = i;
@@ -319,7 +319,7 @@ int ogs_pfcp_context_parse_config(const char *local, const char *remote)
                             if (ogs_app()->parameter.no_ipv6 == 0 &&
                                 !self.pfcp_advertise6) {
                                 ogs_copyaddrinfo(&self.pfcp_advertise6, addr);
-                                ogs_filteraddrinfo(&self.pfcp_advertise6, AF_INET);
+                                ogs_filteraddrinfo(&self.pfcp_advertise6, AF_INET6);
                             }
                             ogs_freeaddrinfo(addr);
                         }
@@ -347,6 +347,67 @@ int ogs_pfcp_context_parse_config(const char *local, const char *remote)
                                     NULL : &self.pfcp_list6,
                                 NULL, self.pfcp_port, NULL);
                         ogs_assert(rv == OGS_OK);
+                    }
+                } else if (!strcmp(local_key, "cdr")) {
+                    ogs_yaml_iter_t cdr_iter;
+                    ogs_yaml_iter_recurse(&local_iter, &cdr_iter);
+
+                    /* Set defaults */
+                    self.usageLoggerState.enabled = false;
+                    self.usageLoggerState.file_capture_period_sec = 1800;
+                    self.usageLoggerState.reporting_period_sec = 10;
+                    strncpy(self.usageLoggerState.sgw_name, "undefined", SGW_NAME_STR_MAX_LEN - 1);
+                    strncpy(self.usageLoggerState.log_dir, "/var/log/open5gs", LOG_DIR_STR_MAX_LEN - 1);
+
+                    while (ogs_yaml_iter_next(&cdr_iter)) {
+                        const char *cdr_key = ogs_yaml_iter_key(&cdr_iter);
+                        ogs_assert(cdr_key);
+
+                        if (!strcmp(cdr_key, "enabled")) {
+                            bool enabled = false;
+                            const char *cdr_enabled = ogs_yaml_iter_value(&cdr_iter);
+
+                            if (!strcmp("True", cdr_enabled) || 
+                                !strcmp("true", cdr_enabled)) {
+                                ogs_info("CDR functionality has been enabled");
+                                enabled = true;
+                            }
+                            else {
+                                enabled = false;
+                            }
+                            self.usageLoggerState.enabled = enabled;
+                        } else if (!strcmp(cdr_key, "file_capture_period_sec")) {
+                            int file_capture_period_sec = 0;
+                            const char *file_capture_period_sec_str = ogs_yaml_iter_value(&cdr_iter);
+                            if (file_capture_period_sec_str)
+                                file_capture_period_sec = atoi(file_capture_period_sec_str);
+
+                            if (0 < file_capture_period_sec) {
+                                self.usageLoggerState.file_capture_period_sec = (unsigned)file_capture_period_sec;
+                            }
+                        } else if (!strcmp(cdr_key, "reporting_period_sec")) {
+                            int reporting_period_sec = 0;
+                            const char *reporting_period_sec_str = ogs_yaml_iter_value(&cdr_iter);
+                            if (reporting_period_sec_str)
+                                reporting_period_sec = atoi(reporting_period_sec_str);
+
+                            if (0 < reporting_period_sec) {
+                                self.usageLoggerState.reporting_period_sec = (unsigned)reporting_period_sec;
+                            }
+                        } else if (!strcmp(cdr_key, "sgw_name")) {
+                            const char *cdr_sgw_name = ogs_yaml_iter_value(&cdr_iter);
+
+                            if (cdr_sgw_name)
+                                strncpy(self.usageLoggerState.sgw_name, cdr_sgw_name, SGW_NAME_STR_MAX_LEN - 1);
+                        } else if (!strcmp(cdr_key, "log_dir")) {
+                            const char *cdr_log_dir = ogs_yaml_iter_value(&cdr_iter);
+
+                            if (cdr_log_dir)
+                                strncpy(self.usageLoggerState.log_dir, cdr_log_dir, LOG_DIR_STR_MAX_LEN - 1);
+
+                        } else {
+                            ogs_warn("unknown key `%s`", cdr_key);
+                        }
                     }
                 } else if (!strcmp(local_key, "subnet")) {
                     ogs_yaml_iter_t subnet_array, subnet_iter;
@@ -695,7 +756,10 @@ ogs_pfcp_node_t *ogs_pfcp_node_new(ogs_sockaddr_t *sa_list)
     ogs_assert(sa_list);
 
     ogs_pool_alloc(&ogs_pfcp_node_pool, &node);
-    ogs_assert(node);
+    if (!node) {
+        ogs_error("No memory: ogs_pool_alloc() failed");
+        return NULL;
+    }
     memset(node, 0, sizeof(ogs_pfcp_node_t));
 
     node->sa_list = sa_list;
@@ -731,6 +795,11 @@ ogs_pfcp_node_t *ogs_pfcp_node_add(
 
     ogs_assert(OGS_OK == ogs_copyaddrinfo(&new, addr));
     node = ogs_pfcp_node_new(new);
+    if (!node) {
+        ogs_error("No memory : ogs_pfcp_node_new() failed");
+        ogs_freeaddrinfo(new);
+        return NULL;
+    }
 
     ogs_assert(node);
     memcpy(&node->addr, new, sizeof node->addr);
@@ -1200,6 +1269,12 @@ void ogs_pfcp_pdr_remove(ogs_pfcp_pdr_t *pdr)
             ogs_free(pdr->ipv6_framed_routes[i]);
         }
         ogs_free(pdr->ipv6_framed_routes);
+    }
+
+    if (0 < pdr->num_of_urr) {
+        for (i = 0; i < pdr->num_of_urr; ++i) {
+            ogs_pfcp_urr_remove(pdr->urr[i]);
+        }
     }
 
     ogs_pool_free(&ogs_pfcp_pdr_teid_pool, pdr->teid_node);
@@ -2084,11 +2159,11 @@ void ogs_pfcp_pool_init(ogs_pfcp_sess_t *sess)
 
     sess->obj.type = OGS_PFCP_OBJ_SESS_TYPE;
 
-    ogs_pool_init(&sess->pdr_id_pool, OGS_MAX_NUM_OF_PDR);
-    ogs_pool_init(&sess->far_id_pool, OGS_MAX_NUM_OF_FAR);
-    ogs_pool_init(&sess->urr_id_pool, OGS_MAX_NUM_OF_URR);
-    ogs_pool_init(&sess->qer_id_pool, OGS_MAX_NUM_OF_QER);
-    ogs_pool_init(&sess->bar_id_pool, OGS_MAX_NUM_OF_BAR);
+    ogs_pool_create(&sess->pdr_id_pool, OGS_MAX_NUM_OF_PDR);
+    ogs_pool_create(&sess->far_id_pool, OGS_MAX_NUM_OF_FAR);
+    ogs_pool_create(&sess->urr_id_pool, OGS_MAX_NUM_OF_URR);
+    ogs_pool_create(&sess->qer_id_pool, OGS_MAX_NUM_OF_QER);
+    ogs_pool_create(&sess->bar_id_pool, OGS_MAX_NUM_OF_BAR);
 
     ogs_pool_sequence_id_generate(&sess->pdr_id_pool);
     ogs_pool_sequence_id_generate(&sess->far_id_pool);
@@ -2100,9 +2175,9 @@ void ogs_pfcp_pool_final(ogs_pfcp_sess_t *sess)
 {
     ogs_assert(sess);
 
-    ogs_pool_final(&sess->pdr_id_pool);
-    ogs_pool_final(&sess->far_id_pool);
-    ogs_pool_final(&sess->urr_id_pool);
-    ogs_pool_final(&sess->qer_id_pool);
-    ogs_pool_final(&sess->bar_id_pool);
+    ogs_pool_destroy(&sess->pdr_id_pool);
+    ogs_pool_destroy(&sess->far_id_pool);
+    ogs_pool_destroy(&sess->urr_id_pool);
+    ogs_pool_destroy(&sess->qer_id_pool);
+    ogs_pool_destroy(&sess->bar_id_pool);
 }

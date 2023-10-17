@@ -357,7 +357,13 @@ mme:
       addr: "127.0.0.1"
       port: 6379
       expire_time_sec: 3
+    dns:
+      dns_target_sgw: True
+      dns_target_pgw: True
+      base_domain: '3gppnetwork.org'
 
+    daylight_saving_time_adjustment: 0 # Can be either 0, 1, or 2. 0 is default
+    include_local_time_zone: False # Can be either True or False. False is default
 #
 # <GTP-C Client>
 #
@@ -463,11 +469,76 @@ sgwc:
 #      - addr: 127.0.0.4
 #      - addr: 127.0.0.5
 #        apn: volte
+#
+# o SMF selection by eNodeB TAC
+#   (either single TAC or multiple TACs, DECIMAL representation)
+#
+#   gtpc:
+#     - addr: 127.0.0.4
+#       tac: 26000
+#     - addr: 127.0.2.4
+#       tac: [25000, 27000, 28000]
+#
+# o SMF selection by e_cell_id(28bit)
+#   (either single or multiple e_cell_id, HEX representation)
+#
+#   gtpc:
+#     - addr: 127.0.0.4
+#       e_cell_id: abcde01
+#     - addr: 127.0.2.4
+#       e_cell_id: [12345, a9413, 98765]
 smf:
     gtpc:
       - addr:
         - 127.0.0.4
         - ::1
+
+#
+# <GTPv1C Client>
+#
+#  o Specify SGSN addresses the GTPv1C must connect to
+#
+#  o One SGSN is defined.
+#    If prefer_ipv4 is not true, [fd69:f21d:873c:fa::2] is selected.
+#  sgsn:
+#    - gtpc:
+#        addr:
+#          - 127.0.0.3
+#          - fd69:f21d:873c:fa::2
+#      routes:
+#      - rai:
+#          lai:
+#            plmn_id:
+#              mcc: 001
+#              mnc: 01
+#            lac: 43690
+#          rac: 187
+#        ci: 1223
+#
+#  o Two SGSNs are defined. Last one is used by default if no
+#    matching RAI+CI route is found.
+#  sgsn:
+#    - gtpc:
+#        addr:
+#          - 127.0.0.3
+#          - fd69:f21d:873c:fa::2
+#      routes:
+#      - rai:
+#          lai:
+#            plmn_id:
+#              mcc: 001
+#              mnc: 01
+#            lac: 43690
+#          rac: 187
+#        ci: 1223
+#    - name: sgsn3.open5gs.org
+#      default_route: true
+#
+sgsn:
+  - gtpc:
+      addr:
+        - 127.0.0.3
+    default_route: true
 
 #
 #  o Disable use of IPv4 addresses (only IPv6)
@@ -529,3 +600,5 @@ usrsctp:
 #    t3423:
 #      value: 720  # 12 minutes * 60 = 720 seconds
 time:
+  t3412:
+    value: 540     # 9 mintues * 60 = 540 seconds

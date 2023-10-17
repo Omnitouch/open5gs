@@ -98,6 +98,19 @@ static ogs_inline void *ogs_list_prev(void *lnode)
                     ogs_list_next(&node->member), typeof(*node), member), 1); \
             node = n)
 
+static ogs_inline void *ogs_list_at(const ogs_list_t *list, int idx)
+{
+    ogs_list_t *node;
+    int i = 0;
+    ogs_list_for_each(list, node) {
+        if (i == idx) {
+            return node;
+        }
+        ++i;
+    }
+    return NULL;
+}
+
 static ogs_inline void ogs_list_prepend(ogs_list_t *list, void *lnode)
 {
     ogs_list_t *node = lnode;

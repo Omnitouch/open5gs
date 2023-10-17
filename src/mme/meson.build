@@ -21,38 +21,41 @@ libmme_sources = files('''
     mme-context.h
     s1ap-build.h
     s1ap-handler.h
-    s1ap-path.h 
+    s1ap-path.h
     sgsap-build.h
     sgsap-handler.h
     sgsap-conv.h
-    sgsap-path.h 
+    sgsap-path.h
     mme-fd-path.h
-    mme-s6a-handler.h 
-    mme-s13-handler.h 
+    mme-s6a-handler.h
+    mme-s13-handler.h
     nas-security.h
-    nas-path.h 
+    nas-path.h
     emm-handler.h
-    emm-build.h 
+    emm-build.h
     esm-handler.h
-    esm-build.h 
+    esm-build.h
+    mme-gn-build.h
+    mme-gn-handler.h
     mme-gtp-path.h
     mme-s11-build.h
-    mme-s11-handler.h 
+    mme-s11-handler.h
     sbc-message.h
     sbc-handler.h
     mme-sm.h
     mme-path.h
-    metrics.h 
+    metrics.h
+    mme-redis.h
 
     mme-init.c
     mme-event.c
     mme-timer.c
-    mme-context.c 
+    mme-context.c
     s1ap-sm.c
     s1ap-build.c
     s1ap-handler.c
     s1ap-sctp.c
-    s1ap-path.c 
+    s1ap-path.c
     sgsap-sm.c
     sgsap-build.c
     sgsap-handler.c
@@ -60,8 +63,8 @@ libmme_sources = files('''
     sgsap-sctp.c
     sgsap-path.c
     mme-fd-path.c
-    mme-s6a-handler.c 
-    mme-s13-handler.c 
+    mme-s6a-handler.c
+    mme-s13-handler.c
     nas-security.c
     nas-path.c
     emm-sm.c
@@ -70,17 +73,17 @@ libmme_sources = files('''
     esm-sm.c
     esm-handler.c
     esm-build.c
+    mme-gn-build.c
+    mme-gn-handler.c
     mme-gtp-path.c
     mme-s11-build.c
     mme-s11-handler.c
     mme-sm.c
-    mme-path.c 
-    sbc-handler.c 
+    mme-path.c
+    sbc-handler.c
     metrics.c
+    mme-redis.c
 '''.split())
-
-libhiredis_dep = cc.find_library('hiredis', dirs: '/usr/include/hiredis', required: true)
-libhiredis_inc = include_directories('/usr/include/hiredis')
 
 libmme = static_library('mme',
     sources : libmme_sources,
@@ -90,8 +93,9 @@ libmme = static_library('mme',
                     libnas_eps_dep,
                     libdiameter_s6a_dep,
                     libdiameter_s13_dep,
-                    libgtp_dep],
-    include_directories : libhiredis_inc,
+                    libgtp_dep,
+                    libdnsresolvers_dep,
+                    libredis_dep],
     install : false)
 
 libmme_dep = declare_dependency(
@@ -103,7 +107,8 @@ libmme_dep = declare_dependency(
                     libdiameter_s6a_dep,
                     libdiameter_s13_dep,
                     libgtp_dep,
-                    libhiredis_dep])
+                    libdnsresolvers_dep,
+                    libredis_dep])
 
 mme_sources = files('''
     app-init.c

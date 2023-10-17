@@ -32,6 +32,9 @@ ogs_pkbuf_t *sgwc_s11_build_create_session_response(
 ogs_pkbuf_t *sgwc_s11_build_downlink_data_notification(
         uint8_t cause_value, sgwc_bearer_t *bearer);
 
+ogs_pkbuf_t *sgwc_s11_build_delete_bearer_request(
+        uint8_t type, sgwc_bearer_t *bearer, uint8_t pti, uint8_t cause_value);
+
 #ifdef __cplusplus
 }
 #endif

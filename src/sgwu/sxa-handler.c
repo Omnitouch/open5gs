@@ -17,9 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "context.h"
 #include "pfcp-path.h"
 #include "gtp-path.h"
 #include "sxa-handler.h"
+
+static void sgwu_sxa_handle_create_urr(sgwu_sess_t *sess, ogs_pfcp_tlv_create_urr_t *create_urr_arr,
+                              uint8_t *cause_value, uint8_t *offending_ie_value)
+{
+    int i;
+    ogs_pfcp_urr_t *urr;
+
+    *cause_value = OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
+
+    for (i = 0; i < OGS_MAX_NUM_OF_URR; i++) {
+        urr = ogs_pfcp_handle_create_urr(&sess->pfcp, &create_urr_arr[i],
+                    cause_value, offending_ie_value);
+        if (!urr)
+            return;
+        
+        /* TODO: enable counters somewhere else if ISTM not set, upon first pkt received */
+        if (urr->meas_info.istm) {
+            sgwu_sess_urr_acc_timers_setup(sess, urr);
+        }
+    }
+}
 
 void sgwu_sxa_handle_session_establishment_request(
         sgwu_sess_t *sess, ogs_pfcp_xact_t *xact, 
@@ -76,6 +98,10 @@ void sgwu_sxa_handle_session_establishment_request(
     if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED)
         goto cleanup;
 
+    sgwu_sxa_handle_create_urr(sess, &req->create_urr[0], &cause_value, &offending_ie_value);
+    if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED)
+        goto cleanup;
+
     for (i = 0; i < OGS_MAX_NUM_OF_QER; i++) {
         if (ogs_pfcp_handle_create_qer(&sess->pfcp, &req->create_qer[i],
                     &cause_value, &offending_ie_value) == NULL)
@@ -103,7 +129,11 @@ void sgwu_sxa_handle_session_establishment_request(
 
     /* Setup GTP Node */
     ogs_list_for_each(&sess->pfcp.far_list, far) {
-        ogs_assert(OGS_ERROR != ogs_pfcp_setup_far_gtpu_node(far));
+        if (OGS_ERROR == ogs_pfcp_setup_far_gtpu_node(far)) {
+            ogs_fatal("CHECK CONFIGURATION: sgwu.gtpu");
+            ogs_fatal("ogs_pfcp_setup_far_gtpu_node() failed");
+            goto cleanup;
+        }
         if (far->gnode)
             ogs_pfcp_far_f_teid_hash_set(far);
     }
@@ -268,7 +298,11 @@ void sgwu_sxa_handle_session_modification_request(
 
     /* Setup GTP Node */
     ogs_list_for_each(&sess->pfcp.far_list, far) {
-        ogs_assert(OGS_ERROR != ogs_pfcp_setup_far_gtpu_node(far));
+        if (OGS_ERROR == ogs_pfcp_setup_far_gtpu_node(far)) {
+            ogs_fatal("CHECK CONFIGURATION: sgwu.gtpu");
+            ogs_fatal("ogs_pfcp_setup_far_gtpu_node() failed");
+            goto cleanup;
+        }
         if (far->gnode)
             ogs_pfcp_far_f_teid_hash_set(far);
     }

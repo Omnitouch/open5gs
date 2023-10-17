@@ -58,9 +58,24 @@ typedef enum {
     SMF_CTF_ENABLED_NO,
 } smf_ctf_enabled_mode_e;
 
+enum { MAX_ONLINE_CHARGING_APNS = 8,
+       MAX_ONLINE_CHARGING_APNS_STR = 32 };
+
 typedef struct smf_ctf_config_s {
     smf_ctf_enabled_mode_e enabled;
+    char online_charging_apns[MAX_ONLINE_CHARGING_APNS][MAX_ONLINE_CHARGING_APNS_STR];
+    size_t num_online_charging_apns;
 } smf_ctf_config_t;
+
+typedef struct {
+    char address[16];
+    unsigned port;
+} redis_server_config_t;
+
+typedef struct {
+    bool enabled;
+    unsigned ip_hold_time_sec;
+} redis_ip_reuse_t;
 
 int smf_ctf_config_init(smf_ctf_config_t *ctf_config);
 
@@ -103,6 +118,13 @@ typedef struct smf_context_s {
 #define SMF_UE_IS_LAST_SESSION(__sMF) \
      ((__sMF) && (ogs_list_count(&(__sMF)->sess_list)) == 1)
     ogs_list_t      smf_ue_list;
+
+    /* Redis configs */
+    redis_server_config_t redis_server_config;
+    redis_ip_reuse_t redis_ip_reuse;
+
+    /* Bearer deactivation timer value in seconds */
+    int bearer_deactivation_timer_sec;
 } smf_context_t;
 
 typedef struct smf_gtp_node_s {
@@ -138,8 +160,10 @@ typedef struct smf_ue_s {
     do { \
         smf_ue_t *smf_ue = NULL; \
         ogs_assert(__sESS); \
-        smf_ue = __sESS->smf_ue; \
+        smf_ue = (__sESS)->smf_ue; \
         ogs_assert(smf_ue); \
+        smf_metrics_inst_by_slice_add(&(__sESS)->plmn_id, \
+                &(__sESS)->s_nssai, SMF_METR_GAUGE_SM_SESSIONNBR, -1); \
         if (SMF_UE_IS_LAST_SESSION(smf_ue)) \
             smf_ue_remove(smf_ue); \
         else \
@@ -207,6 +231,9 @@ typedef struct smf_bearer_s {
 
     uint8_t num_of_pf_to_delete;
     uint8_t pf_to_delete[OGS_MAX_NUM_OF_FLOW_IN_NAS];
+
+    /* Used to deactivate unused bearers */
+    ogs_timer_t* timer_bearer_deactivation;
 
     smf_sess_t      *sess;
 } smf_bearer_t;
@@ -365,7 +392,6 @@ typedef struct smf_sess_s {
 
     /* Paging */
     struct {
-        bool ue_requested_pdu_session_establishment_done;
         char *n1n2message_location;
     } paging;
 
@@ -378,6 +404,11 @@ typedef struct smf_sess_s {
     struct {
         int pdu_session_resource_release;
     } ngap_state;
+
+#define SMF_UECM_STATE_NONE                                     0
+#define SMF_UECM_STATE_REGISTERED                               1
+#define SMF_UECM_STATE_DEREGISTERED_BY_AMF                      2
+#define SMF_UECM_STATE_DEREGISTERED_BY_N1_N2_RELEASE            3
 
     /* Handover */
     struct {
@@ -527,7 +558,7 @@ int smf_maximum_integrity_protected_data_rate_uplink_value2enum(
         const char *value);
 int smf_maximum_integrity_protected_data_rate_downlink_value2enum(
         const char *value);
-int get_sess_load(void);
+int smf_instance_get_load(void);
 
 #ifdef __cplusplus
 }

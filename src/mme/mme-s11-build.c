@@ -20,6 +20,8 @@
 #include "mme-context.h"
 
 #include "mme-s11-build.h"
+#include "dns_resolvers.h"
+#include "mme-redis.h"
 
 ogs_pkbuf_t *mme_s11_build_create_session_request(
         uint8_t type, mme_sess_t *sess, int create_action)
@@ -145,13 +147,17 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         ogs_sockaddr_t *pgw_addr = NULL;
         ogs_sockaddr_t *pgw_addr6 = NULL;
 
-        pgw_addr = mme_pgw_addr_find_by_apn(
-                &mme_self()->pgw_list, AF_INET, session->name);
-        pgw_addr6 = mme_pgw_addr_find_by_apn(
-                &mme_self()->pgw_list, AF_INET6, session->name);
+        /* If UE already has a designated PGW use that */
+        pgw_addr = mme_ue->pgw_addr;
+        pgw_addr6 = mme_ue->pgw_addr6;
+
         if (!pgw_addr && !pgw_addr6) {
-            pgw_addr = mme_self()->pgw_addr;
-            pgw_addr6 = mme_self()->pgw_addr6;
+            pgw_addr = mme_pgw_addr_find_by_apn_enb(
+                    &mme_self()->pgw_list, AF_INET, sess);
+            pgw_addr6 = mme_pgw_addr_find_by_apn_enb(
+                    &mme_self()->pgw_list, AF_INET6, sess);
+
+            ogs_assert(pgw_addr || pgw_addr6);
         }
 
         rv = ogs_gtp2_sockaddr_to_f_teid(
@@ -160,6 +166,71 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         req->pgw_s5_s8_address_for_control_plane_or_pmip.presence = 1;
         req->pgw_s5_s8_address_for_control_plane_or_pmip.data = &pgw_s5c_teid;
         req->pgw_s5_s8_address_for_control_plane_or_pmip.len = len;
+    }
+
+    if (mme_self()->dns_target_pgw) {
+        enum { MAX_MCC_MNC_STR = 4 };
+        bool resolved_dns = false;
+        char ipv4[INET_ADDRSTRLEN] = "";
+        ResolverContext context = {};
+        char mme_mcc[MAX_MCC_MNC_STR] = "";
+        char mme_mnc[MAX_MCC_MNC_STR] = "";
+        char imsi_mcc[MAX_MCC_MNC_STR] = "000";
+        char imsi_mnc_2[MAX_MCC_MNC_STR] = "000";
+        char imsi_mnc_3[MAX_MCC_MNC_STR] = "000";
+        
+        /* Load MCC and MNC from config and format them */
+        snprintf(mme_mcc, MAX_MCC_MNC_STR, "%03u", ogs_plmn_id_mcc(&mme_ue->tai.plmn_id));
+        snprintf(mme_mnc, MAX_MCC_MNC_STR, "%03u", ogs_plmn_id_mnc(&mme_ue->tai.plmn_id));
+        strncpy(context.apn, sess->session->name, DNS_RESOLVERS_MAX_APN_STR);
+        strncpy(context.target, "pgw", DNS_RESOLVERS_MAX_TARGET_STR);
+        strncpy(context.protocol, "gtp", DNS_RESOLVERS_MAX_PROTOCOL_STR);
+        /* Load our domain suffix from the config */
+        strncpy(context.domain_suffix, mme_self()->dns_base_domain, DNS_RESOLVERS_MAX_DOMAIN_SUFFIX_STR);
+
+        memcpy(imsi_mcc, &mme_ue->imsi_bcd[0], 3);
+        memcpy(&imsi_mnc_2[1], &mme_ue->imsi_bcd[3], 2);
+        memcpy(imsi_mnc_3, &mme_ue->imsi_bcd[3], 3);
+
+        strncpy(context.mcc, imsi_mcc, DNS_RESOLVERS_MAX_MCC_STR);
+
+        /* Are we resolving the home address in the config? */
+        if ((0 == strcmp(imsi_mcc, mme_mcc) &&
+            (0 == strncmp(imsi_mnc_3, mme_mnc, strlen(mme_mnc))))) {
+            /* Might be home, check home */
+            strncpy(context.interface, "s5", DNS_RESOLVERS_MAX_INTERFACE_STR);
+            strncpy(context.mnc, mme_mnc, DNS_RESOLVERS_MAX_MNC_STR);
+            
+            ogs_debug("Attempting NAPTR resolv for home [MCC:%s] [MNC:%s]\n", context.mcc, context.mnc);
+            resolved_dns = resolve_naptr(&context, ipv4, INET_ADDRSTRLEN);
+        }
+        else {
+            /* This is roaming, check roaming with a 3 digit MNC */
+            strncpy(context.interface, "s8", DNS_RESOLVERS_MAX_INTERFACE_STR);
+            strcpy(context.mnc, imsi_mnc_3);
+
+            ogs_debug("Attempting NAPTR resolv for roming [MCC:%s] [MNC:%s]\n", context.mcc, context.mnc);
+            if (true == resolve_naptr(&context, ipv4, INET_ADDRSTRLEN)) {
+                /* We resolved for roming */
+                resolved_dns = true;
+            } else {
+                /* We failed to resolve with assumption of a 3 digit MNC,
+                * try the 2 digit MNC */
+                strcpy(context.mnc, imsi_mnc_2);
+
+                ogs_debug("Attempting NAPTR resolv for roming [MCC:%s] [MNC:%s]\n", context.mcc, context.mnc);
+                resolved_dns = resolve_naptr(&context, ipv4, INET_ADDRSTRLEN);
+            }
+        }
+
+        if (resolved_dns) {
+            ogs_info("Successfully clobbered the PGW IP in CSR with '%s'", ipv4);
+            uint32_t addr = 0;
+            ogs_ipv4_from_string(&addr, ipv4);
+            pgw_s5c_teid.addr = addr;
+        } else {
+            ogs_info("Failed to resolve dns and update PGW IP in CSR");
+        }
     }
 
     req->access_point_name.presence = 1;

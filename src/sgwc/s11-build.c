@@ -186,3 +186,74 @@ ogs_pkbuf_t *sgwc_s11_build_downlink_data_notification(
     message.h.type = OGS_GTP2_DOWNLINK_DATA_NOTIFICATION_TYPE;
     return ogs_gtp2_build_msg(&message);
 }
+
+ogs_pkbuf_t *sgwc_s11_build_delete_bearer_request(
+        uint8_t type, sgwc_bearer_t *bearer, uint8_t pti, uint8_t cause_value)
+{
+    sgwc_sess_t *sess = NULL;
+    sgwc_bearer_t *linked_bearer = NULL;
+
+    ogs_gtp2_message_t gtp_message;
+    ogs_gtp2_delete_bearer_request_t *req = NULL;
+
+    ogs_gtp2_cause_t cause;
+
+    ogs_assert(bearer);
+    sess = bearer->sess;
+    ogs_assert(sess);
+    linked_bearer = sgwc_default_bearer_in_sess(sess);
+    ogs_assert(linked_bearer);
+
+    ogs_debug("[SGWC] Delete Bearer Request");
+    ogs_debug("    SGW_S5C_TEID[0x%x] PGW_S5C_TEID[0x%x]",
+        sess->sgw_s5c_teid, sess->pgw_s5c_teid);
+    req = &gtp_message.delete_bearer_request;
+    memset(&gtp_message, 0, sizeof(ogs_gtp2_message_t));
+
+    if (bearer->ebi == linked_bearer->ebi) {
+       /*
+        * << Linked EPS Bearer ID >>
+        *
+        * 1. SGWC sends Delete Bearer Request(DEFAULT BEARER) to SGW/MME.
+        * 2. MME sends Delete Bearer Response to SGW/SGWC.
+        *
+        * OR
+        *
+        * 1. SGWC sends Delete Bearer Request(DEFAULT BEARER) to ePDG.
+        * 2. ePDG sends Delete Bearer Response(DEFAULT BEARER) to SGWC.
+        */
+        req->linked_eps_bearer_id.presence = 1;
+        req->linked_eps_bearer_id.u8 = bearer->ebi;
+    } else {
+       /*
+        * << EPS Bearer IDs >>
+        *
+        * 1. MME sends Bearer Resource Command to SGW/SGWC.
+        * 2. SGWC sends Delete Bearer Request(DEDICATED BEARER) to SGW/MME.
+        * 3. MME sends Delete Bearer Response(DEDICATED BEARER) to SGW/SGWC.
+        *
+        * OR
+        *
+        * 1. SGWC sends Delete Bearer Request(DEDICATED BEARER) to SGW/MME.
+        * 2. MME sends Delete Bearer Response(DEDICATED BEARER) to SGW/SGWC.
+        */
+        req->eps_bearer_ids.presence = 1;
+        req->eps_bearer_ids.u8 = bearer->ebi;
+    }
+
+    if (pti) {
+        req->procedure_transaction_id.presence = 1;
+        req->procedure_transaction_id.u8 = pti;
+    }
+
+    if (cause_value != OGS_GTP2_CAUSE_UNDEFINED_VALUE) {
+        memset(&cause, 0, sizeof(cause));
+        cause.value = cause_value;
+        req->cause.presence = 1;
+        req->cause.len = sizeof(cause);
+        req->cause.data = &cause;
+    }
+
+    gtp_message.h.type = type;
+    return ogs_gtp2_build_msg(&gtp_message);
+}

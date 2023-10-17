@@ -152,8 +152,9 @@ int amf_nsmf_pdusession_handle_create_sm_context(
                  * NOTE : The pkbuf created in the SBI message will be removed
                  *        from ogs_sbi_message_free(), so it must be copied.
                  */
-                ogs_warn("[%d:%d] PDU session establishment reject",
+                ogs_error("[%d:%d] PDU session establishment reject",
                         sess->psi, sess->pti);
+
                 n1smbuf = ogs_pkbuf_copy(n1smbuf);
                 ogs_assert(n1smbuf);
                 r = nas_5gs_send_gsm_reject(sess,
@@ -239,23 +240,29 @@ int amf_nsmf_pdusession_handle_update_sm_context(
                             AMF_RELEASE_SM_CONTEXT_REGISTRATION_ACCEPT) &&
                         AMF_SESSION_SYNC_DONE(amf_ue,
                             AMF_UPDATE_SM_CONTEXT_REGISTRATION_REQUEST)) {
+                        ran_ue_t *ran_ue = ran_ue_cycle(amf_ue->ran_ue);
 
-                        if (!PCF_AM_POLICY_ASSOCIATED(amf_ue)) {
-                            r = amf_ue_sbi_discover_and_send(
-                                    OGS_SBI_SERVICE_TYPE_NPCF_AM_POLICY_CONTROL,
-                                    NULL,
-                                    amf_npcf_am_policy_control_build_create,
-                                    amf_ue, 0, NULL);
-                            ogs_expect(r == OGS_OK);
-                            ogs_assert(r != OGS_ERROR);
+                        if (ran_ue) {
+                            if (!PCF_AM_POLICY_ASSOCIATED(amf_ue)) {
+                                r = amf_ue_sbi_discover_and_send(
+                                        OGS_SBI_SERVICE_TYPE_NPCF_AM_POLICY_CONTROL,
+                                        NULL,
+                                        amf_npcf_am_policy_control_build_create,
+                                        amf_ue, 0, NULL);
+                                ogs_expect(r == OGS_OK);
+                                ogs_assert(r != OGS_ERROR);
+                            } else {
+                                CLEAR_AMF_UE_TIMER(amf_ue->t3550);
+                                r = nas_5gs_send_registration_accept(amf_ue);
+                                ogs_expect(r == OGS_OK);
+                                ogs_assert(r != OGS_ERROR);
+
+                                AMF_UE_CLEAR_N2_TRANSFER(amf_ue,
+                                        pdu_session_resource_setup_request);
+                            }
                         } else {
-                            CLEAR_AMF_UE_TIMER(amf_ue->t3550);
-                            r = nas_5gs_send_registration_accept(amf_ue);
-                            ogs_expect(r == OGS_OK);
-                            ogs_assert(r != OGS_ERROR);
-
-                            AMF_UE_CLEAR_N2_TRANSFER(
-                                    amf_ue, pdu_session_resource_setup_request);
+                            ogs_warn("[%s] RAN-NG Context has already "
+                                    "been removed", amf_ue->supi);
                         }
                     }
                 } else if (state == AMF_UPDATE_SM_CONTEXT_SERVICE_REQUEST) {
@@ -584,6 +591,7 @@ int amf_nsmf_pdusession_handle_update_sm_context(
 
             } else if (state ==
                     AMF_UPDATE_SM_CONTEXT_DUPLICATED_PDU_SESSION_ID) {
+                ran_ue_t *ran_ue = ran_ue_cycle(amf_ue->ran_ue);
                 /*
                  * 1. PDU session establishment request
                  *    (Duplicated PDU Session ID)
@@ -594,12 +602,17 @@ int amf_nsmf_pdusession_handle_update_sm_context(
                 ogs_warn("[%s:%d] Receive Update SM context"
                         "(DUPLICATED_PDU_SESSION_ID)", amf_ue->supi, sess->psi);
 
-                r = amf_sess_sbi_discover_and_send(
-                        OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
-                        amf_nsmf_pdusession_build_create_sm_context,
-                        sess, AMF_CREATE_SM_CONTEXT_NO_STATE, NULL);
-                ogs_expect(r == OGS_OK);
-                ogs_assert(r != OGS_ERROR);
+                if (ran_ue) {
+                    r = amf_sess_sbi_discover_and_send(
+                            OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                            amf_nsmf_pdusession_build_create_sm_context,
+                            sess, AMF_CREATE_SM_CONTEXT_NO_STATE, NULL);
+                    ogs_expect(r == OGS_OK);
+                    ogs_assert(r != OGS_ERROR);
+                } else {
+                    ogs_warn("[%s] RAN-NG Context has already been removed",
+                            amf_ue->supi);
+                }
 
             } else if (state == AMF_UPDATE_SM_CONTEXT_PATH_SWITCH_REQUEST) {
 
@@ -651,6 +664,37 @@ int amf_nsmf_pdusession_handle_update_sm_context(
                         ogs_warn("[%s] RAN-NG Context has already been removed",
                                 amf_ue->supi);
                     }
+
+        /*
+         * When AMF release the NAS signalling connection,
+         * ran_ue context is removed by ran_ue_remove() and
+         * amf_ue/ran_ue is de-associated by amf_ue_deassociate().
+         *
+         * In this case, implicit deregistration is attempted
+         * by the mobile reachable timer according to the standard document,
+         * and amf_ue will be removed by amf_ue_remove().
+         *
+         * TS 24.501
+         * 5.3.7 Handling of the periodic registration update timer and
+         *
+         * Start AMF_TIMER_MOBILE_REACHABLE
+         * mobile reachable timer
+         * The network supervises the periodic registration update procedure
+         * of the UE by means of the mobile reachable timer.
+         * If the UE is not registered for emergency services,
+         * the mobile reachable timer shall be longer than the value of timer
+         * T3512. In this case, by default, the mobile reachable timer is
+         * 4 minutes greater than the value of timer T3512.
+         * The mobile reachable timer shall be reset and started with the
+         * value as indicated above, when the AMF releases the NAS signalling
+         * connection for the UE.
+         *
+         * TODO: If the UE is registered for emergency services, the AMF shall
+         * set the mobile reachable timer with a value equal to timer T3512.
+         */
+                    ogs_timer_start(amf_ue->mobile_reachable.timer,
+                            ogs_time_from_sec(
+                                amf_self()->time.t3512.value + 240));
                 }
 
             } else if (state == AMF_REMOVE_S1_CONTEXT_BY_RESET_ALL) {
@@ -676,6 +720,37 @@ int amf_nsmf_pdusession_handle_update_sm_context(
                         ogs_warn("[%s] RAN-NG Context has already been removed",
                                 amf_ue->supi);
                     }
+
+        /*
+         * When AMF release the NAS signalling connection,
+         * ran_ue context is removed by ran_ue_remove() and
+         * amf_ue/ran_ue is de-associated by amf_ue_deassociate().
+         *
+         * In this case, implicit deregistration is attempted
+         * by the mobile reachable timer according to the standard document,
+         * and amf_ue will be removed by amf_ue_remove().
+         *
+         * TS 24.501
+         * 5.3.7 Handling of the periodic registration update timer and
+         *
+         * Start AMF_TIMER_MOBILE_REACHABLE
+         * mobile reachable timer
+         * The network supervises the periodic registration update procedure
+         * of the UE by means of the mobile reachable timer.
+         * If the UE is not registered for emergency services,
+         * the mobile reachable timer shall be longer than the value of timer
+         * T3512. In this case, by default, the mobile reachable timer is
+         * 4 minutes greater than the value of timer T3512.
+         * The mobile reachable timer shall be reset and started with the
+         * value as indicated above, when the AMF releases the NAS signalling
+         * connection for the UE.
+         *
+         * TODO: If the UE is registered for emergency services, the AMF shall
+         * set the mobile reachable timer with a value equal to timer T3512.
+         */
+                    ogs_timer_start(amf_ue->mobile_reachable.timer,
+                            ogs_time_from_sec(
+                                amf_self()->time.t3512.value + 240));
                 }
 
             } else if (state == AMF_REMOVE_S1_CONTEXT_BY_RESET_PARTIAL) {
@@ -717,6 +792,36 @@ int amf_nsmf_pdusession_handle_update_sm_context(
                         ogs_warn("[%s] RAN-NG Context has already been removed",
                                 amf_ue->supi);
                     }
+        /*
+         * When AMF release the NAS signalling connection,
+         * ran_ue context is removed by ran_ue_remove() and
+         * amf_ue/ran_ue is de-associated by amf_ue_deassociate().
+         *
+         * In this case, implicit deregistration is attempted
+         * by the mobile reachable timer according to the standard document,
+         * and amf_ue will be removed by amf_ue_remove().
+         *
+         * TS 24.501
+         * 5.3.7 Handling of the periodic registration update timer and
+         *
+         * Start AMF_TIMER_MOBILE_REACHABLE
+         * mobile reachable timer
+         * The network supervises the periodic registration update procedure
+         * of the UE by means of the mobile reachable timer.
+         * If the UE is not registered for emergency services,
+         * the mobile reachable timer shall be longer than the value of timer
+         * T3512. In this case, by default, the mobile reachable timer is
+         * 4 minutes greater than the value of timer T3512.
+         * The mobile reachable timer shall be reset and started with the
+         * value as indicated above, when the AMF releases the NAS signalling
+         * connection for the UE.
+         *
+         * TODO: If the UE is registered for emergency services, the AMF shall
+         * set the mobile reachable timer with a value equal to timer T3512.
+         */
+                    ogs_timer_start(amf_ue->mobile_reachable.timer,
+                            ogs_time_from_sec(
+                                amf_self()->time.t3512.value + 240));
                 }
             } else {
                 ogs_error("Invalid STATE[%d]", state);
@@ -744,6 +849,7 @@ int amf_nsmf_pdusession_handle_update_sm_context(
         }
     } else {
         OpenAPI_sm_context_update_error_t *SmContextUpdateError = NULL;
+        OpenAPI_ext_problem_details_t *ProblemDetails = NULL;
         OpenAPI_ref_to_binary_data_t *n1SmMsg = NULL;
         ogs_pkbuf_t *n1smbuf = NULL;
 
@@ -766,8 +872,10 @@ int amf_nsmf_pdusession_handle_update_sm_context(
 
             return OGS_ERROR;
         }
-        if (!SmContextUpdateError->error) {
-            ogs_error("[%d:%d] No Error [%d]",
+
+        ProblemDetails = SmContextUpdateError->error;
+        if (!ProblemDetails) {
+            ogs_error("[%d:%d] No ProblemDetails [%d]",
                     sess->psi, sess->pti, recvmsg->res_status);
             r = ngap_send_error_indication2(amf_ue,
                     NGAP_Cause_PR_protocol, NGAP_CauseProtocol_semantic_error);
@@ -775,6 +883,46 @@ int amf_nsmf_pdusession_handle_update_sm_context(
             ogs_assert(r != OGS_ERROR);
 
             return OGS_ERROR;
+        }
+
+        if (state == AMF_UPDATE_SM_CONTEXT_SERVICE_REQUEST) {
+            /*
+             * In a situation where the UPF is changed through High Availability
+             * it is implemented to send the Service-Accept to the UE
+             * even if reactivation for user-resource fails.
+             *
+             * This is because it cannot be predicted whether a UE will
+             * retransmit or leave it as it is, depending on the manufacturer,
+             * in case of including reactivation error IE
+             * such as Insufficient Resource.
+             *
+             * TS24.501
+             * 5.6 5GMM connection management procedures
+             * 5.6.1 Service request procedure
+             * 5.6.1.4 Service request procedure accepted by the network
+             * 5.6.1.4.1 UE is not using 5GS services
+             *           with control plane CIoT 5GS optimization
+             *
+             * NOTE 1: It is up to UE implementation when to re-send a request
+             * for user-plane re-establishment for the associated PDU session
+             * after receiving a PDU session reactivation result error cause IE
+             * with a 5GMM cause set to #92 "insufficient user-plane resources
+             * for the PDU session".
+             */
+            ogs_error("Service-Request: ACTIVATING FAILED [%d:%s:%s]",
+                    recvmsg->res_status,
+                    OpenAPI_up_cnx_state_ToString(
+                        SmContextUpdateError->up_cnx_state),
+                    ProblemDetails->cause ?  ProblemDetails->cause : "Unknown");
+
+            if (AMF_SESSION_SYNC_DONE(amf_ue,
+                        AMF_UPDATE_SM_CONTEXT_SERVICE_REQUEST)) {
+                r = nas_5gs_send_service_accept(amf_ue);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
+            }
+
+            return OGS_OK;
         }
 
         n1SmMsg = SmContextUpdateError->n1_sm_msg;
@@ -786,8 +934,8 @@ int amf_nsmf_pdusession_handle_update_sm_context(
                  * NOTE : The pkbuf created in the SBI message will be removed
                  *        from ogs_sbi_message_free(), so it must be copied.
                  */
-                ogs_error("[%d:%d] PDU session establishment reject",
-                        sess->psi, sess->pti);
+                ogs_error("[%d:%d] PDU session establishment reject [state:%d]",
+                        sess->psi, sess->pti, state);
 
                 n1smbuf = ogs_pkbuf_copy(n1smbuf);
                 ogs_assert(n1smbuf);
@@ -826,7 +974,8 @@ int amf_nsmf_pdusession_handle_update_sm_context(
         }
 #endif
 
-        ogs_error("[%d:%d] Error Indication", sess->psi, sess->pti);
+        ogs_error("[%d:%d] Error Indication [state:%d]",
+                sess->psi, sess->pti, state);
 
         r = ngap_send_error_indication2(amf_ue,
                 NGAP_Cause_PR_protocol, NGAP_CauseProtocol_semantic_error);
@@ -890,19 +1039,25 @@ int amf_nsmf_pdusession_handle_release_sm_context(amf_sess_t *sess, int state)
                 amf_ue, AMF_RELEASE_SM_CONTEXT_REGISTRATION_ACCEPT) &&
             AMF_SESSION_SYNC_DONE(
                 amf_ue, AMF_UPDATE_SM_CONTEXT_REGISTRATION_REQUEST)) {
+            ran_ue_t *ran_ue = ran_ue_cycle(amf_ue->ran_ue);
 
-            if (!PCF_AM_POLICY_ASSOCIATED(amf_ue)) {
-                r = amf_ue_sbi_discover_and_send(
-                        OGS_SBI_SERVICE_TYPE_NPCF_AM_POLICY_CONTROL, NULL,
-                        amf_npcf_am_policy_control_build_create,
-                        amf_ue, 0, NULL);
-                ogs_expect(r == OGS_OK);
-                ogs_assert(r != OGS_ERROR);
+            if (ran_ue) {
+                if (!PCF_AM_POLICY_ASSOCIATED(amf_ue)) {
+                    r = amf_ue_sbi_discover_and_send(
+                            OGS_SBI_SERVICE_TYPE_NPCF_AM_POLICY_CONTROL, NULL,
+                            amf_npcf_am_policy_control_build_create,
+                            amf_ue, 0, NULL);
+                    ogs_expect(r == OGS_OK);
+                    ogs_assert(r != OGS_ERROR);
+                } else {
+                    CLEAR_AMF_UE_TIMER(amf_ue->t3550);
+                    r = nas_5gs_send_registration_accept(amf_ue);
+                    ogs_expect(r == OGS_OK);
+                    ogs_assert(r != OGS_ERROR);
+                }
             } else {
-                CLEAR_AMF_UE_TIMER(amf_ue->t3550);
-                r = nas_5gs_send_registration_accept(amf_ue);
-                ogs_expect(r == OGS_OK);
-                ogs_assert(r != OGS_ERROR);
+                ogs_warn("[%s] RAN-NG Context has already been removed",
+                        amf_ue->supi);
             }
         }
 

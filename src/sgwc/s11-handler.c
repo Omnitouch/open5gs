@@ -220,6 +220,38 @@ void sgwc_s11_handle_create_session_request(
         return;
     }
 
+    /* Set MSISDN */
+    if (req->msisdn.presence) {
+        sgwc_ue->msisdn_len = req->msisdn.len;
+        memcpy(sgwc_ue->msisdn, req->msisdn.data, sgwc_ue->msisdn_len);
+        ogs_buffer_to_bcd(sgwc_ue->msisdn, sgwc_ue->msisdn_len, sgwc_ue->msisdn_bcd);
+    }
+
+    /* Set IMEI(SV) */
+    if (req->me_identity.presence) {
+        sgwc_ue->imeisv_len = req->me_identity.len;
+        memcpy(sgwc_ue->imeisv, req->me_identity.data, sgwc_ue->imeisv_len);
+        ogs_buffer_to_bcd(sgwc_ue->imeisv, sgwc_ue->imeisv_len, sgwc_ue->imeisv_bcd);
+    }
+
+    /* Set UE Timezone */
+    if (req->ue_time_zone.presence) {
+        sgwc_ue->timezone_raw_len = req->ue_time_zone.len;
+        memcpy(sgwc_ue->timezone_raw, req->ue_time_zone.data, sgwc_ue->timezone_raw_len);
+    }
+
+    /* PDA Address Allocation (PAA) */
+    if (req->pdn_address_allocation.presence) {
+        sgwc_ue->ue_ip_raw_len = req->pdn_address_allocation.len;
+        memcpy(sgwc_ue->ue_ip_raw, req->pdn_address_allocation.data, sgwc_ue->ue_ip_raw_len);
+    }
+
+    /* PGW IP address */
+    if (req->pgw_s5_s8_address_for_control_plane_or_pmip.presence) {
+        sgwc_ue->pgw_ip_raw_len = req->pgw_s5_s8_address_for_control_plane_or_pmip.len;
+        memcpy(sgwc_ue->pgw_ip_raw, req->pgw_s5_s8_address_for_control_plane_or_pmip.data, sgwc_ue->pgw_ip_raw_len);
+    }
+
     /* Add Session */
     ogs_assert(0 < ogs_fqdn_parse(apn,
             req->access_point_name.data,
@@ -229,7 +261,11 @@ void sgwc_s11_handle_create_session_request(
     if (sess) {
         ogs_info("OLD Session Release [IMSI:%s,APN:%s]",
                 sgwc_ue->imsi_bcd, sess->session.name);
-        sgwc_sess_remove(sess);
+        
+        /* "All functionality performed by the SGW-U is controlled from the SGW-C"
+         * We need to also remove the session resources in the SGW-U */
+        ogs_expect(OGS_OK ==
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
     }
     sess = sgwc_sess_add(sgwc_ue, apn);
     ogs_assert(sess);
@@ -1006,9 +1042,8 @@ void sgwc_s11_handle_delete_bearer_response(
      ********************/
     ogs_assert(s11_xact);
     s5c_xact = s11_xact->assoc_xact;
-    ogs_assert(s5c_xact);
 
-    if (s11_xact->xid & OGS_GTP_CMD_XACT_ID)
+    if ((s11_xact->xid & OGS_GTP_CMD_XACT_ID) && (NULL != s5c_xact))
         /* MME received Bearer Resource Modification Request */
         bearer = s5c_xact->data;
     else
@@ -1024,7 +1059,15 @@ void sgwc_s11_handle_delete_bearer_response(
     /************************
      * Check SGWC-UE Context
      ************************/
-    cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
+
+    if (rsp->cause.presence) {
+        ogs_gtp2_cause_t *cause = rsp->cause.data;
+        ogs_assert(cause);
+
+        cause_value = cause->value;
+    } else {
+        cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
+    }
 
     if (rsp->linked_eps_bearer_id.presence) {
        /*
@@ -1039,10 +1082,6 @@ void sgwc_s11_handle_delete_bearer_response(
         * 2. ePDG sends Delete Bearer Response(DEFAULT BEARER) to SMF.
         */
         if (rsp->cause.presence) {
-            ogs_gtp2_cause_t *cause = rsp->cause.data;
-            ogs_assert(cause);
-
-            cause_value = cause->value;
             if (cause_value == OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
             } else {
                 ogs_error("GTP Cause [Value:%d]", cause_value);
@@ -1051,8 +1090,14 @@ void sgwc_s11_handle_delete_bearer_response(
             ogs_error("No Cause");
         }
 
+        /* Release entire session: */
         ogs_assert(OGS_OK ==
-            sgwc_pfcp_send_session_deletion_request(sess, s5c_xact, gtpbuf));
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
+    } else if ((1 == rsp->cause.presence) &&
+               (OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND == cause_value)) {
+        /* Release entire session: */
+        ogs_assert(OGS_OK ==
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
     } else {
        /*
         * << EPS Bearer IDs >>
@@ -1074,13 +1119,9 @@ void sgwc_s11_handle_delete_bearer_response(
         }
 
         if (rsp->cause.presence) {
-            ogs_gtp2_cause_t *cause = rsp->cause.data;
-            ogs_assert(cause);
-
-            cause_value = cause->value;
             if (cause_value == OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
                 if (rsp->bearer_contexts.cause.presence) {
-                    cause = rsp->bearer_contexts.cause.data;
+                    ogs_gtp2_cause_t *cause = rsp->bearer_contexts.cause.data;
                     ogs_assert(cause);
 
                     if (cause_value == OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
@@ -1102,7 +1143,7 @@ void sgwc_s11_handle_delete_bearer_response(
         ogs_debug("    SGW_S5C_TEID[0x%x] PGW_S5C_TEID[0x%x]",
             sess->sgw_s5c_teid, sess->pgw_s5c_teid);
 
-        ogs_assert(OGS_OK ==
+        ogs_expect(OGS_OK ==
             sgwc_pfcp_send_bearer_modification_request(
                 bearer, s5c_xact, gtpbuf, OGS_PFCP_MODIFY_REMOVE));
     }
@@ -1151,7 +1192,7 @@ void sgwc_s11_handle_release_access_bearers_request(
 
     ogs_list_for_each(&sgwc_ue->sess_list, sess) {
 
-        ogs_assert(OGS_OK ==
+        ogs_expect(OGS_OK ==
             sgwc_pfcp_send_session_modification_request(
                 sess, s11_xact, gtpbuf,
                 OGS_PFCP_MODIFY_DL_ONLY|OGS_PFCP_MODIFY_DEACTIVATE));

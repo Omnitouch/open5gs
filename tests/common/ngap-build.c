@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2023 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -37,7 +37,7 @@ static ogs_pkbuf_t *testngap_build_handover_request_ack_transfer(
 ogs_pkbuf_t *testngap_build_ng_setup_request(uint32_t gnb_id, uint8_t bitsize)
 {
     ogs_pkbuf_t *pkbuf = NULL;
-    int i, j;
+    int i, j, k, num = 0;
     ogs_plmn_id_t *plmn_id = NULL;
     const char *ran_node_name = "5G gNB-CU";
 
@@ -118,47 +118,57 @@ ogs_pkbuf_t *testngap_build_ng_setup_request(uint32_t gnb_id, uint8_t bitsize)
     ogs_asn_buffer_to_OCTET_STRING((char*)ran_node_name,
             strlen(ran_node_name), RANNodeName);
 
-    SupportedTAItem = CALLOC(1, sizeof(NGAP_SupportedTAItem_t));
     if (test_self()->nr_served_tai[0].list2.num)
-        ogs_asn_uint24_to_OCTET_STRING(
-            test_self()->nr_served_tai[0].list2.tai[0].tac,
-            &SupportedTAItem->tAC);
+        num = test_self()->nr_served_tai[0].list2.num;
     else if (test_self()->nr_served_tai[0].list0.tai[0].num)
-        ogs_asn_uint24_to_OCTET_STRING(
-            test_self()->nr_served_tai[0].list0.tai[0].tac[0],
-                &SupportedTAItem->tAC);
+        num = test_self()->nr_served_tai[0].list0.tai[0].num;
     else
         ogs_assert_if_reached();
 
-    for (i = 0; i < test_self()->num_of_plmn_support; i++) {
-        plmn_id = &test_self()->plmn_support[i].plmn_id;
+    for (i = 0; i < num; i++) {
+        SupportedTAItem = CALLOC(1, sizeof(NGAP_SupportedTAItem_t));
+        if (test_self()->nr_served_tai[0].list2.num)
+            ogs_asn_uint24_to_OCTET_STRING(
+                test_self()->nr_served_tai[0].list2.tai[i].tac,
+                &SupportedTAItem->tAC);
+        else if (test_self()->nr_served_tai[0].list0.tai[0].num)
+            ogs_asn_uint24_to_OCTET_STRING(
+                test_self()->nr_served_tai[0].list0.tai[0].tac[i],
+                    &SupportedTAItem->tAC);
+        else
+            ogs_assert_if_reached();
 
-        BroadcastPLMNItem = CALLOC(1, sizeof(NGAP_BroadcastPLMNItem_t));
+        for (j = 0; j < test_self()->num_of_plmn_support; j++) {
+            plmn_id = &test_self()->plmn_support[j].plmn_id;
 
-        ogs_asn_buffer_to_OCTET_STRING(
-                plmn_id, OGS_PLMN_ID_LEN, &BroadcastPLMNItem->pLMNIdentity);
+            BroadcastPLMNItem = CALLOC(1, sizeof(NGAP_BroadcastPLMNItem_t));
 
-        for (j = 0; j < test_self()->plmn_support[i].num_of_s_nssai; j++) {
-            ogs_s_nssai_t *s_nssai = &test_self()->plmn_support[i].s_nssai[j];
+            ogs_asn_buffer_to_OCTET_STRING(
+                    plmn_id, OGS_PLMN_ID_LEN, &BroadcastPLMNItem->pLMNIdentity);
 
-            SliceSupportItem = CALLOC(1, sizeof(NGAP_SliceSupportItem_t));
-            ogs_asn_uint8_to_OCTET_STRING(s_nssai->sst,
-                    &SliceSupportItem->s_NSSAI.sST);
-            if (s_nssai->sd.v != OGS_S_NSSAI_NO_SD_VALUE) {
-                SliceSupportItem->s_NSSAI.sD = CALLOC(1, sizeof(NGAP_SD_t));
-                ogs_asn_uint24_to_OCTET_STRING(
-                        s_nssai->sd, SliceSupportItem->s_NSSAI.sD);
+            for (k = 0; k < test_self()->plmn_support[j].num_of_s_nssai; k++) {
+                ogs_s_nssai_t *s_nssai =
+                    &test_self()->plmn_support[j].s_nssai[k];
+
+                SliceSupportItem = CALLOC(1, sizeof(NGAP_SliceSupportItem_t));
+                ogs_asn_uint8_to_OCTET_STRING(s_nssai->sst,
+                        &SliceSupportItem->s_NSSAI.sST);
+                if (s_nssai->sd.v != OGS_S_NSSAI_NO_SD_VALUE) {
+                    SliceSupportItem->s_NSSAI.sD = CALLOC(1, sizeof(NGAP_SD_t));
+                    ogs_asn_uint24_to_OCTET_STRING(
+                            s_nssai->sd, SliceSupportItem->s_NSSAI.sD);
+                }
+
+                ASN_SEQUENCE_ADD(&BroadcastPLMNItem->tAISliceSupportList.list,
+                                SliceSupportItem);
             }
 
-            ASN_SEQUENCE_ADD(&BroadcastPLMNItem->tAISliceSupportList.list,
-                            SliceSupportItem);
+            ASN_SEQUENCE_ADD(&SupportedTAItem->broadcastPLMNList.list,
+                    BroadcastPLMNItem);
         }
 
-        ASN_SEQUENCE_ADD(&SupportedTAItem->broadcastPLMNList.list,
-                BroadcastPLMNItem);
+        ASN_SEQUENCE_ADD(&SupportedTAList->list, SupportedTAItem);
     }
-
-    ASN_SEQUENCE_ADD(&SupportedTAList->list, SupportedTAItem);
 
     *PagingDRX = NGAP_PagingDRX_v32;
 
@@ -168,7 +178,7 @@ ogs_pkbuf_t *testngap_build_ng_setup_request(uint32_t gnb_id, uint8_t bitsize)
 ogs_pkbuf_t *testngap_build_ran_configuration_update(bool supported_ta_list)
 {
     ogs_pkbuf_t *pkbuf = NULL;
-    int i, j;
+    int i, j, k, num;
     ogs_plmn_id_t *plmn_id = NULL;
 
     NGAP_NGAP_PDU_t pdu;
@@ -210,48 +220,62 @@ ogs_pkbuf_t *testngap_build_ran_configuration_update(bool supported_ta_list)
 
         SupportedTAList = &ie->value.choice.SupportedTAList;
 
-        SupportedTAItem = CALLOC(1, sizeof(NGAP_SupportedTAItem_t));
         if (test_self()->nr_served_tai[0].list2.num)
-            ogs_asn_uint24_to_OCTET_STRING(
-                test_self()->nr_served_tai[0].list2.tai[0].tac,
-                &SupportedTAItem->tAC);
+            num = test_self()->nr_served_tai[0].list2.num;
         else if (test_self()->nr_served_tai[0].list0.tai[0].num)
-            ogs_asn_uint24_to_OCTET_STRING(
-                test_self()->nr_served_tai[0].list0.tai[0].tac[0],
-                    &SupportedTAItem->tAC);
+            num = test_self()->nr_served_tai[0].list0.tai[0].num;
         else
             ogs_assert_if_reached();
 
-        for (i = 0; i < test_self()->num_of_plmn_support; i++) {
-            plmn_id = &test_self()->plmn_support[i].plmn_id;
+        for (i = 0; i < num; i++) {
+            SupportedTAItem = CALLOC(1, sizeof(NGAP_SupportedTAItem_t));
+            if (test_self()->nr_served_tai[0].list2.num)
+                ogs_asn_uint24_to_OCTET_STRING(
+                    test_self()->nr_served_tai[0].list2.tai[i].tac,
+                    &SupportedTAItem->tAC);
+            else if (test_self()->nr_served_tai[0].list0.tai[0].num)
+                ogs_asn_uint24_to_OCTET_STRING(
+                    test_self()->nr_served_tai[0].list0.tai[0].tac[i],
+                        &SupportedTAItem->tAC);
+            else
+                ogs_assert_if_reached();
 
-            BroadcastPLMNItem = CALLOC(1, sizeof(NGAP_BroadcastPLMNItem_t));
+            for (j = 0; j < test_self()->num_of_plmn_support; j++) {
+                plmn_id = &test_self()->plmn_support[j].plmn_id;
 
-            ogs_asn_buffer_to_OCTET_STRING(
-                    plmn_id, OGS_PLMN_ID_LEN, &BroadcastPLMNItem->pLMNIdentity);
+                BroadcastPLMNItem = CALLOC(1, sizeof(NGAP_BroadcastPLMNItem_t));
 
-            for (j = 0; j < test_self()->plmn_support[i].num_of_s_nssai; j++) {
-                ogs_s_nssai_t *s_nssai =
-                    &test_self()->plmn_support[i].s_nssai[j];
+                ogs_asn_buffer_to_OCTET_STRING(
+                        plmn_id, OGS_PLMN_ID_LEN,
+                        &BroadcastPLMNItem->pLMNIdentity);
 
-                SliceSupportItem = CALLOC(1, sizeof(NGAP_SliceSupportItem_t));
-                ogs_asn_uint8_to_OCTET_STRING(s_nssai->sst,
-                        &SliceSupportItem->s_NSSAI.sST);
-                if (s_nssai->sd.v != OGS_S_NSSAI_NO_SD_VALUE) {
-                    SliceSupportItem->s_NSSAI.sD = CALLOC(1, sizeof(NGAP_SD_t));
-                    ogs_asn_uint24_to_OCTET_STRING(
-                            s_nssai->sd, SliceSupportItem->s_NSSAI.sD);
+                for (k = 0; k < test_self()->plmn_support[j].num_of_s_nssai;
+                        k++) {
+                    ogs_s_nssai_t *s_nssai =
+                        &test_self()->plmn_support[j].s_nssai[k];
+
+                    SliceSupportItem = CALLOC(1,
+                            sizeof(NGAP_SliceSupportItem_t));
+                    ogs_asn_uint8_to_OCTET_STRING(s_nssai->sst,
+                            &SliceSupportItem->s_NSSAI.sST);
+                    if (s_nssai->sd.v != OGS_S_NSSAI_NO_SD_VALUE) {
+                        SliceSupportItem->s_NSSAI.sD = CALLOC(
+                                1, sizeof(NGAP_SD_t));
+                        ogs_asn_uint24_to_OCTET_STRING(
+                                s_nssai->sd, SliceSupportItem->s_NSSAI.sD);
+                    }
+
+                    ASN_SEQUENCE_ADD(
+                            &BroadcastPLMNItem->tAISliceSupportList.list,
+                            SliceSupportItem);
                 }
 
-                ASN_SEQUENCE_ADD(&BroadcastPLMNItem->tAISliceSupportList.list,
-                                SliceSupportItem);
+                ASN_SEQUENCE_ADD(&SupportedTAItem->broadcastPLMNList.list,
+                        BroadcastPLMNItem);
             }
 
-            ASN_SEQUENCE_ADD(&SupportedTAItem->broadcastPLMNList.list,
-                    BroadcastPLMNItem);
+            ASN_SEQUENCE_ADD(&SupportedTAList->list, SupportedTAItem);
         }
-
-        ASN_SEQUENCE_ADD(&SupportedTAList->list, SupportedTAItem);
     }
 
     return ogs_ngap_encode(&pdu);
@@ -2594,4 +2618,46 @@ static ogs_pkbuf_t *testngap_build_handover_request_ack_transfer(
 
     return ogs_asn_encode(
             &asn_DEF_NGAP_HandoverRequestAcknowledgeTransfer, &message);
+}
+
+#define TEST_NGAP_MAX_MESSAGE 64
+
+ogs_pkbuf_t *test_ngap_build_amf_configuration_ack(int i)
+{
+    ogs_pkbuf_t *pkbuf = NULL;
+    const char *payload[TEST_NGAP_MAX_MESSAGE] = {
+        "2000 000f000002000a40 0200010055400200 01",
+        "",
+        "",
+
+        "",
+        "",
+        "",
+
+        "",
+        "",
+        "",
+
+    };
+    uint16_t len[TEST_NGAP_MAX_MESSAGE] = {
+        19,
+        0,
+        0,
+
+        0,
+        0,
+        0,
+
+        0,
+        0,
+        0,
+    };
+    char hexbuf[OGS_HUGE_LEN];
+
+    pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
+    ogs_assert(pkbuf);
+    ogs_pkbuf_put_data(pkbuf,
+        ogs_hex_from_string(payload[i], hexbuf, sizeof(hexbuf)), len[i]);
+
+    return pkbuf;
 }

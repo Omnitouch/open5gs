@@ -64,6 +64,9 @@ extern "C" {
 #define OGS_MAX_IMSI_LEN                \
     OGS_BCD_TO_BUFFER_LEN(OGS_MAX_IMSI_BCD_LEN)
 
+#define OGS_MAX_TIMEZONE_RAW_LEN        16
+#define OGS_MAX_IP_RAW_LEN              16
+
 #define OGS_MAX_IMEISV_BCD_LEN          16
 #define OGS_MAX_IMEISV_LEN              \
     OGS_BCD_TO_BUFFER_LEN(OGS_MAX_IMEISV_BCD_LEN)
@@ -794,6 +797,11 @@ typedef struct ogs_datum_s {
     unsigned char *data;
     unsigned int size;
 } ogs_datum_t;
+
+typedef struct ogs_port_s {
+    bool presence;
+    uint16_t port;
+} ogs_port_t;
 
 #ifdef __cplusplus
 }

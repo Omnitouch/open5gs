@@ -131,6 +131,17 @@ void upf_n4_handle_session_establishment_request(
     if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED)
         goto cleanup;
 
+    /* Setup GTP Node */
+    ogs_list_for_each(&sess->pfcp.far_list, far) {
+        if (OGS_ERROR == ogs_pfcp_setup_far_gtpu_node(far)) {
+            ogs_fatal("CHECK CONFIGURATION: upf.gtpu");
+            ogs_fatal("ogs_pfcp_setup_far_gtpu_node() failed");
+            goto cleanup;
+        }
+        if (far->gnode)
+            ogs_pfcp_far_f_teid_hash_set(far);
+    }
+
     /* PFCPSEReq-Flags */
     if (sereq_flags.restoration_indication == 1) {
         for (i = 0; i < num_of_created_pdr; i++) {
@@ -141,13 +152,6 @@ void upf_n4_handle_session_establishment_request(
                 ogs_pfcp_pdr_swap_teid(pdr);
         }
         restoration_indication = true;
-    }
-
-    /* Setup GTP Node */
-    ogs_list_for_each(&sess->pfcp.far_list, far) {
-        ogs_assert(OGS_ERROR != ogs_pfcp_setup_far_gtpu_node(far));
-        if (far->gnode)
-            ogs_pfcp_far_f_teid_hash_set(far);
     }
 
     for (i = 0; i < num_of_created_pdr; i++) {
@@ -372,7 +376,11 @@ void upf_n4_handle_session_modification_request(
 
     /* Setup GTP Node */
     ogs_list_for_each(&sess->pfcp.far_list, far) {
-        ogs_assert(OGS_ERROR != ogs_pfcp_setup_far_gtpu_node(far));
+        if (OGS_ERROR == ogs_pfcp_setup_far_gtpu_node(far)) {
+            ogs_fatal("CHECK CONFIGURATION: upf.gtpu");
+            ogs_fatal("ogs_pfcp_setup_far_gtpu_node() failed");
+            goto cleanup;
+        }
         if (far->gnode)
             ogs_pfcp_far_f_teid_hash_set(far);
     }
@@ -414,7 +422,6 @@ void upf_n4_handle_session_deletion_request(
         upf_sess_t *sess, ogs_pfcp_xact_t *xact,
         ogs_pfcp_session_deletion_request_t *req)
 {
-    ogs_pfcp_pdr_t *pdr = NULL;
     ogs_pfcp_qer_t *qer = NULL;
 
     ogs_assert(xact);
@@ -431,11 +438,9 @@ void upf_n4_handle_session_deletion_request(
     }
     upf_pfcp_send_session_deletion_response(xact, sess);
 
-    ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
-        ogs_list_for_each(&sess->pfcp.qer_list, qer) {
-            upf_metrics_inst_by_dnn_add(sess->apn_dnn,
-                    UPF_METR_GAUGE_UPF_QOSFLOWS, -1);
-        }
+    ogs_list_for_each(&sess->pfcp.qer_list, qer) {
+        upf_metrics_inst_by_dnn_add(sess->apn_dnn,
+                UPF_METR_GAUGE_UPF_QOSFLOWS, -1);
     }
     upf_sess_remove(sess);
 }

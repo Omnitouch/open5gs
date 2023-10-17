@@ -145,7 +145,12 @@ static void pfcp_recv_cb(short when, ogs_socket_t fd, void *data)
     node = ogs_pfcp_node_find(&ogs_pfcp_self()->pfcp_peer_list, &from);
     if (!node) {
         node = ogs_pfcp_node_add(&ogs_pfcp_self()->pfcp_peer_list, &from);
-        ogs_assert(node);
+        if (!node) {
+            ogs_error("No memory: ogs_pfcp_node_add() failed");
+            ogs_pkbuf_free(e->pkbuf);
+            ogs_event_free(e);
+            return;
+        }
 
         node->sock = data;
         pfcp_node_fsm_init(node, false);
@@ -211,6 +216,8 @@ static void sess_5gc_timeout(ogs_pfcp_xact_t *xact, void *data)
     uint8_t type;
     int trigger;
     char *strerror = NULL;
+    smf_event_t *e = NULL;
+    int rv;
 
     ogs_assert(xact);
     ogs_assert(data);
@@ -225,7 +232,19 @@ static void sess_5gc_timeout(ogs_pfcp_xact_t *xact, void *data)
 
     switch (type) {
     case OGS_PFCP_SESSION_ESTABLISHMENT_REQUEST_TYPE:
-        ogs_error("No PFCP session establishment response");
+        ogs_warn("No PFCP session establishment response");
+
+        e = smf_event_new(SMF_EVT_N4_TIMER);
+        ogs_assert(e);
+        e->sess = sess;
+        e->h.timer_id = SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE;
+        e->pfcp_node = sess->pfcp_node;
+
+        rv = ogs_queue_push(ogs_app()->queue, e);
+        if (rv != OGS_OK) {
+            ogs_error("ogs_queue_push() failed:%d", (int)rv);
+            ogs_event_free(e);
+        }
         break;
     case OGS_PFCP_SESSION_MODIFICATION_REQUEST_TYPE:
         strerror = ogs_msprintf("[%s:%d] No PFCP session modification response",
@@ -234,9 +253,8 @@ static void sess_5gc_timeout(ogs_pfcp_xact_t *xact, void *data)
 
         ogs_error("%s", strerror);
         if (stream) {
-            smf_sbi_send_sm_context_update_error(stream,
-                    OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT,
-                    strerror, NULL, NULL, NULL);
+            smf_sbi_send_sm_context_update_error_log(
+                stream, OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT, strerror, NULL);
         }
         ogs_free(strerror);
         break;

@@ -30,6 +30,7 @@
 #include "sgsap-path.h"
 #include "mme-gtp-path.h"
 #include "metrics.h"
+#include "mme-redis.h"
 
 static ogs_thread_t *thread;
 static void mme_main(void *data);
@@ -78,6 +79,8 @@ int mme_initialize(void)
     thread = ogs_thread_create(mme_main, NULL);
     if (!thread) return OGS_ERROR;
 
+    mme_redis_init();
+    
     initialized = 1;
 
     return OGS_OK;
@@ -100,6 +103,8 @@ void mme_terminate(void)
     mme_fd_final();
 
     mme_context_final();
+    
+    mme_redis_final();
 
     ogs_gtp_context_final();
 
