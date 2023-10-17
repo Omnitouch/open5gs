@@ -123,6 +123,8 @@ int sgwu_context_parse_config(void)
                     /* handle config in gtp library */
                 } else if (!strcmp(sgwu_key, "pfcp")) {
                     /* handle config in pfcp library */
+                } else if (!strcmp(sgwu_key, "metrics")) {
+                    /* handle config in metrics library */
                 } else
                     ogs_warn("unknown key `%s`", sgwu_key);
             }
@@ -172,6 +174,7 @@ sgwu_sess_t *sgwu_sess_add(ogs_pfcp_f_seid_t *cp_f_seid)
         (long)sess->sgwu_sxa_seid, (long)sess->sgwc_sxa_f_seid.seid);
 
     ogs_list_add(&self.sess_list, sess);
+    sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_GAUGE_SGWU_SESSIONNBR);
 
     ogs_info("[Added] Number of SGWU-Sessions is now %d",
             ogs_list_count(&self.sess_list));
@@ -200,6 +203,7 @@ int sgwu_sess_remove(sgwu_sess_t *sess)
 
     ogs_pool_free(&sgwu_sxa_seid_pool, sess->sgwu_sxa_seid_node);
     ogs_pool_free(&sgwu_sess_pool, sess);
+    sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_GAUGE_SGWU_SESSIONNBR);
 
     ogs_info("[Removed] Number of SGWU-sessions is now %d",
             ogs_list_count(&self.sess_list));

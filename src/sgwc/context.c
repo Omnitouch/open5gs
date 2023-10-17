@@ -149,6 +149,8 @@ int sgwc_context_parse_config(void)
                     /* handle config in gtp library */
                 } else if (!strcmp(sgwc_key, "pfcp")) {
                     /* handle config in pfcp library */
+                } else if (!strcmp(sgwc_key, "metrics")) {
+                    /* handle config in metrics library */
                 } else if (!strcmp(sgwc_key, "cdr")) {
                     /* handle config in pfcp library */
                 } else if (!strcmp(sgwc_key, "bearer_deactivation_timer_sec")) {
@@ -342,6 +344,7 @@ sgwc_sess_t *sgwc_sess_add(sgwc_ue_t *sgwc_ue, char *apn)
     ogs_list_add(&sgwc_ue->sess_list, sess);
 
     stats_add_sgwc_session();
+    sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_GAUGE_SGWC_SESSIONNBR);
 
     return sess;
 }
@@ -461,6 +464,7 @@ int sgwc_sess_remove(sgwc_sess_t *sess)
     ogs_pool_free(&sgwc_sess_pool, sess);
 
     stats_remove_sgwc_session();
+    sgwc_metrics_inst_global_dec(SGWC_METR_GLOB_GAUGE_SGWC_SESSIONNBR);
 
     return OGS_OK;
 }

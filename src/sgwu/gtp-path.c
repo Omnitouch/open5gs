@@ -41,9 +41,9 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
     ogs_gtp2_header_desc_t header_desc;
     ogs_pfcp_user_plane_report_t report;
 
+    /* Number or octets sent via uplink or downlink */
     size_t gtpu_data_length;
     int i = 0;
-
 
     ogs_assert(fd != INVALID_SOCKET);
     sock = data;
@@ -155,6 +155,30 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
         switch(pfcp_object->type) {
         case OGS_PFCP_OBJ_PDR_TYPE:
             pdr = (ogs_pfcp_pdr_t *)pfcp_object;
+            bool is_uplink = false;
+            ogs_pfcp_far_t *far = NULL;
+
+            sess = SGWU_SESS(pdr->sess);
+            ogs_assert(sess);
+
+            far = pdr->far;
+            ogs_assert(far);
+
+            /* Check if FAR is Uplink */
+            if (far->dst_if == OGS_PFCP_INTERFACE_CORE) {
+                is_uplink = true;
+            }
+
+            /* Note these counters will stop when they reaches the max
+             * value of 9,007,199,254,740,992 Bytes, roughly 9 Petabytes */
+            if (is_uplink) {
+                sgwu_metrics_inst_global_add(SGWU_METR_GLOB_GAUGE_GTP_INDATAOCTS1U, gtpu_data_length);
+                sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_GAUGE_GTP_INDATAPACKETS1U);
+            } else {
+                sgwu_metrics_inst_global_add(SGWU_METR_GLOB_GAUGE_GTP_OUTDATAOCTS1U, gtpu_data_length);
+                sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_GAUGE_GTP_OUTDATAPACKETS1U);
+            }
+
             ogs_assert(pdr);
             break;
         default:

@@ -396,6 +396,9 @@ void sgwu_sxa_handle_session_report_response(
 
     if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
         ogs_error("Cause request not accepted[%d]", cause_value);
+        sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_CTR_SM_REPORTPFCPSESSIONFAIL);
         return;
+    } else {
+        sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_CTR_SM_REPORTPFCPSESSIONSUCC);
     }
 }

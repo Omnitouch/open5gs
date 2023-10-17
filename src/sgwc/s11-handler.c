@@ -322,6 +322,13 @@ void sgwc_s11_handle_create_session_request(
             break;
         }
 
+        if ((5 <= req->bearer_contexts_to_be_created[i].eps_bearer_id.u8) &&
+            (req->bearer_contexts_to_be_created[i].eps_bearer_id.u8 <= 15)) {
+            sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_CREATIONDEDICATEDBEARERS11ATT);
+        } else {
+            sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_CREATIONDEFAULTBEARERS11ATT);
+        }
+
         decoded = ogs_gtp2_parse_bearer_qos(&bearer_qos,
                 &req->bearer_contexts_to_be_created[i].bearer_level_qos);
         ogs_assert(decoded ==

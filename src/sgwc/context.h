@@ -23,6 +23,7 @@
 #include "ogs-app.h"
 #include "ogs-gtp.h"
 #include "ogs-pfcp.h"
+#include "metrics.h"
 
 #include "timer.h"
 #include "sgwc-sm.h"

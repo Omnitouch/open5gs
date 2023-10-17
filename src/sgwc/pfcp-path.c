@@ -316,6 +316,8 @@ int sgwc_pfcp_send_session_establishment_request(
         return OGS_ERROR;
     }
 
+    sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_ESTABLISHPFCPSESSIONATT);
+
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
 
@@ -347,6 +349,8 @@ int sgwc_pfcp_send_session_modification_request(
         }
     }
     xact->local_seid = sess->sgwc_sxa_seid;
+
+    sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_MODIFYPFCPSESSIONATT);
 
     ogs_list_for_each(&sess->bearer_list, bearer)
         ogs_list_add(&xact->bearer_to_modify_list, &bearer->to_modify_node);
@@ -452,6 +456,9 @@ int sgwc_pfcp_send_session_deletion_request(
     }
 
     rv = ogs_pfcp_xact_commit(xact);
+
+    sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_DELETIONPFCPSESSIONATT);
+
     ogs_expect(rv == OGS_OK);
 
     return rv;

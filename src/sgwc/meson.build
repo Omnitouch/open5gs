@@ -27,6 +27,7 @@ libsgwc_sources = files('''
     sxa-handler.h
     pfcp-path.h
     sgwc-sm.h
+    metrics.h
 
     init.c
     event.c
@@ -41,16 +42,19 @@ libsgwc_sources = files('''
     pfcp-path.c
     pfcp-sm.c
     sgwc-sm.c
+    metrics.c
 '''.split())
 
 libsgwc = static_library('sgwc',
     sources : libsgwc_sources,
-    dependencies : libpfcp_dep,
+    dependencies : [ libpfcp_dep,
+                     libmetrics_dep ],
     install : false)
 
 libsgwc_dep = declare_dependency(
     link_with : libsgwc,
-    dependencies : libpfcp_dep)
+    dependencies : [ libpfcp_dep,
+                     libmetrics_dep ])
 
 sgwc_sources = files('''
     app.c

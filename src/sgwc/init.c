@@ -21,6 +21,7 @@
 
 #include "gtp-path.h"
 #include "pfcp-path.h"
+#include "metrics.h"
 
 static ogs_thread_t *thread;
 static void sgwc_main(void *data);
@@ -31,6 +32,7 @@ int sgwc_initialize(void)
 {
     int rv;
 
+    ogs_metrics_context_init();
     ogs_gtp_context_init(ogs_app()->pool.nf * OGS_MAX_NUM_OF_GTPU_RESOURCE);
     ogs_pfcp_context_init();
 
@@ -41,6 +43,9 @@ int sgwc_initialize(void)
     if (rv != OGS_OK) return rv;
 
     rv = ogs_pfcp_xact_init();
+    if (rv != OGS_OK) return rv;
+
+    rv = ogs_metrics_context_parse_config("sgwc");
     if (rv != OGS_OK) return rv;
 
     rv = ogs_gtp_context_parse_config("sgwc", "sgwu");
@@ -55,6 +60,9 @@ int sgwc_initialize(void)
     rv = ogs_log_config_domain(
             ogs_app()->logger.domain, ogs_app()->logger.level);
     if (rv != OGS_OK) return rv;
+
+    rv = sgwc_metrics_open();
+    if (rv != 0) return OGS_ERROR;
 
     rv = sgwc_gtp_open();
     if (rv != OGS_OK) return rv;
@@ -81,10 +89,13 @@ void sgwc_terminate(void)
     sgwc_gtp_close();
     sgwc_pfcp_close();
 
+    sgwc_metrics_close();
+
     sgwc_context_final();
 
     ogs_pfcp_context_final();
     ogs_gtp_context_final();
+    ogs_metrics_context_final();
 
     ogs_pfcp_xact_final();
     ogs_gtp_xact_final();
