@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2023 by Ryan Dimsey <ryan@omnitouch.com.au>
  *
  * This file is part of Open5GS.
  *
@@ -17,20 +17,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SBC_HANDLER_H
-#define SBC_HANDLER_H
+#if !defined(OGS_SBC_INSIDE) && !defined(OGS_SBC_COMPILATION)
+#error "This header cannot be included directly."
+#endif
 
-#include "mme-context.h"
+#ifndef OGS_SBC_MESSAGE_H
+#define OGS_SBC_MESSAGE_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void sbc_handle_write_replace_warning_request(sbc_write_replace_warning_request_t *request);
-void sbc_handle_stop_warning_request(sbc_write_replace_warning_request_t *request);
+int ogs_sbc_decode(ogs_sbc_message_t *message, ogs_pkbuf_t *pkbuf);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SBC_HANDLER_H */
+#endif
+
+
+
+

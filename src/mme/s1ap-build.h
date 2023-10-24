@@ -82,9 +82,9 @@ ogs_pkbuf_t *s1ap_build_mme_status_transfer(
         *enb_statustransfer_transparentContainer);
 
 ogs_pkbuf_t *s1ap_build_write_replace_warning_request(
-    sbc_pws_data_t *sbc_pws);
+    sbc_write_replace_warning_request_t *request);
 
-ogs_pkbuf_t *s1ap_build_kill_request(sbc_pws_data_t *sbc_pws);
+ogs_pkbuf_t *s1ap_build_kill_request(sbc_write_replace_warning_request_t *request);
 
 #ifdef __cplusplus
 }

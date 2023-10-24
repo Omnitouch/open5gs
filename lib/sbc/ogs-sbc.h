@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2023 by Ryan Dimsey <ryan@omnitouch.com.au>
  *
  * This file is part of Open5GS.
  *
@@ -17,20 +17,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SBC_HANDLER_H
-#define SBC_HANDLER_H
+#ifndef OGS_SBC_H
+#define OGS_SBC_H
 
-#include "mme-context.h"
+#include "core/ogs-core.h"
+
+#define OGS_SBC_INSIDE
+
+#include "sbc/sbc-types.h"
+#include "sbc/message.h"
+
+#undef OGS_SBC_INSIDE
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void sbc_handle_write_replace_warning_request(sbc_write_replace_warning_request_t *request);
-void sbc_handle_stop_warning_request(sbc_write_replace_warning_request_t *request);
+extern int __ogs_sbc_domain;
+
+#undef OGS_LOG_DOMAIN
+#define OGS_LOG_DOMAIN __ogs_sbc_domain
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SBC_HANDLER_H */
+#endif

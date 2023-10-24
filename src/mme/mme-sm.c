@@ -23,6 +23,7 @@
 
 #include "s1ap-handler.h"
 #include "s1ap-path.h"
+#include "sbc-handler.h"
 #include "sgsap-path.h"
 #include "nas-security.h"
 #include "nas-path.h"
@@ -249,6 +250,97 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
                     mme_timer_get_name(e->timer_id), e->timer_id);
             break;
         }
+        break;
+
+    case MME_EVENT_SBC_LO_ACCEPT:
+        sock = e->sock;
+        ogs_assert(sock);
+        addr = e->addr;
+        ogs_assert(addr);
+
+        ogs_assert(addr->ogs_sa_family == AF_INET ||
+                addr->ogs_sa_family == AF_INET6);
+
+        ogs_info("SBC accepted[%s] in master_sm module",
+            OGS_ADDR(addr, buf));
+
+        if (!mme_cbs_initialised()) {
+            rv = mme_cbs_init(sock, addr);
+            ogs_expect(OGS_OK == rv);
+        } else {
+            ogs_warn("We already have a Cell Broadcast Service connected, ignoring connection on %s",
+                    OGS_ADDR(addr, buf));
+            ogs_sock_destroy(sock);
+            ogs_free(addr);
+            ogs_warn("SBC Socket Closed");
+        }
+    
+        break;
+
+    case MME_EVENT_SBC_LO_SCTP_COMM_UP:
+        sock = e->sock;
+        ogs_assert(sock);
+        addr = e->addr;
+        ogs_assert(addr);
+
+        ogs_assert(addr->ogs_sa_family == AF_INET ||
+                addr->ogs_sa_family == AF_INET6);
+
+        ogs_info("SBC comms up[%s]",
+            OGS_ADDR(addr, buf));
+
+        if (!mme_cbs_initialised()) {
+            rv = mme_cbs_init(sock, addr);
+            ogs_expect(OGS_OK == rv);
+        } else {
+            ogs_free(addr);
+        }
+
+        break;
+
+    case MME_EVENT_SBC_LO_CONNREFUSED:
+        sock = e->sock;
+        ogs_assert(sock);
+        addr = e->addr;
+        ogs_assert(addr);
+
+        ogs_assert(addr->ogs_sa_family == AF_INET ||
+                addr->ogs_sa_family == AF_INET6);
+
+        if (mme_cbs_initialised()) {
+            ogs_info("SBC[%s] connection refused!!!", OGS_ADDR(addr, buf));
+            rv = mme_cbs_remove();
+            ogs_expect(OGS_OK == rv);
+        } else {
+            ogs_warn("SBC[%s] connection refused, Already Removed!",
+                    OGS_ADDR(addr, buf));
+        }
+        ogs_free(addr);
+
+        break;
+    case MME_EVENT_SBC_MESSAGE:
+        sock = e->sock;
+        ogs_assert(sock);
+        addr = e->addr;
+        ogs_assert(addr);
+        pkbuf = e->pkbuf;
+        ogs_assert(pkbuf);
+
+        ogs_assert(addr->ogs_sa_family == AF_INET ||
+                addr->ogs_sa_family == AF_INET6);
+
+        ogs_free(addr);
+
+        ogs_sbc_message_t sbc_message = {};
+
+        memset(&sbc_message, 0, sizeof(sbc_message));
+        rc = ogs_sbc_decode(&sbc_message, pkbuf);
+
+        sbc_handle_write_replace_warning_request(&sbc_message.choice.write_replace_warning_request);
+
+        ogs_expect(OGS_OK == rc);
+
+        ogs_pkbuf_free(pkbuf);
         break;
 
     case MME_EVENT_EMM_MESSAGE:
