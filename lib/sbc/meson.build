@@ -15,25 +15,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-libinc = include_directories('.')
+libsbc_sources = files('''
+    ogs-sbc.h
 
-subdir('core')
-subdir('proto')
-subdir('crypt')
-subdir('ipfw')
-subdir('app')
-subdir('metrics')
-subdir('sctp')
-subdir('tun')
-subdir('dbi')
-subdir('diameter')
-subdir('asn1c')
-subdir('ngap')
-subdir('s1ap')
-subdir('sbc')
-subdir('nas')
-subdir('gtp')
-subdir('pfcp')
-subdir('sbi')
-subdir('dns_resolvers')
-subdir('redis')
+    sbc-types.h
+    message.h 
+
+    message.c
+'''.split())
+
+libsbc_inc = include_directories('.')
+
+libsbc = library('ogssbc',
+    sources : libsbc_sources,
+    version : libogslib_version,
+    c_args : '-DOGS_SBC_COMPILATION',
+    include_directories : [libsbc_inc, libinc],
+    dependencies : libasn1c_s1ap_dep,
+    install : true)
+
+libsbc_dep = declare_dependency(
+    link_with : libsbc,
+    include_directories : [libsbc_inc, libinc],
+    dependencies : libasn1c_s1ap_dep)

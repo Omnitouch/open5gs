@@ -40,6 +40,7 @@ extern int __ogs_sctp_domain;
 #define OGS_LOG_DOMAIN __ogs_sctp_domain
 
 #define OGS_S1AP_SCTP_PORT              36412
+#define OGS_SBC_SCTP_PORT               29168
 #define OGS_SGSAP_SCTP_PORT             29118
 #define OGS_NGAP_SCTP_PORT              38412
 

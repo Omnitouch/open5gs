@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2023 by Ryan Dimsey <ryan@omnitouch.com.au>
  *
  * This file is part of Open5GS.
  *
@@ -17,20 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SBC_HANDLER_H
-#define SBC_HANDLER_H
+#ifndef SBC_PATH_H
+#define SBC_PATH_H
 
 #include "mme-context.h"
+#include "mme-event.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void sbc_handle_write_replace_warning_request(sbc_write_replace_warning_request_t *request);
-void sbc_handle_stop_warning_request(sbc_write_replace_warning_request_t *request);
+#define sbc_event_push  mme_sctp_event_push
+
+int sbc_open(void);
+void sbc_close(void);
+
+ogs_sock_t *sbc_server(ogs_socknode_t *node);
+void sbc_recv_upcall(short when, ogs_socket_t fd, void *data);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SBC_HANDLER_H */
+#endif /* SBC_PATH_H */

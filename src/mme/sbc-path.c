@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2023 by Ryan Dimsey <ryan@omnitouch.com.au>
  *
  * This file is part of Open5GS.
  *
@@ -17,20 +17,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SBC_HANDLER_H
-#define SBC_HANDLER_H
+#include "ogs-sctp.h"
 
-#include "mme-context.h"
+#include "mme-event.h"
+#include "mme-timer.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "nas-security.h"
+#include "nas-path.h"
 
-void sbc_handle_write_replace_warning_request(sbc_write_replace_warning_request_t *request);
-void sbc_handle_stop_warning_request(sbc_write_replace_warning_request_t *request);
+#include "sbc-path.h"
 
-#ifdef __cplusplus
+int sbc_open(void)
+{
+    ogs_socknode_t *node = NULL;
+
+    ogs_list_for_each(&mme_self()->sbc_list, node)
+        if (sbc_server(node) == NULL) return OGS_ERROR;
+
+    ogs_list_for_each(&mme_self()->sbc_list6, node)
+        if (sbc_server(node) == NULL) return OGS_ERROR;
+
+    return OGS_OK;
 }
-#endif
 
-#endif /* SBC_HANDLER_H */
+void sbc_close(void)
+{
+    ogs_socknode_remove_all(&mme_self()->sbc_list);
+    ogs_socknode_remove_all(&mme_self()->sbc_list6);
+}
+

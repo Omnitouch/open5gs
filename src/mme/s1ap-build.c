@@ -2390,7 +2390,7 @@ ogs_pkbuf_t *s1ap_build_mme_status_transfer(
     return ogs_s1ap_encode(&pdu);
 }
 
-ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
+ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_write_replace_warning_request_t *request)
 {
     S1AP_S1AP_PDU_t pdu;
     S1AP_InitiatingMessage_t *initiatingMessage = NULL;
@@ -2406,7 +2406,7 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
 
     ogs_debug("WriteReplaceWarningRequest");
 
-    ogs_assert(sbc_pws);
+    ogs_assert(request);
 
     memset(&pdu, 0, sizeof (S1AP_S1AP_PDU_t));
     pdu.present = S1AP_S1AP_PDU_PR_initiatingMessage;
@@ -2436,8 +2436,8 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
     MessageIdentifier->buf = 
         CALLOC(MessageIdentifier->size, sizeof(uint8_t));
     MessageIdentifier->bits_unused = 0;
-    MessageIdentifier->buf[0] = (sbc_pws->message_id >> 8) & 0xFF;
-    MessageIdentifier->buf[1] = sbc_pws->message_id & 0xFF;
+    MessageIdentifier->buf[0] = (request->message_identifier >> 8) & 0xFF;
+    MessageIdentifier->buf[1] = request->message_identifier & 0xFF;
 
     ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
     ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
@@ -2453,8 +2453,8 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
     SerialNumber->buf = 
         CALLOC(SerialNumber->size, sizeof(uint8_t));
     SerialNumber->bits_unused = 0;
-    SerialNumber->buf[0] = (sbc_pws->serial_number >> 8) & 0xFF;
-    SerialNumber->buf[1] = sbc_pws->serial_number & 0xFF;
+    SerialNumber->buf[0] = (request->serial_number >> 8) & 0xFF;
+    SerialNumber->buf[1] = request->serial_number & 0xFF;
 
     /* TODO: optional Warning Area List */
 
@@ -2468,7 +2468,7 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
 
     RepetitionPeriod = &ie->value.choice.RepetitionPeriod;
 
-    *RepetitionPeriod = sbc_pws->repetition_period;
+    *RepetitionPeriod = request->repetition_period;
 
     /* TODO: optional Extended Repetition Period */
 
@@ -2482,7 +2482,7 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
 
     NumberofBroadcastRequest = &ie->value.choice.NumberofBroadcastRequest;
 
-    *NumberofBroadcastRequest = sbc_pws->number_of_broadcast;
+    *NumberofBroadcastRequest = request->number_of_broadcasts_requested;
 
     /* TODO: optional Warnging Type */
 
@@ -2502,7 +2502,7 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
     DataCodingScheme->buf = 
         CALLOC(DataCodingScheme->size, sizeof(uint8_t));
     DataCodingScheme->bits_unused = 0;
-    DataCodingScheme->buf[0] = sbc_pws->data_coding_scheme & 0xFF;
+    DataCodingScheme->buf[0] = request->data_coding_scheme & 0xFF;
 
     ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
     ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
@@ -2514,11 +2514,11 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
 
     WarningMessageContents = &ie->value.choice.WarningMessageContents;
 
-    WarningMessageContents->size = sbc_pws->message_length;;
-    WarningMessageContents->buf = 
+    WarningMessageContents->size = request->warning_message_content_size;
+    WarningMessageContents->buf =
         CALLOC(WarningMessageContents->size, sizeof(uint8_t));
     memcpy(WarningMessageContents->buf,
-            sbc_pws->message_contents, WarningMessageContents->size);
+            request->warning_message_content, WarningMessageContents->size);
 
     /* TODO: optional Concurrent Warning Message Indicator */
 
@@ -2531,7 +2531,7 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
     return ogs_s1ap_encode(&pdu);
 }
 
-ogs_pkbuf_t *s1ap_build_kill_request(sbc_pws_data_t *sbc_pws)
+ogs_pkbuf_t *s1ap_build_kill_request(sbc_write_replace_warning_request_t *request)
 {
     S1AP_S1AP_PDU_t pdu;
     S1AP_InitiatingMessage_t *initiatingMessage = NULL;
@@ -2543,7 +2543,7 @@ ogs_pkbuf_t *s1ap_build_kill_request(sbc_pws_data_t *sbc_pws)
 
     ogs_debug("KillRequest");
 
-    ogs_assert(sbc_pws);
+    ogs_assert(request);
 
     memset(&pdu, 0, sizeof (S1AP_S1AP_PDU_t));
     pdu.present = S1AP_S1AP_PDU_PR_initiatingMessage;
@@ -2570,8 +2570,8 @@ ogs_pkbuf_t *s1ap_build_kill_request(sbc_pws_data_t *sbc_pws)
     MessageIdentifier->buf = 
         CALLOC(MessageIdentifier->size, sizeof(uint8_t));
     MessageIdentifier->bits_unused = 0;
-    MessageIdentifier->buf[0] = (sbc_pws->message_id >> 8) & 0xFF;
-    MessageIdentifier->buf[1] = sbc_pws->message_id & 0xFF;
+    MessageIdentifier->buf[0] = (request->message_identifier >> 8) & 0xFF;
+    MessageIdentifier->buf[1] = request->message_identifier & 0xFF;
 
     ie = CALLOC(1, sizeof(S1AP_KillRequestIEs_t));
     ASN_SEQUENCE_ADD(&KillRequest->protocolIEs, ie);
@@ -2586,8 +2586,8 @@ ogs_pkbuf_t *s1ap_build_kill_request(sbc_pws_data_t *sbc_pws)
     SerialNumber->buf = 
         CALLOC(SerialNumber->size, sizeof(uint8_t));
     SerialNumber->bits_unused = 0;
-    SerialNumber->buf[0] = (sbc_pws->serial_number >> 8) & 0xFF;
-    SerialNumber->buf[1] = sbc_pws->serial_number & 0xFF;
+    SerialNumber->buf[0] = (request->serial_number >> 8) & 0xFF;
+    SerialNumber->buf[1] = request->serial_number & 0xFF;
 
     /* TODO: optional Warning Area List */
 
