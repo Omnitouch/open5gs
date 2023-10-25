@@ -25,6 +25,7 @@
 #include "nas-security.h"
 #include "nas-path.h"
 
+#include "sbc-build.h"
 #include "sbc-path.h"
 
 int sbc_open(void)
@@ -46,3 +47,60 @@ void sbc_close(void)
     ogs_socknode_remove_all(&mme_self()->sbc_list6);
 }
 
+int sbc_send_to_cbs(mme_cbs_t *cbs, ogs_pkbuf_t *pkbuf)
+{
+    char buf[OGS_ADDRSTRLEN];
+
+    ogs_assert(pkbuf);
+
+    if (!mme_cbs_initialised()) {
+        ogs_error("Can't send data to a CBS that is not initialised!");
+        ogs_pkbuf_free(pkbuf);
+        return OGS_ERROR;
+    }
+
+    ogs_assert(cbs->sctp.sock);
+    if (cbs->sctp.sock->fd == INVALID_SOCKET) {
+        ogs_fatal("CBS SCTP socket has already been destroyed");
+        ogs_log_hexdump(OGS_LOG_FATAL, pkbuf->data, pkbuf->len);
+        ogs_pkbuf_free(pkbuf);
+        return OGS_ERROR;
+    }
+
+    ogs_debug("Sending data to CBS on '%s'",
+            OGS_ADDR(cbs->sctp.addr, buf));
+
+    ogs_sctp_ppid_in_pkbuf(pkbuf) = OGS_SCTP_SBC_PPID;
+    // ogs_sctp_stream_no_in_pkbuf(pkbuf) = 0; // S1AP_NON_UE_SIGNALLING
+
+    if (cbs->sctp.type == SOCK_STREAM) {
+        ogs_sctp_write_to_buffer(&cbs->sctp, pkbuf);
+        return OGS_OK;
+    } else {
+        return ogs_sctp_senddata(cbs->sctp.sock, pkbuf, cbs->sctp.addr);
+    }
+}
+
+int sbc_send_write_replace_warning_response(mme_cbs_t *cbs, ogs_sbc_message_t *request)
+{
+    int rv;
+    ogs_pkbuf_t *sbc_buffer;
+    
+    ogs_debug("SBC-CBS Write Replace Warning Response");
+
+    if (!cbs->state.initialised) {
+        ogs_error("CBS is not initialised!");
+        return OGS_ERROR;
+    }
+
+    sbc_buffer = sbc_build_write_replace_warning_response(request);
+    if (!sbc_buffer) {
+        ogs_error("sbc_build_write_replace_warning_response() failed");
+        return OGS_ERROR;
+    }
+
+    rv = sbc_send_to_cbs(cbs, sbc_buffer);
+    ogs_expect(rv == OGS_OK);
+
+    return rv;
+}

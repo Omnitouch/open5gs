@@ -24,6 +24,7 @@
 #include "s1ap-handler.h"
 #include "s1ap-path.h"
 #include "sbc-handler.h"
+#include "sbc-path.h"
 #include "sgsap-path.h"
 #include "nas-security.h"
 #include "nas-path.h"
@@ -333,10 +334,12 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
 
         memset(&sbc_message, 0, sizeof(sbc_message));
         rc = ogs_sbc_decode(&sbc_message, pkbuf);
-
-        sbc_handle_write_replace_warning_request(&sbc_message.choice.write_replace_warning_request);
-
         ogs_expect(OGS_OK == rc);
+
+        sbc_handle_write_replace_warning_request(
+            &sbc_message.choice.initiatingMessage.choice.write_replace_warning);
+
+        int rv = sbc_send_write_replace_warning_response(&mme_self()->cbs, &sbc_message);
 
         ogs_pkbuf_free(pkbuf);
         break;
