@@ -26,8 +26,8 @@
 extern "C" {
 #endif
 
-void sbc_handle_write_replace_warning_request(sbc_write_replace_warning_request_t *request);
-void sbc_handle_stop_warning_request(sbc_write_replace_warning_request_t *request);
+void sbc_handle_write_replace_warning_request(sbc_write_replace_warning_t *request);
+void sbc_handle_stop_warning_request(sbc_write_replace_warning_t *request);
 
 #ifdef __cplusplus
 }

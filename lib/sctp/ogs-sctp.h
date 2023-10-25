@@ -45,6 +45,7 @@ extern int __ogs_sctp_domain;
 #define OGS_NGAP_SCTP_PORT              38412
 
 #define OGS_SCTP_S1AP_PPID              18
+#define OGS_SCTP_SBC_PPID               24
 #define OGS_SCTP_X2AP_PPID              27
 #define OGS_SCTP_SGSAP_PPID             0
 #define OGS_SCTP_NGAP_PPID              60

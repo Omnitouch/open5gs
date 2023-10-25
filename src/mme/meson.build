@@ -22,6 +22,8 @@ libmme_sources = files('''
     s1ap-build.h
     s1ap-handler.h
     s1ap-path.h
+    sbc-build.h
+    sbc-handler.h
     sbc-path.h
     sgsap-build.h
     sgsap-handler.h
@@ -57,6 +59,8 @@ libmme_sources = files('''
     s1ap-handler.c
     s1ap-sctp.c
     s1ap-path.c
+    sbc-build.c
+    sbc-handler.c
     sbc-sctp.c
     sbc-path.c
     sgsap-sm.c

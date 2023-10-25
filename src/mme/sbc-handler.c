@@ -22,7 +22,8 @@
 #include "s1ap-build.h"
 #include "sbc-handler.h"
 
-void sbc_handle_write_replace_warning_request(sbc_write_replace_warning_request_t *request)
+/* Builds and sends a Write-Replace-Warning-Request to all eNBs over S1AP */
+void sbc_handle_write_replace_warning_request(sbc_write_replace_warning_t *request)
 {
     mme_enb_t *enb = NULL;
 
@@ -42,7 +43,7 @@ void sbc_handle_write_replace_warning_request(sbc_write_replace_warning_request_
     }
 }
 
-void sbc_handle_stop_warning_request(sbc_write_replace_warning_request_t *request)
+void sbc_handle_stop_warning_request(sbc_write_replace_warning_t *request)
 {
     mme_enb_t *enb = NULL;
 
