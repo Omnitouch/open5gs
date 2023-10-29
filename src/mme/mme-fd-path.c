@@ -45,6 +45,26 @@ static void mme_s6a_ula_cb(void *data, struct msg **msg);
 static void mme_s13_eca_cb(void *data, struct msg **msg);
 static void mme_s6a_pua_cb(void *data, struct msg **msg);
 
+/* TODO: dont merge into main */
+int push_event(mme_ue_t *mme_ue);
+int push_event(mme_ue_t *mme_ue)
+{
+    int rv;
+    mme_event_t *e = NULL;
+
+    ogs_info("Pushing flap event");
+    e = mme_event_new(MME_EVENT_ESM_FLAP_IMS); //  OGS_NAS_EPS_PDN_DISCONNECT_REQUEST
+    ogs_assert(e);
+    e->mme_ue = mme_ue;
+    rv = ogs_queue_push(ogs_app()->queue, e);
+    if (rv != OGS_OK) {
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
+        mme_event_free(e);
+    }
+
+    return rv;
+}
+
 static void state_cleanup(struct sess_state *sess_data, os0_t sid, void *opaque)
 {
     ogs_free(sess_data);
@@ -2010,6 +2030,14 @@ static int mme_ogs_diam_s6a_idr_cb( struct msg **msg, struct avp *avp,
         ret = fd_msg_avp_hdr(avp, &hdr);
         ogs_assert(ret == 0);
         idr_message->idr_flags = hdr->avp_value->i32;
+        ogs_info("Insert-Subscriber-Data-Request has IDR Flags AVP");
+
+        if (idr_message->idr_flags & 0x80) {
+            ogs_info("Insert-Subscriber-Data-Request has IDR Flags AVP with restoration request bit set");
+            push_event(mme_ue);
+        } else {
+            ogs_info("Insert-Subscriber-Data-Request did not have IDR Flags AVP with restoration request bit set");
+        }
     }
 
     if (idr_message->idr_flags & OGS_DIAM_S6A_IDR_FLAGS_EPS_LOCATION_INFO) {
