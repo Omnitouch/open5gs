@@ -806,33 +806,25 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         ogs_fsm_dispatch(&vlr->sm, e);
         break;
 
-    case MME_EVENT_ESM_FLAP_IMS:
+    case MME_EVENT_S6A_PCSCF_RESTORATION:
         mme_ue = e->mme_ue;
         ogs_assert(mme_ue);
         sess = mme_sess_find_by_apn(mme_ue, (char*)"ims");
 
         if (!sess) {
-            ogs_warn("Trying to flap UE session with apn 'ims' but none existed!");
+            ogs_warn("P-CSCF Restoration failed, could not find matching IMS session for given UE");
             break;
         }
 
-        ogs_info("Flappin IMS session");
+        ogs_info("P-CSCF Restoration");
         ogs_info("    IMSI[%s] PTI[%d]",
                 mme_ue->imsi_bcd, sess->pti);
         if (MME_HAVE_SGW_S1U_PATH(sess)) {
-            ogs_info("The IMS session has a SGW S1U path, doing session delete procedure...");
             ogs_assert(OGS_OK ==
                 mme_gtp_send_delete_session_request(mme_ue->sgw_ue, sess,
                 OGS_GTP_DELETE_SEND_DEACTIVATE_BEARER_CONTEXT_REQUEST));
         } else {
-            ogs_error("Was really expecting to have a SGW S1U path here...");
-            /* Clear all ims bearers */
-            // ogs_list_for_each(&sess->bearer_list, bearer) {
-            //     ogs_info("    EBI[%d]", bearer->ebi);
-            //     r = nas_eps_send_deactivate_bearer_context_request(bearer);
-            //     ogs_expect(r == OGS_OK);
-            //     ogs_assert(r != OGS_ERROR);
-            // }
+            ogs_error("Session does not have a SGW S1U path, cannot delete the session... P-CSCF Restoration failed?");
         }
 
         CLEAR_SGW_S1U_PATH(sess);
