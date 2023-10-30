@@ -338,10 +338,26 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         rc = ogs_sbc_decode(&sbc_message, pkbuf);
         ogs_expect(OGS_OK == rc);
 
-        sbc_handle_write_replace_warning_request(
-            &sbc_message.choice.initiatingMessage.choice.write_replace_warning);
+        switch (sbc_message.choice.initiatingMessage.present) {
+            case SBC_MESSAGE_PR_WRITE_REPLACE_WARNING_REQUEST:
+                sbc_handle_write_replace_warning_request(
+                    &sbc_message.choice.initiatingMessage.payload);
+                sbc_send_write_replace_warning_response(&mme_self()->cbs, &sbc_message);
+            break;
 
-        int rv = sbc_send_write_replace_warning_response(&mme_self()->cbs, &sbc_message);
+            case SBC_MESSAGE_PR_STOP_WARNING_REQUEST:
+                sbc_handle_stop_warning_request(
+                    &sbc_message.choice.initiatingMessage.payload);
+                sbc_send_stop_warning_response(&mme_self()->cbs, &sbc_message);
+            break;
+
+            default:
+                ogs_error(
+                    "Not expecting SBC message with initiatingMessage presence of %i",
+                    sbc_message.choice.initiatingMessage.present
+                );
+            break;
+        }
 
         ogs_pkbuf_free(pkbuf);
         break;

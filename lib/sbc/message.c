@@ -21,8 +21,6 @@
 
 int __ogs_sbc_domain;
 
-enum { WRITE_REPLACE_WARNING = 0 };
-
 enum { MESSAGE_IDENTIFIER = 5,
        SERIAL_NUMBER = 11,
        REPETITION_PERIOD = 10,
@@ -38,11 +36,11 @@ static uint16_t decode_uint16(uint8_t *buf);
 static uint32_t decode_uint24(uint8_t *buf);
 static void encode_uint16(uint16_t val, uint8_t *buf);
 static void encode_uint24(uint32_t val, uint8_t *buf);
-static size_t decode_write_replace_warning_request(
-    sbc_write_replace_warning_t *write_replace_warning_request,
+static size_t decode_sbc_payload(
+    sbc_payload_t *payload,
     uint8_t *buf,
     size_t buf_sz);
-static size_t encode_write_replace_warning_request(sbc_write_replace_warning_t *message, uint8_t *buf);
+static size_t encode_sbc_payload(sbc_payload_t *message, uint8_t *buf);
 static ogs_pkbuf_t *encode_successful_outcome(SBC_SuccessfulOutcome *message);
 
 
@@ -76,6 +74,8 @@ int ogs_sbc_decode(ogs_sbc_message_t *message, ogs_pkbuf_t *pkbuf)
     ogs_assert(pkbuf->data);
     ogs_assert(pkbuf->len);
 
+    memset(message, 0, sizeof(ogs_sbc_message_t));
+
     size_t bytes_decoded = 0;
     uint8_t *buf = pkbuf->data;
 
@@ -94,19 +94,20 @@ int ogs_sbc_decode(ogs_sbc_message_t *message, ogs_pkbuf_t *pkbuf)
     bytes_decoded += 1;
 
     if (value_length + bytes_decoded != pkbuf->len) {
-        ogs_error("Packet size and SBC message size are not the same!");
+        ogs_error("Packet size and calculated SBC message size are not the same!");
         return OGS_ERROR;
     }
 
+    /* FIXME: We're assuming the the message being decoded is always an initiatingMessage */
     switch (procedure_code) {
-        case WRITE_REPLACE_WARNING:
+        case PROCEDURE_CODE_WRITE_REPLACE_WARNING:
             message->present = SBC_PDU_PR_INITIATINGMESSAGE;
             message->choice.initiatingMessage.present = SBC_MESSAGE_PR_WRITE_REPLACE_WARNING_REQUEST;
-            bytes_decoded += decode_write_replace_warning_request(
-                &message->choice.initiatingMessage.choice.write_replace_warning,
-                &buf[bytes_decoded],
-                value_length
-            );
+        break;
+
+        case PROCEDURE_CODE_STOP_WARNING:
+            message->present = SBC_PDU_PR_INITIATINGMESSAGE;
+            message->choice.initiatingMessage.present = SBC_MESSAGE_PR_STOP_WARNING_REQUEST;
         break;
 
         default:
@@ -115,15 +116,22 @@ int ogs_sbc_decode(ogs_sbc_message_t *message, ogs_pkbuf_t *pkbuf)
         break;
     }
 
+    bytes_decoded += decode_sbc_payload(
+                &message->choice.initiatingMessage.payload,
+                &buf[bytes_decoded],
+                value_length
+    );
+
     if (bytes_decoded != pkbuf->len) {
+        ogs_error("Failed to decode the full length of the packet, only %lu/%u bytes decoded", bytes_decoded, pkbuf->len);
         return OGS_ERROR;
     }
 
     return OGS_OK;
 }
 
-static size_t decode_write_replace_warning_request(
-    sbc_write_replace_warning_t *write_replace_warning_request,
+static size_t decode_sbc_payload(
+    sbc_payload_t *payload,
     uint8_t *buf,
     size_t buf_sz)
 {
@@ -164,48 +172,48 @@ static size_t decode_write_replace_warning_request(
         switch (id) {
             case MESSAGE_IDENTIFIER:
                 ogs_expect(2 == ie_value_length);
-                write_replace_warning_request->message_identifier_presence = 1;
-                write_replace_warning_request->message_identifier = decode_uint16(&buf[bytes_decoded]);
+                payload->message_identifier_presence = 1;
+                payload->message_identifier = decode_uint16(&buf[bytes_decoded]);
             break;
 
             case SERIAL_NUMBER:
                 ogs_expect(2 == ie_value_length);
-                write_replace_warning_request->serial_number_presence = 1;
-                write_replace_warning_request->serial_number = decode_uint16(&buf[bytes_decoded]);
+                payload->serial_number_presence = 1;
+                payload->serial_number = decode_uint16(&buf[bytes_decoded]);
             break;
 
             case REPETITION_PERIOD:
                 ogs_expect(2 == ie_value_length);
-                write_replace_warning_request->repetition_period_presence = 1;
-                write_replace_warning_request->repetition_period = decode_uint16(&buf[bytes_decoded]);
+                payload->repetition_period_presence = 1;
+                payload->repetition_period = decode_uint16(&buf[bytes_decoded]);
             break;
 
             case NUMBER_OF_BROADCASTS_REQUESTED:
                 ogs_expect(2 == ie_value_length);
-                write_replace_warning_request->number_of_broadcasts_requested_presence = 1;
-                write_replace_warning_request->number_of_broadcasts_requested = decode_uint16(&buf[bytes_decoded]);
+                payload->number_of_broadcasts_requested_presence = 1;
+                payload->number_of_broadcasts_requested = decode_uint16(&buf[bytes_decoded]);
             break;
 
             case DATA_CODING_SCHEME:
                 ogs_expect(1 == ie_value_length);
-                write_replace_warning_request->data_coding_scheme_presence = 1;
-                write_replace_warning_request->data_coding_scheme = buf[bytes_decoded];
+                payload->data_coding_scheme_presence = 1;
+                payload->data_coding_scheme = buf[bytes_decoded];
             break;
 
             case WARNING_MESSAGE_CONTENT:
                 /* Since ie_value_length is 8-bit we can guarantee that
                  * it will fit in the warning_message_content buf */
                 memcpy(
-                    write_replace_warning_request->warning_message_content,
+                    payload->warning_message_content,
                     &buf[bytes_decoded],
                     ie_value_length
                 );
-                write_replace_warning_request->warning_message_content_presence = 1;
-                write_replace_warning_request->warning_message_content_size = ie_value_length;
+                payload->warning_message_content_presence = 1;
+                payload->warning_message_content_size = ie_value_length;
             break;
 
             default:
-                ogs_error("Unsupported IE with ID of %u", id);
+                ogs_error("Unsupported IE with ID of %u, skipping decode of this IE", id);
             break;
         }
 
@@ -217,15 +225,21 @@ static size_t decode_write_replace_warning_request(
 
 /* TODO: Refector and do this proper one day */
 /* We're assuming the the caller knows that the data we will encode will fit... */
-static size_t encode_write_replace_warning_request(sbc_write_replace_warning_t *message, uint8_t *buf)
+static size_t encode_sbc_payload(sbc_payload_t *payload, uint8_t *buf)
 {
     size_t bytes_encoded = 0;
 
-    /* TODO: Calculate number of IEs, Hardcoding 3 */
-    encode_uint24(0x003, &buf[bytes_encoded]);
+    uint32_t num_ies = payload->message_identifier_presence
+                     + payload->serial_number_presence
+                     + payload->repetition_period_presence
+                     + payload->number_of_broadcasts_requested_presence
+                     + payload->data_coding_scheme_presence
+                     + payload->warning_message_content_presence
+                     + payload->cause_presence;
+    encode_uint24(num_ies, &buf[bytes_encoded]);
     bytes_encoded += 3;
 
-    if (1 == message->message_identifier_presence) {
+    if (1 == payload->message_identifier_presence) {
         encode_uint16(MESSAGE_IDENTIFIER, &buf[bytes_encoded]);
         bytes_encoded += 2;
 
@@ -237,11 +251,11 @@ static size_t encode_write_replace_warning_request(sbc_write_replace_warning_t *
         buf[bytes_encoded] = 0x02;
         bytes_encoded += 1;
 
-        encode_uint16(message->message_identifier, &buf[bytes_encoded]);
+        encode_uint16(payload->message_identifier, &buf[bytes_encoded]);
         bytes_encoded += 2;
     }
 
-    if (1 == message->serial_number_presence) {
+    if (1 == payload->serial_number_presence) {
         encode_uint16(SERIAL_NUMBER, &buf[bytes_encoded]);
         bytes_encoded += 2;
 
@@ -253,11 +267,11 @@ static size_t encode_write_replace_warning_request(sbc_write_replace_warning_t *
         buf[bytes_encoded] = 0x02;
         bytes_encoded += 1;
 
-        encode_uint16(message->serial_number, &buf[bytes_encoded]);
+        encode_uint16(payload->serial_number, &buf[bytes_encoded]);
         bytes_encoded += 2;
     }
 
-    if (1 == message->cause_presence) {
+    if (1 == payload->cause_presence) {
         encode_uint16(CAUSE, &buf[bytes_encoded]);
         bytes_encoded += 2;
 
@@ -269,7 +283,7 @@ static size_t encode_write_replace_warning_request(sbc_write_replace_warning_t *
         buf[bytes_encoded] = 0x01;
         bytes_encoded += 1;
 
-        encode_uint16(message->cause, &buf[bytes_encoded]);
+        encode_uint16(payload->cause, &buf[bytes_encoded]);
         bytes_encoded += 1;
     }
 
@@ -287,6 +301,7 @@ static ogs_pkbuf_t *encode_successful_outcome(SBC_SuccessfulOutcome *message)
 
     uint8_t *buf = pkbuf->data;
     size_t bytes_encoded = 0;
+    size_t payload_sz = 0;
 
     /* Specify that this is a SuccessfulOutcome */
     buf[bytes_encoded] = SBC_PDU_VAL_SUCCESSFULOUTCOME;
@@ -298,18 +313,11 @@ static ogs_pkbuf_t *encode_successful_outcome(SBC_SuccessfulOutcome *message)
     buf[bytes_encoded] = message->criticality;
     bytes_encoded += 1;
 
-    buf[bytes_encoded] = 0x14; /* TODO: Calculate length */
-    bytes_encoded += 1;
+    /* Encode the payload THEN go back and encode the size (note the "+ 1") */
+    payload_sz += encode_sbc_payload(&message->payload, &buf[bytes_encoded + 1]);
 
-    switch(message->present) {
-        case SBC_MESSAGE_PR_WRITE_REPLACE_WARNING_REQUEST:
-            bytes_encoded += encode_write_replace_warning_request(&message->choice.write_replace_warning, &buf[bytes_encoded]);
-        break;
-
-        default:
-            ogs_error("Unsupported successfulOutcome message type");
-        break;
-    }
+    buf[bytes_encoded] = payload_sz;
+    bytes_encoded += 1 + payload_sz;
 
     ogs_pkbuf_trim(pkbuf, bytes_encoded);
 

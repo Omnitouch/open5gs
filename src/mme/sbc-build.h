@@ -29,6 +29,7 @@ extern "C" {
 #endif
 
 ogs_pkbuf_t *sbc_build_write_replace_warning_response(ogs_sbc_message_t *request);
+ogs_pkbuf_t *sbc_build_stop_warning_response(ogs_sbc_message_t *request);
 
 #ifdef __cplusplus
 }

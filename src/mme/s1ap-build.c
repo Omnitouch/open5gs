@@ -2444,7 +2444,7 @@ ogs_pkbuf_t *s1ap_build_mme_status_transfer(
     return ogs_s1ap_encode(&pdu);
 }
 
-ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_write_replace_warning_t *request)
+ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_payload_t *request)
 {
     S1AP_S1AP_PDU_t pdu;
     S1AP_InitiatingMessage_t *initiatingMessage = NULL;
@@ -2585,7 +2585,7 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_write_replace_warning_
     return ogs_s1ap_encode(&pdu);
 }
 
-ogs_pkbuf_t *s1ap_build_kill_request(sbc_write_replace_warning_t *request)
+ogs_pkbuf_t *s1ap_build_kill_request(sbc_payload_t *request)
 {
     S1AP_S1AP_PDU_t pdu;
     S1AP_InitiatingMessage_t *initiatingMessage = NULL;
