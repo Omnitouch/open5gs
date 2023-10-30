@@ -2032,11 +2032,11 @@ static int mme_ogs_diam_s6a_idr_cb( struct msg **msg, struct avp *avp,
         idr_message->idr_flags = hdr->avp_value->i32;
         ogs_info("Insert-Subscriber-Data-Request has IDR Flags AVP");
 
-        if (idr_message->idr_flags & 0x80) {
+        if (idr_message->idr_flags & 0x100) {
             ogs_info("Insert-Subscriber-Data-Request has IDR Flags AVP with restoration request bit set");
             push_event(mme_ue);
         } else {
-            ogs_info("Insert-Subscriber-Data-Request did not have IDR Flags AVP with restoration request bit set");
+            ogs_info("Insert-Subscriber-Data-Request did not have IDR Flags AVP with restoration request bit set 0x%08X", idr_message->idr_flags);
         }
     }
 
