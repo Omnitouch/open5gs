@@ -39,6 +39,15 @@ enum { MAX_WARNING_CONTENT_MESSAGE_SIZE = 255 };
 
 enum { CAUSE_MESSAGE_ACCEPTED = 0 };
 
+enum { PROCEDURE_CODE_WRITE_REPLACE_WARNING = 0,
+       PROCEDURE_CODE_STOP_WARNING = 1 };
+
+typedef enum {
+	SBC_MESSAGE_PR_NOTHING,	/* No components present */
+	SBC_MESSAGE_PR_WRITE_REPLACE_WARNING_REQUEST,
+	SBC_MESSAGE_PR_STOP_WARNING_REQUEST,
+} SBC_Message_PR;
+
 /* TODO: Improve the sub-structures to include the presence flag internally */
 typedef struct {
     uint8_t presence;
@@ -64,58 +73,15 @@ typedef struct {
 
     uint8_t cause_presence;
 	uint8_t cause;
-} sbc_write_replace_warning_t;
-
-
-typedef enum {
-	SBC_MESSAGE_PR_NOTHING,	/* No components present */
-	SBC_MESSAGE_PR_WRITE_REPLACE_WARNING_REQUEST,
-} SBC_Message_PR;
-
-/* ***************** */
-/* InitiatingMessage */
-/* ***************** */
+} sbc_payload_t;
 
 typedef struct {
 	uint8_t procedureCode;
 	uint8_t criticality;
 	SBC_Message_PR present;
 
-	union {
-		sbc_write_replace_warning_t write_replace_warning;
-	} choice;
-} SBC_InitiatingMessage;
-
-
-/* ***************** */
-/* SuccessfulOutcome */
-/* ***************** */
-
-typedef struct {
-	uint8_t procedureCode;
-	uint8_t criticality;
-	SBC_Message_PR present;
-	
-	union {
-		sbc_write_replace_warning_t write_replace_warning;
-	} choice;
-} SBC_SuccessfulOutcome;
-
-
-/* ******************* */
-/* UnsuccessfulOutcome */
-/* ******************* */
-
-typedef struct {
-	uint8_t procedureCode;
-	uint8_t criticality;
-	SBC_Message_PR present;
-	
-	union {
-		sbc_write_replace_warning_t write_replace_warning;
-	} choice;
-} SBC_UnsuccessfulOutcome;
-
+	sbc_payload_t payload;
+} SBC_InitiatingMessage, SBC_SuccessfulOutcome, SBC_UnsuccessfulOutcome;
 
 /* ********* */
 /* Top Level */
@@ -138,7 +104,7 @@ typedef enum SBC_PDU_VAL {
 
 typedef struct {
 	SBC_PDU_PR present;
-	union {
+	union { /* TODO: Could probably just have the one message var struct as all are the same type anyway */
 		SBC_InitiatingMessage initiatingMessage;
 		SBC_SuccessfulOutcome successfulOutcome;
 		SBC_UnsuccessfulOutcome unsuccessfulOutcome;

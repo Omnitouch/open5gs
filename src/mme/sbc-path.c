@@ -104,3 +104,27 @@ int sbc_send_write_replace_warning_response(mme_cbs_t *cbs, ogs_sbc_message_t *r
 
     return rv;
 }
+
+int sbc_send_stop_warning_response(mme_cbs_t *cbs, ogs_sbc_message_t *request)
+{
+    int rv;
+    ogs_pkbuf_t *sbc_buffer;
+    
+    ogs_debug("SBC-CBS Write Replace Warning Response");
+
+    if (!cbs->state.initialised) {
+        ogs_error("CBS is not initialised!");
+        return OGS_ERROR;
+    }
+
+    sbc_buffer = sbc_build_stop_warning_response(request);
+    if (!sbc_buffer) {
+        ogs_error("sbc_build_write_replace_warning_response() failed");
+        return OGS_ERROR;
+    }
+
+    rv = sbc_send_to_cbs(cbs, sbc_buffer);
+    ogs_expect(rv == OGS_OK);
+
+    return rv;
+}

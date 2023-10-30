@@ -36,6 +36,7 @@ ogs_sock_t *sbc_server(ogs_socknode_t *node);
 void sbc_recv_upcall(short when, ogs_socket_t fd, void *data);
 int sbc_send_to_cbs(mme_cbs_t *cbs, ogs_pkbuf_t *pkbuf);
 int sbc_send_write_replace_warning_response(mme_cbs_t *cbs, ogs_sbc_message_t *request);
+int sbc_send_stop_warning_response(mme_cbs_t *cbs, ogs_sbc_message_t *request);
 
 #ifdef __cplusplus
 }
