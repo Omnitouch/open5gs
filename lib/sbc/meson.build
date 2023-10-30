@@ -20,7 +20,6 @@ libsbc_sources = files('''
 
     sbc-types.h
     message.h 
-    build.h 
 
     message.c
 '''.split())
