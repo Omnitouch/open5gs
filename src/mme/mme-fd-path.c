@@ -44,6 +44,7 @@ static void mme_s6a_aia_cb(void *data, struct msg **msg);
 static void mme_s6a_ula_cb(void *data, struct msg **msg);
 static void mme_s13_eca_cb(void *data, struct msg **msg);
 static void mme_s6a_pua_cb(void *data, struct msg **msg);
+static int push_pcscf_restoration_event(mme_ue_t *mme_ue);
 
 static void state_cleanup(struct sess_state *sess_data, os0_t sid, void *opaque)
 {
@@ -2012,6 +2013,10 @@ static int mme_ogs_diam_s6a_idr_cb( struct msg **msg, struct avp *avp,
         idr_message->idr_flags = hdr->avp_value->i32;
     }
 
+    if (idr_message->idr_flags & OGS_DIAM_S6A_IDR_FLAGS_PCSCF_Restoration) {
+        push_pcscf_restoration_event(mme_ue);
+    }
+
     if (idr_message->idr_flags & OGS_DIAM_S6A_IDR_FLAGS_EPS_LOCATION_INFO) {
         char buf[8];
 
@@ -2498,6 +2503,23 @@ out:
 
     state_cleanup(sess_data, NULL, NULL);
     return;
+}
+
+static int push_pcscf_restoration_event(mme_ue_t *mme_ue)
+{
+    int rv;
+    mme_event_t *e = NULL;
+
+    e = mme_event_new(MME_EVENT_S6A_PCSCF_RESTORATION);
+    ogs_assert(e);
+    e->mme_ue = mme_ue;
+    rv = ogs_queue_push(ogs_app()->queue, e);
+    if (rv != OGS_OK) {
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
+        mme_event_free(e);
+    }
+
+    return rv;
 }
 
 int mme_fd_init(void)

@@ -806,6 +806,30 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         ogs_fsm_dispatch(&vlr->sm, e);
         break;
 
+    case MME_EVENT_S6A_PCSCF_RESTORATION:
+        mme_ue = e->mme_ue;
+        ogs_assert(mme_ue);
+        sess = mme_sess_find_by_apn(mme_ue, (char*)"ims");
+
+        if (!sess) {
+            ogs_warn("P-CSCF Restoration failed, could not find matching IMS session for given UE");
+            break;
+        }
+
+        ogs_info("P-CSCF Restoration");
+        ogs_info("    IMSI[%s] PTI[%d]",
+                mme_ue->imsi_bcd, sess->pti);
+        if (MME_HAVE_SGW_S1U_PATH(sess)) {
+            ogs_assert(OGS_OK ==
+                mme_gtp_send_delete_session_request(mme_ue->sgw_ue, sess,
+                OGS_GTP_DELETE_SEND_DEACTIVATE_BEARER_CONTEXT_REQUEST));
+        } else {
+            ogs_error("Session does not have a SGW S1U path, cannot delete the session... P-CSCF Restoration failed?");
+        }
+
+        CLEAR_SGW_S1U_PATH(sess);
+        break;
+
     default:
         ogs_error("No handler for event %s", mme_event_get_name(e));
         break;
