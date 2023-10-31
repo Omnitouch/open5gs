@@ -27,7 +27,9 @@ enum { MESSAGE_IDENTIFIER = 5,
        NUMBER_OF_BROADCASTS_REQUESTED = 7,
        DATA_CODING_SCHEME = 3,
        WARNING_MESSAGE_CONTENT = 16,
-       CAUSE = 1 };
+       CAUSE = 1,
+       WARNING_TYPE = 18,
+       WARNING_SECURITY_INFORMATION = 17 };
 
 /* The decode functions are assuming a big endian
  * byte order and that the caller is sure the 
@@ -151,14 +153,13 @@ static size_t decode_sbc_payload(
 
     for (i = 0; i < number_of_ies; ++i) {
         uint16_t id;
-        uint8_t criticality_ie;
+        uint8_t criticality;
         uint8_t ie_value_length;
 
         id = decode_uint16(&buf[bytes_decoded]);
         bytes_decoded += 2;
 
-        criticality_ie = buf[bytes_decoded];
-        (void)criticality_ie; /* TODO: Save these values in struct? */
+        criticality = buf[bytes_decoded] >> 6;
         bytes_decoded += 1;
 
         ie_value_length = buf[bytes_decoded];
@@ -171,36 +172,62 @@ static size_t decode_sbc_payload(
 
         switch (id) {
             case MESSAGE_IDENTIFIER:
+                payload->message_identifier_criticality = criticality;
                 ogs_expect(2 == ie_value_length);
                 payload->message_identifier_presence = 1;
                 payload->message_identifier = decode_uint16(&buf[bytes_decoded]);
             break;
 
             case SERIAL_NUMBER:
+                payload->serial_number_criticality = criticality;
                 ogs_expect(2 == ie_value_length);
                 payload->serial_number_presence = 1;
                 payload->serial_number = decode_uint16(&buf[bytes_decoded]);
             break;
 
             case REPETITION_PERIOD:
+                payload->repetition_period_criticality = criticality;
                 ogs_expect(2 == ie_value_length);
                 payload->repetition_period_presence = 1;
                 payload->repetition_period = decode_uint16(&buf[bytes_decoded]);
             break;
 
             case NUMBER_OF_BROADCASTS_REQUESTED:
+                payload->number_of_broadcasts_requested_criticality = criticality;
                 ogs_expect(2 == ie_value_length);
                 payload->number_of_broadcasts_requested_presence = 1;
                 payload->number_of_broadcasts_requested = decode_uint16(&buf[bytes_decoded]);
             break;
 
             case DATA_CODING_SCHEME:
+                payload->data_coding_scheme_criticality = criticality;
                 ogs_expect(1 == ie_value_length);
                 payload->data_coding_scheme_presence = 1;
                 payload->data_coding_scheme = buf[bytes_decoded];
             break;
 
+            case WARNING_TYPE:
+                payload->warning_type_criticality = criticality;
+                ogs_expect(2 == ie_value_length);
+                payload->warning_type_presence = 1;
+                payload->warning_type = decode_uint16(&buf[bytes_decoded]);
+            break;
+
+            case WARNING_SECURITY_INFORMATION:
+                payload->warning_security_information_criticality = criticality;
+                /* Since ie_value_length is 8-bit we can guarantee that
+                 * it will fit in the warning_message_content buf */
+                memcpy(
+                    payload->warning_security_information,
+                    &buf[bytes_decoded],
+                    ie_value_length
+                );
+                payload->warning_security_information_presence = 1;
+                payload->warning_security_information_size = ie_value_length;
+            break;
+
             case WARNING_MESSAGE_CONTENT:
+                payload->warning_message_content_criticality = criticality;
                 /* Since ie_value_length is 8-bit we can guarantee that
                  * it will fit in the warning_message_content buf */
                 memcpy(

@@ -2403,8 +2403,9 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_payload_t *request)
     S1AP_NumberofBroadcastRequest_t *NumberofBroadcastRequest = NULL;
     S1AP_DataCodingScheme_t *DataCodingScheme = NULL;
     S1AP_WarningMessageContents_t *WarningMessageContents = NULL;
+    S1AP_WarningType_t *WarningType = NULL;
 
-    ogs_debug("WriteReplaceWarningRequest");
+    ogs_info("WriteReplaceWarningRequest");
 
     ogs_assert(request);
 
@@ -2422,103 +2423,131 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_payload_t *request)
     WriteReplaceWarningRequest =
         &initiatingMessage->value.choice.WriteReplaceWarningRequest;
 
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
+    if (request->message_identifier_presence) {
+        ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+        ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
 
-    ie->id = S1AP_ProtocolIE_ID_id_MessageIdentifier;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_MessageIdentifier;
+        ie->id = S1AP_ProtocolIE_ID_id_MessageIdentifier;
+        ie->criticality = request->message_identifier_criticality;
+        ie->value.present =
+            S1AP_WriteReplaceWarningRequestIEs__value_PR_MessageIdentifier;
 
-    MessageIdentifier = &ie->value.choice.MessageIdentifier;
+        MessageIdentifier = &ie->value.choice.MessageIdentifier;
 
-    MessageIdentifier->size = (16 / 8);
-    MessageIdentifier->buf = 
-        CALLOC(MessageIdentifier->size, sizeof(uint8_t));
-    MessageIdentifier->bits_unused = 0;
-    MessageIdentifier->buf[0] = (request->message_identifier >> 8) & 0xFF;
-    MessageIdentifier->buf[1] = request->message_identifier & 0xFF;
+        MessageIdentifier->size = (16 / 8);
+        MessageIdentifier->buf =
+            CALLOC(MessageIdentifier->size, sizeof(uint8_t));
+        MessageIdentifier->bits_unused = 0;
+        MessageIdentifier->buf[0] = (request->message_identifier >> 8) & 0xFF;
+        MessageIdentifier->buf[1] = request->message_identifier & 0xFF;
+    }
 
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
+    if (request->serial_number_presence) {
+        ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+        ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
 
-    ie->id = S1AP_ProtocolIE_ID_id_SerialNumber;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_SerialNumber;
+        ie->id = S1AP_ProtocolIE_ID_id_SerialNumber;
+        ie->criticality = request->serial_number_criticality;
+        ie->value.present =
+            S1AP_WriteReplaceWarningRequestIEs__value_PR_SerialNumber;
 
-    SerialNumber = &ie->value.choice.SerialNumber;
+        SerialNumber = &ie->value.choice.SerialNumber;
 
-    SerialNumber->size = (16 / 8);
-    SerialNumber->buf = 
-        CALLOC(SerialNumber->size, sizeof(uint8_t));
-    SerialNumber->bits_unused = 0;
-    SerialNumber->buf[0] = (request->serial_number >> 8) & 0xFF;
-    SerialNumber->buf[1] = request->serial_number & 0xFF;
+        SerialNumber->size = (16 / 8);
+        SerialNumber->buf =
+            CALLOC(SerialNumber->size, sizeof(uint8_t));
+        SerialNumber->bits_unused = 0;
+        SerialNumber->buf[0] = (request->serial_number >> 8) & 0xFF;
+        SerialNumber->buf[1] = request->serial_number & 0xFF;
+    }
+
+    if (request->repetition_period_presence) {
+        ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+        ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
+
+        ie->id = S1AP_ProtocolIE_ID_id_RepetitionPeriod;
+        ie->criticality = request->repetition_period_criticality;
+        ie->value.present =
+            S1AP_WriteReplaceWarningRequestIEs__value_PR_RepetitionPeriod;
+
+        RepetitionPeriod = &ie->value.choice.RepetitionPeriod;
+
+        *RepetitionPeriod = request->repetition_period;
+    }
+
+    if (request->number_of_broadcasts_requested_presence) {
+        ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+        ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
+
+        ie->id = S1AP_ProtocolIE_ID_id_NumberofBroadcastRequest;
+        ie->criticality = request->number_of_broadcasts_requested_criticality;
+        ie->value.present =
+            S1AP_WriteReplaceWarningRequestIEs__value_PR_NumberofBroadcastRequest;
+
+        NumberofBroadcastRequest = &ie->value.choice.NumberofBroadcastRequest;
+
+        *NumberofBroadcastRequest = request->number_of_broadcasts_requested;
+    }
+
+    if (request->warning_type_presence) {
+        ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+        ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
+        
+        ie->id = S1AP_ProtocolIE_ID_id_WarningType;
+        ie->criticality = request->warning_type_criticality;
+        ie->value.present =
+            S1AP_WriteReplaceWarningRequestIEs__value_PR_WarningType;
+
+        WarningType = &ie->value.choice.WarningType;
+     
+        WarningType->size = 2;
+        WarningType->buf =
+            CALLOC(WarningType->size, sizeof(uint8_t));
+        WarningType->buf[0] = request->warning_type >> 8;
+        WarningType->buf[1] = request->warning_type & 0xFF;
+    }
+
+    if (request->data_coding_scheme_presence) {
+        ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+        ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
+
+        ie->id = S1AP_ProtocolIE_ID_id_DataCodingScheme;
+        ie->criticality = request->data_coding_scheme_criticality;
+        ie->value.present =
+            S1AP_WriteReplaceWarningRequestIEs__value_PR_DataCodingScheme;
+
+        DataCodingScheme = &ie->value.choice.DataCodingScheme;
+
+        DataCodingScheme->size = (8 / 8);
+        DataCodingScheme->buf =
+            CALLOC(DataCodingScheme->size, sizeof(uint8_t));
+        DataCodingScheme->bits_unused = 0;
+        DataCodingScheme->buf[0] = request->data_coding_scheme & 0xFF;
+    }
+
+    if (request->warning_message_content_presence) {
+        ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+        ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
+
+        ie->id = S1AP_ProtocolIE_ID_id_WarningMessageContents;
+        ie->criticality = request->warning_message_content_criticality;
+        ie->value.present =
+            S1AP_WriteReplaceWarningRequestIEs__value_PR_WarningMessageContents;
+
+        WarningMessageContents = &ie->value.choice.WarningMessageContents;
+
+        WarningMessageContents->size = request->warning_message_content_size;
+        WarningMessageContents->buf =
+            CALLOC(WarningMessageContents->size, sizeof(uint8_t));
+        memcpy(WarningMessageContents->buf,
+            request->warning_message_content, WarningMessageContents->size);
+    }
 
     /* TODO: optional Warning Area List */
 
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
-
-    ie->id = S1AP_ProtocolIE_ID_id_RepetitionPeriod;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_RepetitionPeriod;
-
-    RepetitionPeriod = &ie->value.choice.RepetitionPeriod;
-
-    *RepetitionPeriod = request->repetition_period;
-
     /* TODO: optional Extended Repetition Period */
 
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
-
-    ie->id = S1AP_ProtocolIE_ID_id_NumberofBroadcastRequest;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_NumberofBroadcastRequest;
-
-    NumberofBroadcastRequest = &ie->value.choice.NumberofBroadcastRequest;
-
-    *NumberofBroadcastRequest = request->number_of_broadcasts_requested;
-
-    /* TODO: optional Warnging Type */
-
     /* TODO: optional Warning Security Information */
-
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
-
-    ie->id = S1AP_ProtocolIE_ID_id_DataCodingScheme;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_DataCodingScheme;
-
-    DataCodingScheme = &ie->value.choice.DataCodingScheme;
-
-    DataCodingScheme->size = (8 / 8);
-    DataCodingScheme->buf = 
-        CALLOC(DataCodingScheme->size, sizeof(uint8_t));
-    DataCodingScheme->bits_unused = 0;
-    DataCodingScheme->buf[0] = request->data_coding_scheme & 0xFF;
-
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
-
-    ie->id = S1AP_ProtocolIE_ID_id_WarningMessageContents;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_WarningMessageContents;
-
-    WarningMessageContents = &ie->value.choice.WarningMessageContents;
-
-    WarningMessageContents->size = request->warning_message_content_size;
-    WarningMessageContents->buf =
-        CALLOC(WarningMessageContents->size, sizeof(uint8_t));
-    memcpy(WarningMessageContents->buf,
-            request->warning_message_content, WarningMessageContents->size);
 
     /* TODO: optional Concurrent Warning Message Indicator */
 
@@ -2541,7 +2570,7 @@ ogs_pkbuf_t *s1ap_build_kill_request(sbc_payload_t *request)
     S1AP_MessageIdentifier_t *MessageIdentifier = NULL;
     S1AP_SerialNumber_t *SerialNumber = NULL;
 
-    ogs_debug("KillRequest");
+    ogs_info("KillRequest");
 
     ogs_assert(request);
 
@@ -2557,37 +2586,41 @@ ogs_pkbuf_t *s1ap_build_kill_request(sbc_payload_t *request)
 
     KillRequest = &initiatingMessage->value.choice.KillRequest;
 
-    ie = CALLOC(1, sizeof(S1AP_KillRequestIEs_t));
-    ASN_SEQUENCE_ADD(&KillRequest->protocolIEs, ie);
+    if (request->message_identifier_presence) {
+        ie = CALLOC(1, sizeof(S1AP_KillRequestIEs_t));
+        ASN_SEQUENCE_ADD(&KillRequest->protocolIEs, ie);
 
-    ie->id = S1AP_ProtocolIE_ID_id_MessageIdentifier;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present = S1AP_KillRequestIEs__value_PR_MessageIdentifier;
+        ie->id = S1AP_ProtocolIE_ID_id_MessageIdentifier;
+        ie->criticality = request->message_identifier_criticality;
+        ie->value.present = S1AP_KillRequestIEs__value_PR_MessageIdentifier;
 
-    MessageIdentifier = &ie->value.choice.MessageIdentifier;
+        MessageIdentifier = &ie->value.choice.MessageIdentifier;
 
-    MessageIdentifier->size = (16 / 8);
-    MessageIdentifier->buf = 
-        CALLOC(MessageIdentifier->size, sizeof(uint8_t));
-    MessageIdentifier->bits_unused = 0;
-    MessageIdentifier->buf[0] = (request->message_identifier >> 8) & 0xFF;
-    MessageIdentifier->buf[1] = request->message_identifier & 0xFF;
+        MessageIdentifier->size = (16 / 8);
+        MessageIdentifier->buf =
+            CALLOC(MessageIdentifier->size, sizeof(uint8_t));
+        MessageIdentifier->bits_unused = 0;
+        MessageIdentifier->buf[0] = (request->message_identifier >> 8) & 0xFF;
+        MessageIdentifier->buf[1] = request->message_identifier & 0xFF;
+    }
 
-    ie = CALLOC(1, sizeof(S1AP_KillRequestIEs_t));
-    ASN_SEQUENCE_ADD(&KillRequest->protocolIEs, ie);
+    if (request->serial_number_presence) {
+        ie = CALLOC(1, sizeof(S1AP_KillRequestIEs_t));
+        ASN_SEQUENCE_ADD(&KillRequest->protocolIEs, ie);
 
-    ie->id = S1AP_ProtocolIE_ID_id_SerialNumber;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present = S1AP_KillRequestIEs__value_PR_SerialNumber;
+        ie->id = S1AP_ProtocolIE_ID_id_SerialNumber;
+        ie->criticality = request->serial_number_criticality;
+        ie->value.present = S1AP_KillRequestIEs__value_PR_SerialNumber;
 
-    SerialNumber = &ie->value.choice.SerialNumber;
+        SerialNumber = &ie->value.choice.SerialNumber;
 
-    SerialNumber->size = (16 / 8);
-    SerialNumber->buf = 
-        CALLOC(SerialNumber->size, sizeof(uint8_t));
-    SerialNumber->bits_unused = 0;
-    SerialNumber->buf[0] = (request->serial_number >> 8) & 0xFF;
-    SerialNumber->buf[1] = request->serial_number & 0xFF;
+        SerialNumber->size = (16 / 8);
+        SerialNumber->buf =
+            CALLOC(SerialNumber->size, sizeof(uint8_t));
+        SerialNumber->bits_unused = 0;
+        SerialNumber->buf[0] = (request->serial_number >> 8) & 0xFF;
+        SerialNumber->buf[1] = request->serial_number & 0xFF;
+    }
 
     /* TODO: optional Warning Area List */
 

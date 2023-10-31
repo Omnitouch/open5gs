@@ -35,7 +35,7 @@ extern "C" {
 /* Messages */
 /* ******** */
 
-enum { MAX_WARNING_CONTENT_MESSAGE_SIZE = 255 };
+enum { MAX_SBC_PAYLOAD_IE_STRING_SIZE = 255 };
 
 enum { CAUSE_MESSAGE_ACCEPTED = 0 };
 
@@ -53,26 +53,42 @@ typedef struct {
     uint8_t presence;
 
     uint8_t message_identifier_presence;
+	uint8_t message_identifier_criticality;
 	uint16_t message_identifier;
 
     uint8_t serial_number_presence;
+	uint8_t serial_number_criticality;
 	uint16_t serial_number;
 
     uint8_t repetition_period_presence;
+	uint8_t repetition_period_criticality;
 	uint16_t repetition_period;
 
     uint8_t number_of_broadcasts_requested_presence;
+	uint8_t number_of_broadcasts_requested_criticality;
 	uint16_t number_of_broadcasts_requested;
 
     uint8_t data_coding_scheme_presence;
+	uint8_t data_coding_scheme_criticality;
 	uint8_t data_coding_scheme;
 
     uint8_t warning_message_content_presence;
-	uint8_t warning_message_content[MAX_WARNING_CONTENT_MESSAGE_SIZE];
+	uint8_t warning_message_content_criticality;
+	uint8_t warning_message_content[MAX_SBC_PAYLOAD_IE_STRING_SIZE];
 	size_t warning_message_content_size;
 
     uint8_t cause_presence;
+	uint8_t cause_criticality;
 	uint8_t cause;
+
+	uint8_t warning_type_presence;
+	uint8_t warning_type_criticality;
+	uint16_t warning_type;
+
+    uint8_t warning_security_information_presence;
+	uint8_t warning_security_information_criticality;
+	uint8_t warning_security_information[MAX_SBC_PAYLOAD_IE_STRING_SIZE];
+	size_t warning_security_information_size;
 } sbc_payload_t;
 
 typedef struct {

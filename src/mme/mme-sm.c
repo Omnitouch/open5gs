@@ -334,7 +334,12 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
 
         memset(&sbc_message, 0, sizeof(sbc_message));
         rc = ogs_sbc_decode(&sbc_message, pkbuf);
-        ogs_expect(OGS_OK == rc);
+
+        if (OGS_OK != rc) {
+            ogs_error("Failed to decode sbc packet");
+            ogs_pkbuf_free(pkbuf);
+            break;
+        }
 
         switch (sbc_message.choice.initiatingMessage.present) {
             case SBC_MESSAGE_PR_WRITE_REPLACE_WARNING_REQUEST:
