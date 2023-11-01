@@ -971,7 +971,6 @@ int smf_context_parse_config(void)
                     ogs_yaml_iter_recurse(&smf_iter, &redis_iter);
 
                     while (ogs_yaml_iter_next(&redis_iter)) {
-                    ogs_info("redis_server");
                         const char *redis_server_config_key = ogs_yaml_iter_key(&redis_iter);
                         ogs_assert(redis_server_config_key);
                         if (!strcmp(redis_server_config_key, "addr")) {
@@ -983,8 +982,11 @@ int smf_context_parse_config(void)
                             if (redis_port)
                                 self.redis_server_config.port = atoi(redis_port);
                         } else
-                            ogs_warn("unknown key `%s`", smf_key);
+                            ogs_warn("unknown key `%s`", redis_server_config_key);
                     }
+                } else if (!strcmp(smf_key, "redis_p_cscf_ipv4_key")) {
+                    const char *redis_p_cscf_ipv4_key = ogs_yaml_iter_value(&smf_iter);
+                    self.redis_p_cscf_ipv4_key = redis_p_cscf_ipv4_key;
                 } else if (!strcmp(smf_key, "redis_ip_reuse")) {
                     ogs_yaml_iter_t redis_ip_reuse_iter;
                     ogs_yaml_iter_recurse(&smf_iter, &redis_ip_reuse_iter);
@@ -3096,7 +3098,16 @@ int smf_pco_build(uint8_t *pco_buf, uint8_t *buffer, int length)
             }
             break;
         case OGS_PCO_ID_P_CSCF_IPV4_ADDRESS_REQUEST:
-            if (smf_self()->num_of_p_cscf) {
+            if (smf_self()->redis_p_cscf_ipv4_key) {
+                if (redis_get_rand_p_cscf_ipv4(&p_cscf, smf_self()->redis_p_cscf_ipv4_key)) {
+                    smf.ids[smf.num_of_id].id = ue.ids[i].id;
+                    smf.ids[smf.num_of_id].len = OGS_IPV4_LEN;
+                    smf.ids[smf.num_of_id].data = p_cscf.sub;
+                    smf.num_of_id++;
+                } else {
+                    ogs_fatal("Failed to get P-CSCF IPv4 address from redis");
+                }
+            } else if (smf_self()->num_of_p_cscf) {
                 rv = ogs_ipsubnet(&p_cscf,
                     smf_self()->p_cscf[smf_self()->p_cscf_index], NULL);
                 ogs_assert(rv == OGS_OK);
