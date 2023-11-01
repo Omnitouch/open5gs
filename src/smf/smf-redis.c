@@ -17,13 +17,20 @@ static bool redis_add_available_ip(uint32_t ipv4, size_t available_time);
 
 
 void smf_redis_init(void) {
+    connection = ogs_redis_initialise(
+        smf_self()->redis_server_config.address,
+        smf_self()->redis_server_config.port
+    );
 
-    if (smf_self()->redis_ip_reuse.enabled) {
-        connection = ogs_redis_initialise(
+    if (connection)
+    {
+        ogs_info("Connected to redis server on %s:%u",
             smf_self()->redis_server_config.address,
             smf_self()->redis_server_config.port
-        );
+        );        
+    }
 
+    if (smf_self()->redis_ip_reuse.enabled) {
         /* Clear all the previous reuse data in redis */
         if (!redis_clear_ip_reuse_from_redis()) {
             ogs_fatal("Error: Failed to remove previous ip reuse data from redis");
@@ -133,6 +140,38 @@ int redis_get_num_available_ips(void) {
     freeReplyObject(reply);
 
     return available;
+}
+
+bool redis_get_rand_p_cscf_ipv4(ogs_ipsubnet_t *p_cscf, const char *redis_key) {
+    bool result = true;
+
+    if (NULL == connection) {
+        ogs_error("Cannot call redis_get_rand_p_cscf_ipv4 without a valid redis connection");
+        return false;
+    }
+
+    /* Randomly pick ipv4 address from the p_cscf_ipv4_set set */
+    redisReply *reply = redisCommand(connection, "SRANDMEMBER %s", redis_key);
+
+    if (NULL == reply) {
+        ogs_error("Got NULL response from redis, something has gone terribly wrong");
+        return false;
+    }
+
+    if (REDIS_REPLY_STRING != reply->type) {
+        ogs_error("Redis reply was not string!");
+        freeReplyObject(reply);
+        return false;
+    }
+
+    if (OGS_OK != ogs_ipsubnet(p_cscf, reply->str, NULL)) {
+        ogs_error("Failed to encode IPv4 address from redis: '%s'", reply->str);
+        result = false;
+    }
+
+    freeReplyObject(reply);
+
+    return result;
 }
 
 static bool redis_clear_ip_reuse_from_redis(void) {
