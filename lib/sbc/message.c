@@ -65,6 +65,7 @@ ogs_pkbuf_t *ogs_sbc_encode(ogs_sbc_message_t *message)
     return pkbuf;
 }
 
+/* See TS 129.168 for more info on SBC-AP */
 int ogs_sbc_decode(ogs_sbc_message_t *message, ogs_pkbuf_t *pkbuf)
 {
     uint8_t message_type;
@@ -95,8 +96,20 @@ int ogs_sbc_decode(ogs_sbc_message_t *message, ogs_pkbuf_t *pkbuf)
     value_length = buf[bytes_decoded];
     bytes_decoded += 1;
 
+    /* This is a hack but it works for now... for some reason there is
+     * sometimes an extra byte before the length byte (typically 0x80) maybe
+     * to indicate that the value is greater than 128 bytes? In any case, we
+     * expect that the specified length and bytes decoded before it will add
+     * up to the number of bytes in the packet */
     if (value_length + bytes_decoded != pkbuf->len) {
-        ogs_error("Packet size and calculated SBC message size are not the same!");
+        /* Maybe this next byte is the length? */
+        value_length = buf[bytes_decoded];
+        bytes_decoded += 1;
+    }
+
+    if (value_length + bytes_decoded != pkbuf->len) {
+        ogs_error("Packet size (%u) and calculated SBC message size (%lu) are not the same!", pkbuf->len, value_length + bytes_decoded);
+        ogs_error("Value length: %u, Bytes decoded: %lu, Packet size: %u", value_length, bytes_decoded, pkbuf->len);
         return OGS_ERROR;
     }
 
