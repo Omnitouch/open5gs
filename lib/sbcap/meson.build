@@ -1,4 +1,4 @@
-# Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+# Copyright (C) 2023 by Ryan Dimsey <ryan@omnitouch.com.au>
 
 # This file is part of Open5GS.
 
@@ -15,26 +15,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-libinc = include_directories('.')
+libsbcap_sources = files('''
+    ogs-sbcap.h
 
-subdir('core')
-subdir('proto')
-subdir('crypt')
-subdir('ipfw')
-subdir('app')
-subdir('metrics')
-subdir('sctp')
-subdir('tun')
-subdir('dbi')
-subdir('diameter')
-subdir('asn1c')
-subdir('ngap')
-subdir('s1ap')
-subdir('sbcap')
-subdir('sbc')
-subdir('nas')
-subdir('gtp')
-subdir('pfcp')
-subdir('sbi')
-subdir('dns_resolvers')
-subdir('redis')
+    conv.h
+    message.h 
+    build.h
+
+    conv.c 
+    message.c
+    build.c
+'''.split())
+
+libsbcap_inc = include_directories('.')
+
+libsbcap = library('ogssbcap',
+    sources : libsbcap_sources,
+    version : libogslib_version,
+    c_args : '-DOGS_S1AP_COMPILATION',
+    include_directories : [libsbcap_inc, libinc],
+    dependencies : libasn1c_sbcap_dep,
+    install : true)
+
+libsbcap_dep = declare_dependency(
+    link_with : libsbcap,
+    include_directories : [libsbcap_inc, libinc],
+    dependencies : libasn1c_sbcap_dep)
