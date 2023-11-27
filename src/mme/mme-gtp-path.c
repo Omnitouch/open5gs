@@ -27,6 +27,10 @@
 #include "mme-sm.h"
 #include "dns_resolvers.h"
 
+/* TODO: This same function exists in mme-context.c, move to common utils file */
+static int rand_under(int val);
+bool is_roaming(ogs_plmn_id_t *plmn_id);
+
 static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
 {
     int rv;
@@ -225,7 +229,16 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
         return OGS_ERROR;
     }
 
-    if (mme_self()->dns_target_sgw) {
+    if (is_roaming(&mme_ue->tai.plmn_id)) {
+        if (0 < mme_self()->sgwc_roaming_hostnames_sz) {
+            int pick = rand_under(mme_self()->sgwc_roaming_hostnames_sz);
+            char *addr = (char*)mme_self()->sgwc_roaming_hostnames[pick];
+            ogs_info("Roaming UE was given SGW with IP '%s'", addr);
+            ogs_ipv4_from_string((uint32_t*)&sgw_ue->gnode->addr.sa.sa_data[2], addr);
+        } else {
+            ogs_error("Roaming UE could not be given a roaming SGW as none have been specified in the config");
+        }
+    } else if (mme_self()->dns_target_sgw) {
         char ipv4[INET_ADDRSTRLEN] = "";
         ResolverContext context = {};
         /* We do not include the APN for SGW lookups */
@@ -743,4 +756,34 @@ int mme_gtp_send_bearer_resource_command(
     ogs_expect(rv == OGS_OK);
 
     return rv;
+}
+
+static int rand_under(int val)
+{
+    if (val < 2) {
+        return 0;
+    }
+    srand(time(NULL));
+    return rand() % val;
+}
+
+bool is_roaming(ogs_plmn_id_t *plmn_id)
+{
+    uint16_t ue_mnc = ogs_plmn_id_mnc(plmn_id);
+    uint16_t ue_mcc = ogs_plmn_id_mcc(plmn_id);
+
+    for (int i = 0; i < mme_self()->home_mnc_mcc_sz; ++i) {
+        uint16_t home_mnc = mme_self()->home_mnc_mcc[i].mnc;
+        uint16_t home_mcc = mme_self()->home_mnc_mcc[i].mcc;
+
+        if ((ue_mnc == home_mnc) &&
+            (ue_mcc == home_mcc))
+        {
+            /* UE is not roaming */
+            return false;
+        }
+    }
+
+    /* UE must be roaming */
+    return true;
 }

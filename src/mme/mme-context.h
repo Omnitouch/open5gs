@@ -203,6 +203,10 @@ typedef struct mme_context_s {
     bool dns_target_sgw;
     bool dns_target_pgw;
     char dns_base_domain[MAX_DNS_BASE_DOMAIN_NAME];
+    struct { uint16_t mnc; uint16_t mcc; } home_mnc_mcc[OGS_MAX_NUM_OF_SERVED_TAI];
+    size_t home_mnc_mcc_sz;
+    const char *sgwc_roaming_hostnames[OGS_MAX_NUM_OF_HOSTNAME];
+    size_t sgwc_roaming_hostnames_sz;
 
     bool include_local_time_zone;
 

@@ -799,6 +799,12 @@ int mme_context_parse_config(void)
                                                 &plmn_id_iter);
                                     }
                                 }
+
+                                if (mcc && mnc) {
+                                    self.home_mnc_mcc[self.home_mnc_mcc_sz].mnc = atoi(mnc);
+                                    self.home_mnc_mcc[self.home_mnc_mcc_sz].mcc = atoi(mcc);
+                                    self.home_mnc_mcc_sz++;
+                                }
                             } else if (!strcmp(tai_key, "tac")) {
                                 ogs_yaml_iter_t tac_iter;
                                 ogs_yaml_iter_recurse(&tai_iter, &tac_iter);
@@ -1732,6 +1738,64 @@ int mme_context_parse_config(void)
                     }
                 } else
                     ogs_warn("unknown key `%s`", mme_key);
+            }
+        } else if (!strcmp(root_key, "sgwc_roaming")) {
+            ogs_yaml_iter_t sgwc_roaming_iter;
+            ogs_yaml_iter_recurse(&root_iter, &sgwc_roaming_iter);
+            while (ogs_yaml_iter_next(&sgwc_roaming_iter)) {
+                const char *sgwc_roaming_key = ogs_yaml_iter_key(&sgwc_roaming_iter);
+                ogs_assert(sgwc_roaming_key);
+                if (!strcmp(sgwc_roaming_key, "gtpc")) {
+                    ogs_yaml_iter_t gtpc_array, gtpc_iter;
+                    ogs_yaml_iter_recurse(&sgwc_roaming_iter, &gtpc_array);
+                    do {
+                        const char **hostnames = self.sgwc_roaming_hostnames;
+
+                        if (ogs_yaml_iter_type(&gtpc_array) ==
+                                YAML_MAPPING_NODE) {
+                            memcpy(&gtpc_iter, &gtpc_array,
+                                    sizeof(ogs_yaml_iter_t));
+                        } else if (ogs_yaml_iter_type(&gtpc_array) ==
+                            YAML_SEQUENCE_NODE) {
+                            if (!ogs_yaml_iter_next(&gtpc_array))
+                                break;
+                            ogs_yaml_iter_recurse(&gtpc_array, &gtpc_iter);
+                        } else if (ogs_yaml_iter_type(&gtpc_array) ==
+                                YAML_SCALAR_NODE) {
+                            break;
+                        } else
+                            ogs_assert_if_reached();
+
+                        while (ogs_yaml_iter_next(&gtpc_iter)) {
+                            const char *gtpc_key =
+                                ogs_yaml_iter_key(&gtpc_iter);
+                            ogs_assert(gtpc_key);
+                            if (!strcmp(gtpc_key, "addr")) {
+                                ogs_yaml_iter_t hostname_iter;
+                                ogs_yaml_iter_recurse(&gtpc_iter,
+                                        &hostname_iter);
+                                ogs_assert(ogs_yaml_iter_type(&hostname_iter) !=
+                                    YAML_MAPPING_NODE);
+
+                                do {
+                                    if (ogs_yaml_iter_type(&hostname_iter) ==
+                                            YAML_SEQUENCE_NODE) {
+                                        if (!ogs_yaml_iter_next(&hostname_iter))
+                                            break;
+                                    }
+
+                                    ogs_assert(self.sgwc_roaming_hostnames_sz < OGS_MAX_NUM_OF_HOSTNAME);
+                                    hostnames[self.sgwc_roaming_hostnames_sz++] =
+                                        ogs_yaml_iter_value(&hostname_iter);
+                                } while (
+                                    ogs_yaml_iter_type(&hostname_iter) ==
+                                        YAML_SEQUENCE_NODE);
+                            } else
+                                ogs_warn("unknown key `%s`", gtpc_key);
+                        }
+                    } while (ogs_yaml_iter_type(&gtpc_array) ==
+                            YAML_SEQUENCE_NODE);
+                }
             }
         } else if (!strcmp(root_key, "sgw") || !strcmp(root_key, "sgwc")) {
             ogs_yaml_iter_t sgw_iter;
