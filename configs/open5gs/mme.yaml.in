@@ -437,6 +437,18 @@ sgwc:
       - addr: 127.0.0.3
 
 #
+# <GTP-C Client>
+#
+#  o Provide which sgwc to select from when a roaming UE connects
+#    to the network. Address is chosen from the list at random on
+#    create session request.
+#
+#  sgwc_roaming:
+#      gtpc:
+#        addr: 1.2.3.4
+#        addr: 5.6.7.8
+
+#
 # smf:
 #
 #  <GTP-C Client>
