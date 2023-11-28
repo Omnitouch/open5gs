@@ -2647,7 +2647,7 @@ ogs_pkbuf_t *s1ap_build_kill_request(SBcAP_Stop_Warning_Request_t *request)
                 s1ap_ie->id = S1AP_ProtocolIE_ID_id_MessageIdentifier;
                 s1ap_ie->criticality = sbcap_ie->criticality;
                 s1ap_ie->value.present =
-                    S1AP_WriteReplaceWarningRequestIEs__value_PR_MessageIdentifier;
+                    S1AP_KillRequestIEs__value_PR_MessageIdentifier;
 
                 s1ap_MessageIdentifier = &s1ap_ie->value.choice.MessageIdentifier;
                 
@@ -2670,7 +2670,7 @@ ogs_pkbuf_t *s1ap_build_kill_request(SBcAP_Stop_Warning_Request_t *request)
                 s1ap_ie->id = S1AP_ProtocolIE_ID_id_SerialNumber;
                 s1ap_ie->criticality = sbcap_ie->criticality;
                 s1ap_ie->value.present =
-                    S1AP_WriteReplaceWarningRequestIEs__value_PR_SerialNumber;
+                    S1AP_KillRequestIEs__value_PR_SerialNumber;
 
                 s1ap_SerialNumber = &s1ap_ie->value.choice.SerialNumber;
 
