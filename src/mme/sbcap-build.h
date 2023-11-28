@@ -17,29 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef OGS_SBC_H
-#define OGS_SBC_H
+#ifndef SBCAP_BUILD_H
+#define SBCAP_BUILD_H
 
-#include "core/ogs-core.h"
-
-#define OGS_SBC_INSIDE
-
-#include "sbc/sbc-types.h"
-#include "sbc/message.h"
-
-#undef OGS_SBC_INSIDE
+#include "mme-context.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern int __ogs_sbc_domain;
-
-#undef OGS_LOG_DOMAIN
-#define OGS_LOG_DOMAIN __ogs_sbc_domain
+ogs_pkbuf_t *sbcap_build_write_replace_warning_response(ogs_sbcap_message_t *request);
+ogs_pkbuf_t *sbcap_build_stop_warning_response(ogs_sbcap_message_t *request);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* SBCAP_BUILD_H */

@@ -29,6 +29,34 @@ asn_struct_print_f SBcAP_ProtocolIE_ID_print;
 asn_constr_check_f SBcAP_ProtocolIE_ID_constraint;
 per_type_decoder_f SBcAP_ProtocolIE_ID_decode_aper;
 per_type_encoder_f SBcAP_ProtocolIE_ID_encode_aper;
+#define SBcAP_ProtocolIE_ID_Cause ((SBcAP_ProtocolIE_ID_t)1)
+#define SBcAP_ProtocolIE_ID_Criticality_Diagnostics ((SBcAP_ProtocolIE_ID_t)2)
+#define SBcAP_ProtocolIE_ID_Data_Coding_Scheme ((SBcAP_ProtocolIE_ID_t)3)
+#define SBcAP_ProtocolIE_ID_Message_Identifier ((SBcAP_ProtocolIE_ID_t)5)
+#define SBcAP_ProtocolIE_ID_Number_of_Broadcasts_Requested ((SBcAP_ProtocolIE_ID_t)7)
+#define SBcAP_ProtocolIE_ID_Repetition_Period ((SBcAP_ProtocolIE_ID_t)10)
+#define SBcAP_ProtocolIE_ID_Serial_Number ((SBcAP_ProtocolIE_ID_t)11)
+#define SBcAP_ProtocolIE_ID_List_of_TAIs ((SBcAP_ProtocolIE_ID_t)14)
+#define SBcAP_ProtocolIE_ID_Warning_Area_List ((SBcAP_ProtocolIE_ID_t)15)
+#define SBcAP_ProtocolIE_ID_Warning_Message_Content ((SBcAP_ProtocolIE_ID_t)16)
+#define SBcAP_ProtocolIE_ID_Warning_Security_Information ((SBcAP_ProtocolIE_ID_t)17)
+#define SBcAP_ProtocolIE_ID_Warning_Type ((SBcAP_ProtocolIE_ID_t)18)
+#define SBcAP_ProtocolIE_ID_Omc_Id ((SBcAP_ProtocolIE_ID_t)19)
+#define SBcAP_ProtocolIE_ID_Concurrent_Warning_Message_Indicator ((SBcAP_ProtocolIE_ID_t)20)
+#define SBcAP_ProtocolIE_ID_Extended_Repetition_Period ((SBcAP_ProtocolIE_ID_t)21)
+#define SBcAP_ProtocolIE_ID_Unknown_Tracking_Area_List ((SBcAP_ProtocolIE_ID_t)22)
+#define SBcAP_ProtocolIE_ID_Broadcast_Scheduled_Area_List ((SBcAP_ProtocolIE_ID_t)23)
+#define SBcAP_ProtocolIE_ID_Send_Write_Replace_Warning_Indication ((SBcAP_ProtocolIE_ID_t)24)
+#define SBcAP_ProtocolIE_ID_Broadcast_Cancelled_Area_List ((SBcAP_ProtocolIE_ID_t)25)
+#define SBcAP_ProtocolIE_ID_Send_Stop_Warning_Indication ((SBcAP_ProtocolIE_ID_t)26)
+#define SBcAP_ProtocolIE_ID_Stop_All_Indicator ((SBcAP_ProtocolIE_ID_t)27)
+#define SBcAP_ProtocolIE_ID_Global_ENB_ID ((SBcAP_ProtocolIE_ID_t)28)
+#define SBcAP_ProtocolIE_ID_Broadcast_Empty_Area_List ((SBcAP_ProtocolIE_ID_t)29)
+#define SBcAP_ProtocolIE_ID_Restarted_Cell_List ((SBcAP_ProtocolIE_ID_t)30)
+#define SBcAP_ProtocolIE_ID_List_of_TAIs_Restart ((SBcAP_ProtocolIE_ID_t)31)
+#define SBcAP_ProtocolIE_ID_List_of_EAIs_Restart ((SBcAP_ProtocolIE_ID_t)32)
+#define SBcAP_ProtocolIE_ID_Failed_Cell_List ((SBcAP_ProtocolIE_ID_t)33)
+#define SBcAP_ProtocolIE_ID_Warning_Area_Coordinates ((SBcAP_ProtocolIE_ID_t)46)
 
 #ifdef __cplusplus
 }

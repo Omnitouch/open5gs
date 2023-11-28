@@ -36,10 +36,10 @@ typedef enum {
     MME_EVENT_S1AP_LO_SCTP_COMM_UP,
     MME_EVENT_S1AP_LO_CONNREFUSED,
 
-    MME_EVENT_SBC_MESSAGE,
-    MME_EVENT_SBC_LO_ACCEPT,
-    MME_EVENT_SBC_LO_SCTP_COMM_UP,
-    MME_EVENT_SBC_LO_CONNREFUSED,
+    MME_EVENT_SBCAP_MESSAGE,
+    MME_EVENT_SBCAP_LO_ACCEPT,
+    MME_EVENT_SBCAP_LO_SCTP_COMM_UP,
+    MME_EVENT_SBCAP_LO_CONNREFUSED,
 
     MME_EVENT_EMM_MESSAGE,
     MME_EVENT_EMM_TIMER,
@@ -71,7 +71,7 @@ typedef struct ogs_diam_s6a_message_s ogs_diam_s6a_message_t;
 typedef struct ogs_diam_s13_message_s ogs_diam_s13_message_t;
 typedef struct mme_vlr_s mme_vlr_t;
 typedef struct mme_enb_s mme_enb_t;
-typedef struct mme_cbs_s mme_cbs_t;
+typedef struct mme_cbc_s mme_cbc_t;
 typedef struct enb_ue_s enb_ue_t;
 typedef struct sgw_ue_s sgw_ue_t;
 typedef struct mme_ue_s mme_ue_t;

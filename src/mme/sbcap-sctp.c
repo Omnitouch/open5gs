@@ -20,7 +20,7 @@
 #include "ogs-sctp.h"
 
 #include "mme-event.h"
-#include "sbc-path.h"
+#include "sbcap-path.h"
 
 #if HAVE_USRSCTP
 static void usrsctp_recv_handler(struct socket *socket, void *data, int flags);
@@ -28,11 +28,11 @@ static void usrsctp_recv_handler(struct socket *socket, void *data, int flags);
 static void lksctp_accept_handler(short when, ogs_socket_t fd, void *data);
 #endif
 
-void sbc_accept_handler(ogs_sock_t *sock);
-void sbc_recv_handler(ogs_sock_t *sock);
+void sbcap_accept_handler(ogs_sock_t *sock);
+void sbcap_recv_handler(ogs_sock_t *sock);
 
 
-ogs_sock_t *sbc_server(ogs_socknode_t *node)
+ogs_sock_t *sbcap_server(ogs_socknode_t *node)
 {
     char buf[OGS_ADDRSTRLEN];
     ogs_sock_t *sock = NULL;
@@ -60,13 +60,13 @@ ogs_sock_t *sbc_server(ogs_socknode_t *node)
     node->sock = sock;
     node->cleanup = ogs_sctp_destroy;
 
-    ogs_info("sbc_server() [%s]:%d",
+    ogs_info("sbcap_server() [%s]:%d",
             OGS_ADDR(node->addr, buf), OGS_PORT(node->addr));
 
     return sock;
 }
 
-void sbc_recv_upcall(short when, ogs_socket_t fd, void *data)
+void sbcap_recv_upcall(short when, ogs_socket_t fd, void *data)
 {
     ogs_sock_t *sock = NULL;
 
@@ -74,7 +74,7 @@ void sbc_recv_upcall(short when, ogs_socket_t fd, void *data)
     sock = data;
     ogs_assert(sock);
 
-    sbc_recv_handler(sock);
+    sbcap_recv_handler(sock);
 }
 
 #if HAVE_USRSCTP
@@ -84,7 +84,7 @@ static void usrsctp_recv_handler(struct socket *socket, void *data, int flags)
 
     while ((events = usrsctp_get_events(socket)) &&
            (events & SCTP_EVENT_READ)) {
-        sbc_recv_handler((ogs_sock_t *)socket);
+        sbcap_recv_handler((ogs_sock_t *)socket);
     }
 }
 #else
@@ -93,11 +93,11 @@ static void lksctp_accept_handler(short when, ogs_socket_t fd, void *data)
     ogs_assert(data);
     ogs_assert(fd != INVALID_SOCKET);
 
-    sbc_accept_handler(data);
+    sbcap_accept_handler(data);
 }
 #endif
 
-void sbc_accept_handler(ogs_sock_t *sock)
+void sbcap_accept_handler(ogs_sock_t *sock)
 {
     char buf[OGS_ADDRSTRLEN];
     ogs_sock_t *new = NULL;
@@ -112,16 +112,16 @@ void sbc_accept_handler(ogs_sock_t *sock)
         ogs_assert(addr);
         memcpy(addr, &new->remote_addr, sizeof(ogs_sockaddr_t));
 
-        ogs_info("SBC accepted[%s]:%d in sbc module", 
+        ogs_info("SBCAP accepted[%s]:%d in sbc module", 
             OGS_ADDR(addr, buf), OGS_PORT(addr));
 
-        sbc_event_push(MME_EVENT_SBC_LO_ACCEPT, new, addr, NULL, 0, 0);
+        sbcap_event_push(MME_EVENT_SBCAP_LO_ACCEPT, new, addr, NULL, 0, 0);
     } else {
         ogs_log_message(OGS_LOG_ERROR, ogs_socket_errno, "accept() failed");
     }
 }
 
-void sbc_recv_handler(ogs_sock_t *sock)
+void sbcap_recv_handler(ogs_sock_t *sock)
 {
     ogs_pkbuf_t *pkbuf;
     int size;
@@ -165,7 +165,7 @@ void sbc_recv_handler(ogs_sock_t *sock)
                 ogs_assert(addr);
                 memcpy(addr, &from, sizeof(ogs_sockaddr_t));
 
-                sbc_event_push(MME_EVENT_SBC_LO_SCTP_COMM_UP,
+                sbcap_event_push(MME_EVENT_SBCAP_LO_SCTP_COMM_UP,
                         sock, addr, NULL,
                         not->sn_assoc_change.sac_inbound_streams,
                         not->sn_assoc_change.sac_outbound_streams);
@@ -181,7 +181,7 @@ void sbc_recv_handler(ogs_sock_t *sock)
                 ogs_assert(addr);
                 memcpy(addr, &from, sizeof(ogs_sockaddr_t));
 
-                sbc_event_push(MME_EVENT_SBC_LO_CONNREFUSED,
+                sbcap_event_push(MME_EVENT_SBCAP_LO_CONNREFUSED,
                         sock, addr, NULL, 0, 0);
             }
             break;
@@ -196,7 +196,7 @@ void sbc_recv_handler(ogs_sock_t *sock)
             ogs_assert(addr);
             memcpy(addr, &from, sizeof(ogs_sockaddr_t));
 
-            sbc_event_push(MME_EVENT_SBC_LO_CONNREFUSED,
+            sbcap_event_push(MME_EVENT_SBCAP_LO_CONNREFUSED,
                     sock, addr, NULL, 0, 0);
             break;
 
@@ -238,7 +238,7 @@ void sbc_recv_handler(ogs_sock_t *sock)
         ogs_assert(addr);
         memcpy(addr, &from, sizeof(ogs_sockaddr_t));
 
-        sbc_event_push(MME_EVENT_SBC_MESSAGE, sock, addr, pkbuf, 0, 0);
+        sbcap_event_push(MME_EVENT_SBCAP_MESSAGE, sock, addr, pkbuf, 0, 0);
         return;
     } else {
         if (ogs_socket_errno != OGS_EAGAIN) {

@@ -23,8 +23,8 @@
 
 #include "s1ap-handler.h"
 #include "s1ap-path.h"
-#include "sbc-handler.h"
-#include "sbc-path.h"
+#include "sbcap-handler.h"
+#include "sbcap-path.h"
 #include "sgsap-path.h"
 #include "nas-security.h"
 #include "nas-path.h"
@@ -251,7 +251,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         }
         break;
 
-    case MME_EVENT_SBC_LO_ACCEPT:
+    case MME_EVENT_SBCAP_LO_ACCEPT:
         sock = e->sock;
         ogs_assert(sock);
         addr = e->addr;
@@ -260,23 +260,23 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         ogs_assert(addr->ogs_sa_family == AF_INET ||
                 addr->ogs_sa_family == AF_INET6);
 
-        ogs_info("SBC accepted[%s] in master_sm module",
+        ogs_info("SBCAP accepted[%s] in master_sm module",
             OGS_ADDR(addr, buf));
 
-        if (!mme_cbs_initialised()) {
-            rv = mme_cbs_init(sock, addr);
+        if (!mme_cbc_initialised()) {
+            rv = mme_cbc_init(sock, addr);
             ogs_expect(OGS_OK == rv);
         } else {
             ogs_warn("We already have a Cell Broadcast Service connected, ignoring connection on %s",
                     OGS_ADDR(addr, buf));
             ogs_sock_destroy(sock);
             ogs_free(addr);
-            ogs_warn("SBC Socket Closed");
+            ogs_warn("SBCAP Socket Closed");
         }
     
         break;
 
-    case MME_EVENT_SBC_LO_SCTP_COMM_UP:
+    case MME_EVENT_SBCAP_LO_SCTP_COMM_UP:
         sock = e->sock;
         ogs_assert(sock);
         addr = e->addr;
@@ -285,11 +285,11 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         ogs_assert(addr->ogs_sa_family == AF_INET ||
                 addr->ogs_sa_family == AF_INET6);
 
-        ogs_info("SBC comms up[%s]",
+        ogs_info("SBCAP comms up[%s]",
             OGS_ADDR(addr, buf));
 
-        if (!mme_cbs_initialised()) {
-            rv = mme_cbs_init(sock, addr);
+        if (!mme_cbc_initialised()) {
+            rv = mme_cbc_init(sock, addr);
             ogs_expect(OGS_OK == rv);
         } else {
             ogs_free(addr);
@@ -297,7 +297,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
 
         break;
 
-    case MME_EVENT_SBC_LO_CONNREFUSED:
+    case MME_EVENT_SBCAP_LO_CONNREFUSED:
         sock = e->sock;
         ogs_assert(sock);
         addr = e->addr;
@@ -306,18 +306,19 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         ogs_assert(addr->ogs_sa_family == AF_INET ||
                 addr->ogs_sa_family == AF_INET6);
 
-        if (mme_cbs_initialised()) {
-            ogs_info("SBC[%s] connection refused!!!", OGS_ADDR(addr, buf));
-            rv = mme_cbs_remove();
+        if (mme_cbc_initialised()) {
+            ogs_info("SBCAP[%s] connection refused!!!", OGS_ADDR(addr, buf));
+            rv = mme_cbc_remove();
             ogs_expect(OGS_OK == rv);
         } else {
-            ogs_warn("SBC[%s] connection refused, Already Removed!",
+            ogs_warn("SBCAP[%s] connection refused, Already Removed!",
                     OGS_ADDR(addr, buf));
         }
         ogs_free(addr);
 
         break;
-    case MME_EVENT_SBC_MESSAGE:
+
+    case MME_EVENT_SBCAP_MESSAGE:
         sock = e->sock;
         ogs_assert(sock);
         addr = e->addr;
@@ -330,36 +331,38 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
 
         ogs_free(addr);
 
-        ogs_sbc_message_t sbc_message = {};
-
-        memset(&sbc_message, 0, sizeof(sbc_message));
-        rc = ogs_sbc_decode(&sbc_message, pkbuf);
+        ogs_sbcap_message_t sbcap_message = {};
+        memset(&sbcap_message, 0, sizeof(sbcap_message));
+        rc = ogs_sbcap_decode(&sbcap_message, pkbuf);
 
         if (OGS_OK != rc) {
-            ogs_error("Failed to decode sbc packet");
+            ogs_error("Failed to decode sbcab packet");
             ogs_pkbuf_free(pkbuf);
             break;
         }
 
-        switch (sbc_message.choice.initiatingMessage.present) {
-            case SBC_MESSAGE_PR_WRITE_REPLACE_WARNING_REQUEST:
-                sbc_handle_write_replace_warning_request(
-                    &sbc_message.choice.initiatingMessage.payload);
-                sbc_send_write_replace_warning_response(&mme_self()->cbs, &sbc_message);
-            break;
+        switch (sbcap_message.choice.initiatingMessage.procedureCode) {
+            case SBcAP_ProcedureCode_id_Write_Replace_Warning:
+                sbcap_handle_write_replace_warning_request(
+                    &sbcap_message.choice.initiatingMessage.value.choice.Write_Replace_Warning_Request);
+                sbcap_send_write_replace_warning_response(&mme_self()->cbc, &sbcap_message);
 
-            case SBC_MESSAGE_PR_STOP_WARNING_REQUEST:
-                sbc_handle_stop_warning_request(
-                    &sbc_message.choice.initiatingMessage.payload);
-                sbc_send_stop_warning_response(&mme_self()->cbs, &sbc_message);
-            break;
+                break;
+
+            case SBcAP_ProcedureCode_id_Stop_Warning:
+                sbcap_handle_stop_warning_request(
+                    &sbcap_message.choice.initiatingMessage.value.choice.Stop_Warning_Request);
+                sbcap_send_stop_warning_response(&mme_self()->cbc, &sbcap_message);
+
+                break;
 
             default:
                 ogs_error(
-                    "Not expecting SBC message with initiatingMessage presence of %i",
-                    sbc_message.choice.initiatingMessage.present
+                    "Not expecting SBCAP message with initiatingMessage procedure code of %li",
+                    sbcap_message.choice.initiatingMessage.procedureCode
                 );
-            break;
+
+                break;
         }
 
         ogs_pkbuf_free(pkbuf);

@@ -17,26 +17,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#if !defined(OGS_SBC_INSIDE) && !defined(OGS_SBC_COMPILATION)
-#error "This header cannot be included directly."
-#endif
+#ifndef SBCAP_PATH_H
+#define SBCAP_PATH_H
 
-#ifndef OGS_SBC_MESSAGE_H
-#define OGS_SBC_MESSAGE_H
+#include "mme-context.h"
+#include "mme-event.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int ogs_sbc_decode(ogs_sbc_message_t *message, ogs_pkbuf_t *pkbuf);
-ogs_pkbuf_t *ogs_sbc_encode(ogs_sbc_message_t *message);
+#define sbcap_event_push  mme_sctp_event_push
+
+int sbcap_open(void);
+void sbcap_close(void);
+
+ogs_sock_t *sbcap_server(ogs_socknode_t *node);
+void sbcap_recv_upcall(short when, ogs_socket_t fd, void *data);
+int sbcap_send_to_cbc(mme_cbc_t *cbc, ogs_pkbuf_t *pkbuf);
+int sbcap_send_write_replace_warning_response(mme_cbc_t *cbc, ogs_sbcap_message_t *request);
+int sbcap_send_stop_warning_response(mme_cbc_t *cbc, ogs_sbcap_message_t *request);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
-
-
-
-
+#endif /* SBCAP_PATH_H */

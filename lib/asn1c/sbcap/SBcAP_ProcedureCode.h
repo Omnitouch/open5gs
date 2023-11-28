@@ -29,6 +29,13 @@ asn_struct_print_f SBcAP_ProcedureCode_print;
 asn_constr_check_f SBcAP_ProcedureCode_constraint;
 per_type_decoder_f SBcAP_ProcedureCode_decode_aper;
 per_type_encoder_f SBcAP_ProcedureCode_encode_aper;
+#define SBcAP_ProcedureCode_id_Write_Replace_Warning ((SBcAP_ProcedureCode_t)0)
+#define SBcAP_ProcedureCode_id_Stop_Warning ((SBcAP_ProcedureCode_t)1)
+#define SBcAP_ProcedureCode_id_Error_Indication ((SBcAP_ProcedureCode_t)2)
+#define SBcAP_ProcedureCode_id_Write_Replace_Warning_Indication ((SBcAP_ProcedureCode_t)3)
+#define SBcAP_ProcedureCode_id_Stop_Warning_Indication ((SBcAP_ProcedureCode_t)4)
+#define SBcAP_ProcedureCode_id_PWS_Restart_Indication ((SBcAP_ProcedureCode_t)5)
+#define SBcAP_ProcedureCode_id_PWS_Failure_Indication ((SBcAP_ProcedureCode_t)6)
 
 #ifdef __cplusplus
 }

@@ -23,7 +23,7 @@
 #include "ogs-crypt.h"
 
 #include "ogs-s1ap.h"
-#include "ogs-sbc.h"
+#include "ogs-sbcap.h"
 #include "ogs-diameter-s6a.h"
 #include "ogs-diameter-s13.h"
 #include "ogs-gtp.h"
@@ -106,22 +106,22 @@ typedef struct {
     int gmt_modifier_sec;
 } mme_tac_timezone_map_t;
 
-typedef struct mme_cbs_s { /* Cell Broadcast Service */
+typedef struct mme_cbc_s { /* Cell Broadcast Service */
     ogs_sctp_sock_t sctp;       /* SCTP socket */
 
     struct {
         bool initialised;  /* SBC initialised */
     } state;
 
-    ogs_pkbuf_t     *sbc_reset_ack; /* Reset message */
-} mme_cbs_t;
+    ogs_pkbuf_t     *sbcap_reset_ack; /* Reset message */
+} mme_cbc_t;
 
 typedef struct mme_context_s {
     const char          *diam_conf_path;  /* MME Diameter conf path */
     ogs_diam_config_t   *diam_config;     /* MME Diameter config */
 
     uint16_t        s1ap_port;      /* Default S1AP Port */
-    uint16_t        sbc_port;       /* Default SBcAP Port */
+    uint16_t        sbcap_port;     /* Default SBcAP Port */
     uint16_t        sgsap_port;     /* Default SGsAP Port */
 
     ogs_list_t      s1ap_list;      /* MME S1AP IPv4 Server List */
@@ -130,8 +130,8 @@ typedef struct mme_context_s {
     ogs_list_t      sgw_list;       /* SGW GTPC Client List */
     mme_sgw_t       *sgw;           /* Iterator for SGW round-robin */
     
-    ogs_list_t      sbc_list;       /* MME SBC IPv4 Server List */
-    ogs_list_t      sbc_list6;      /* MME SBC IPv6 Server List */
+    ogs_list_t      sbcap_list;     /* MME SBC IPv4 Server List */
+    ogs_list_t      sbcap_list6;    /* MME SBC IPv6 Server List */
 
     ogs_list_t      pgw_list;       /* PGW GTPC Client List */
 
@@ -225,7 +225,7 @@ typedef struct mme_context_s {
     mme_tac_timezone_map_t tac_timezone_map[MAX_TAC_TIMEZONE_MAP_SZ];
     
     /* Cell Broadcast Service */
-    mme_cbs_t cbs;
+    mme_cbc_t cbc;
 } mme_context_t;
 
 typedef struct mme_sgw_s {
@@ -871,9 +871,9 @@ enb_ue_t *enb_ue_find(uint32_t index);
 enb_ue_t *enb_ue_find_by_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
 enb_ue_t *enb_ue_cycle(enb_ue_t *enb_ue);
 
-bool mme_cbs_initialised(void);
-int mme_cbs_init(ogs_sock_t *sock, ogs_sockaddr_t *addr);
-int mme_cbs_remove(void);
+bool mme_cbc_initialised(void);
+int mme_cbc_init(ogs_sock_t *sock, ogs_sockaddr_t *addr);
+int mme_cbc_remove(void);
 
 sgw_ue_t *sgw_ue_add(mme_sgw_t *sgw);
 void sgw_ue_remove(sgw_ue_t *sgw_ue);

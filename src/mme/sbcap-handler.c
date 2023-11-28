@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2023 by Ryan Dimsey <ryan@omnitouch.com.au>
  *
  * This file is part of Open5GS.
  *
@@ -20,10 +20,10 @@
 #include "mme-context.h"
 #include "s1ap-path.h"
 #include "s1ap-build.h"
-#include "sbc-handler.h"
+#include "sbcap-handler.h"
 
 /* Builds and sends a Write-Replace-Warning-Request to all eNBs over S1AP */
-void sbc_handle_write_replace_warning_request(sbc_payload_t *request)
+void sbcap_handle_write_replace_warning_request(SBcAP_Write_Replace_Warning_Request_t *request)
 {
     mme_enb_t *enb = NULL;
 
@@ -43,7 +43,7 @@ void sbc_handle_write_replace_warning_request(sbc_payload_t *request)
     }
 }
 
-void sbc_handle_stop_warning_request(sbc_payload_t *request)
+void sbcap_handle_stop_warning_request(SBcAP_Stop_Warning_Request_t *request)
 {
     mme_enb_t *enb = NULL;
 

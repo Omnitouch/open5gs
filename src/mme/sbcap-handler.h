@@ -17,22 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SBC_BUILD_H
-#define SBC_BUILD_H
+#ifndef SBCAP_HANDLER_H
+#define SBCAP_HANDLER_H
 
 #include "mme-context.h"
-
-#include "sbc-message.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-ogs_pkbuf_t *sbc_build_write_replace_warning_response(ogs_sbc_message_t *request);
-ogs_pkbuf_t *sbc_build_stop_warning_response(ogs_sbc_message_t *request);
+void sbcap_handle_write_replace_warning_request(SBcAP_Write_Replace_Warning_Request_t *request);
+void sbcap_handle_stop_warning_request(SBcAP_Stop_Warning_Request_t *request);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SBC_BUILD_H */
+#endif /* SBCAP_HANDLER_H */

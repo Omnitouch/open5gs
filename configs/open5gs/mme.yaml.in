@@ -23,10 +23,10 @@ logger:
     file: @localstatedir@/log/open5gs/mme.log
 
 #
-#  <SBC Server>>
+#  <SBCAP Server for CBC>
 #
 #  mme:
-#      sbc:
+#      cbc:
 #        - addr: 10.177.1.115
 #
 #
