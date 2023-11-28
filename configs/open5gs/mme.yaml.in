@@ -9,7 +9,7 @@
 #  logger:
 #    level: error
 #
-#  o Set OGS_LOG_DEBUG to mme/emm whichdomain level
+#  o Set OGS_LOG_DEBUG to mme/emm domain level
 #  logger:
 #    level: debug
 #    domain: mme,emm
