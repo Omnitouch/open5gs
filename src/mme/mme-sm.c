@@ -275,6 +275,13 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
                     ogs_assert(r != OGS_ERROR);
                     ogs_pkbuf_free(pkbuf);
                     return;
+                } else if (1 == nas_message
+                                .emm
+                                .attach_request
+                                .ue_network_capability
+                                .control_plane_ciot_eps_optimization)
+                {
+                    mme_ue_set_s11_u_teid(mme_ue);
                 }
             } else {
                 /* Here, if the MME_UE Context is found,

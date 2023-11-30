@@ -181,6 +181,7 @@ typedef struct mme_context_s {
     ogs_hash_t *guti_ue_hash;   /* hash table (GUTI : MME_UE) */
 
     ogs_hash_t *mme_s11_teid_hash;  /* hash table (MME-S11-TEID : MME_UE) */
+    ogs_hash_t *mme_s11_u_teid_hash;  /* hash table (MME-S11-U-TEID : MME_UE) */
 
     struct {
         struct {
@@ -420,6 +421,9 @@ struct mme_ue_s {
 
     ogs_pool_id_t   *mme_s11_teid_node; /* A node of MME-S11-TEID */
     uint32_t        mme_s11_teid;   /* MME-S11-TEID is derived from NODE */
+    
+    ogs_pool_id_t   *mme_s11_u_teid_node; /* A node of MME-S11-U-TEID */
+    uint32_t        mme_s11_u_teid;       /* MME-S11-TEID is derived from NODE */
 
     uint16_t        vlr_ostream_id; /* SCTP output stream id for VLR */
 
@@ -757,6 +761,8 @@ typedef struct mme_bearer_s {
     ogs_ip_t        sgw_s1u_ip;
     uint32_t        pgw_s5u_teid;
     ogs_ip_t        pgw_s5u_ip;
+    uint32_t        mme_s11u_teid;
+    ogs_ip_t        mme_s11u_ip;
 
     uint32_t        target_s1u_teid;    /* Target S1U TEID from HO-Req-Ack */
     ogs_ip_t        target_s1u_ip;      /* Target S1U ADDR from HO-Req-Ack */
@@ -867,6 +873,9 @@ sgw_relocation_e sgw_ue_check_if_relocated(mme_ue_t *mme_ue);
 
 void mme_ue_new_guti(mme_ue_t *mme_ue);
 void mme_ue_confirm_guti(mme_ue_t *mme_ue);
+
+void mme_ue_set_s11_u_teid(mme_ue_t *mme_ue);
+void mme_ue_remove_s11_u_teid(mme_ue_t *mme_ue);
 
 mme_ue_t *mme_ue_add(enb_ue_t *enb_ue);
 void mme_ue_remove(mme_ue_t *mme_ue);

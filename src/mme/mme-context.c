@@ -47,6 +47,7 @@ static OGS_POOL(mme_csmap_pool, mme_csmap_t);
 static OGS_POOL(mme_enb_pool, mme_enb_t);
 static OGS_POOL(mme_ue_pool, mme_ue_t);
 static OGS_POOL(mme_s11_teid_pool, ogs_pool_id_t);
+static OGS_POOL(mme_s11_u_teid_pool, ogs_pool_id_t);
 static OGS_POOL(enb_ue_pool, enb_ue_t);
 static OGS_POOL(sgw_ue_pool, sgw_ue_t);
 static OGS_POOL(mme_sess_pool, mme_sess_t);
@@ -110,7 +111,9 @@ void mme_context_init(void)
 
     ogs_pool_init(&mme_ue_pool, ogs_app()->max.ue);
     ogs_pool_init(&mme_s11_teid_pool, ogs_app()->max.ue);
+    ogs_pool_init(&mme_s11_u_teid_pool, ogs_app()->max.ue);
     ogs_pool_random_id_generate(&mme_s11_teid_pool);
+    ogs_pool_random_id_generate(&mme_s11_u_teid_pool);
 
     ogs_pool_init(&enb_ue_pool, ogs_app()->max.ue);
     ogs_pool_init(&sgw_ue_pool, ogs_app()->max.ue);
@@ -129,6 +132,8 @@ void mme_context_init(void)
     ogs_assert(self.guti_ue_hash);
     self.mme_s11_teid_hash = ogs_hash_make();
     ogs_assert(self.mme_s11_teid_hash);
+    self.mme_s11_u_teid_hash = ogs_hash_make();
+    ogs_assert(self.mme_s11_u_teid_hash);
 
     ogs_list_init(&self.mme_ue_list);
 
@@ -158,12 +163,15 @@ void mme_context_final(void)
     ogs_hash_destroy(self.guti_ue_hash);
     ogs_assert(self.mme_s11_teid_hash);
     ogs_hash_destroy(self.mme_s11_teid_hash);
+    ogs_assert(self.mme_s11_u_teid_hash);
+    ogs_hash_destroy(self.mme_s11_u_teid_hash);
 
     ogs_pool_final(&m_tmsi_pool);
     ogs_pool_final(&mme_bearer_pool);
     ogs_pool_final(&mme_sess_pool);
     ogs_pool_final(&mme_ue_pool);
     ogs_pool_final(&mme_s11_teid_pool);
+    ogs_pool_final(&mme_s11_u_teid_pool);
     ogs_pool_final(&enb_ue_pool);
     ogs_pool_final(&sgw_ue_pool);
 
@@ -3473,6 +3481,41 @@ int mme_ue_xact_count(mme_ue_t *mme_ue, uint8_t org)
     return org == OGS_GTP_LOCAL_ORIGINATOR ?
             ogs_list_count(&gnode->local_list) :
                 ogs_list_count(&gnode->remote_list);
+}
+
+/* Sets mme_ue->mme_s11_u_teid to a new value, if already set this prints an error */
+void mme_ue_set_s11_u_teid(mme_ue_t *mme_ue)
+{
+    if (NULL != mme_ue->mme_s11_u_teid_node) {
+        ogs_error("Trying to set an S11-U TEID when one already exists");
+        return;
+    }
+
+    /* Set MME-S11-U-TEID */
+    ogs_pool_alloc(&mme_s11_u_teid_pool, &mme_ue->mme_s11_u_teid_node);
+    ogs_assert(mme_ue->mme_s11_u_teid_node);
+
+    mme_ue->mme_s11_u_teid = *(mme_ue->mme_s11_u_teid_node);
+
+    ogs_hash_set(self.mme_s11_u_teid_hash,
+            &mme_ue->mme_s11_u_teid, sizeof(mme_ue->mme_s11_u_teid), mme_ue);
+}
+
+/* Removes the S11-U TEID if it exists, if not this does nothing */
+void mme_ue_remove_s11_u_teid(mme_ue_t *mme_ue)
+{
+    if (NULL == mme_ue->mme_s11_u_teid_node) {
+        /* TEID either never existed or has already been removed */
+        return;
+    }
+
+    ogs_hash_set(self.mme_s11_u_teid_hash,
+        &mme_ue->mme_s11_u_teid, sizeof(mme_ue->mme_s11_u_teid), NULL);
+
+    ogs_pool_free(&mme_s11_u_teid_pool, mme_ue->mme_s11_u_teid_node);
+
+    mme_ue->mme_s11_u_teid = 0;
+    mme_ue->mme_s11_u_teid_node = NULL;
 }
 
 void enb_ue_associate_mme_ue(enb_ue_t *enb_ue, mme_ue_t *mme_ue)

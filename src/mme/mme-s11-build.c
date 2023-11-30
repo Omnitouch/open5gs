@@ -43,6 +43,8 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     int enb_s1u_len[OGS_BEARER_PER_UE];
     ogs_gtp2_f_teid_t pgw_s5u_teid[OGS_BEARER_PER_UE];
     int pgw_s5u_len[OGS_BEARER_PER_UE];
+    ogs_gtp2_f_teid_t mme_s11_u_teid[OGS_BEARER_PER_UE];
+    int mme_s11_u_len[OGS_BEARER_PER_UE];
     ogs_gtp2_ambr_t ambr;
     ogs_gtp2_bearer_qos_t bearer_qos;
     char bearer_qos_buf[OGS_BEARER_PER_UE][GTP2_BEARER_QOS_LEN];
@@ -389,6 +391,27 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         ogs_gtp2_build_bearer_qos(
                 &req->bearer_contexts_to_be_created[i].bearer_level_qos,
                 &bearer_qos, bearer_qos_buf[i], GTP2_BEARER_QOS_LEN);
+
+        if (1 == mme_ue->ue_network_capability.control_plane_ciot_eps_optimization) {
+            memset(&mme_s11_u_teid[i], 0, sizeof(ogs_gtp2_f_teid_t));
+            mme_s11_u_teid[i].interface_type = OGS_GTP2_F_TEID_S11_MME_GTP_U;
+            mme_s11_u_teid[i].teid = htobe32(mme_ue->mme_s11_u_teid);
+            
+            rv = ogs_gtp2_sockaddr_to_f_teid(
+                ogs_gtp_self()->gtpu_addr,
+                ogs_gtp_self()->gtpu_addr6,
+                &mme_s11_u_teid[i],
+                &mme_s11_u_len[i]
+            );
+
+            ogs_assert(rv == OGS_OK);
+            req->bearer_contexts_to_be_created[i].s11_u_mme_f_teid.
+                presence = 1;
+            req->bearer_contexts_to_be_created[i].s11_u_mme_f_teid.data =
+                &mme_s11_u_teid[i];
+            req->bearer_contexts_to_be_created[i].s11_u_mme_f_teid.len =
+                mme_s11_u_len[i];
+        }
 
         i++;
     }
