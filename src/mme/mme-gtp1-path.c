@@ -395,7 +395,9 @@ int mme_gtp1_open(void)
         ogs_assert(node->poll);
     }
 
-    OGS_SETUP_GTPU_SERVER;
+    if (NULL != sock) {
+        OGS_SETUP_GTPU_SERVER;
+    }
 
     return OGS_OK;
 }

@@ -404,13 +404,16 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
                 &mme_s11_u_len[i]
             );
 
-            ogs_assert(rv == OGS_OK);
-            req->bearer_contexts_to_be_created[i].s11_u_mme_f_teid.
-                presence = 1;
-            req->bearer_contexts_to_be_created[i].s11_u_mme_f_teid.data =
-                &mme_s11_u_teid[i];
-            req->bearer_contexts_to_be_created[i].s11_u_mme_f_teid.len =
-                mme_s11_u_len[i];
+            if (rv == OGS_OK) {
+                req->bearer_contexts_to_be_created[i].s11_u_mme_f_teid.
+                    presence = 1;
+                req->bearer_contexts_to_be_created[i].s11_u_mme_f_teid.data =
+                    &mme_s11_u_teid[i];
+                req->bearer_contexts_to_be_created[i].s11_u_mme_f_teid.len =
+                    mme_s11_u_len[i];
+            } else {
+                ogs_error("There was an error when converting the GTP-U address to an S11 MME GTP-U F-TEID");
+            }
         }
 
         i++;
