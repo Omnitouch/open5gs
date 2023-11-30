@@ -29,6 +29,7 @@
 #include "s1ap-path.h"
 #include "sgsap-path.h"
 #include "mme-gtp-path.h"
+#include "mme-gtp1-path.h"
 #include "metrics.h"
 #include "mme-redis.h"
 
@@ -75,6 +76,9 @@ int mme_initialize(void)
 
     rv = s1ap_open();
     if (rv != OGS_OK) return OGS_ERROR;
+
+    rv = mme_gtp1_open();
+    if (rv != OGS_OK) return rv;
 
     thread = ogs_thread_create(mme_main, NULL);
     if (!thread) return OGS_ERROR;
