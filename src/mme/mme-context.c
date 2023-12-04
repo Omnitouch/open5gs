@@ -799,6 +799,12 @@ int mme_context_parse_config(void)
                                                 &plmn_id_iter);
                                     }
                                 }
+
+                                if (mcc && mnc) {
+                                    self.home_mnc_mcc[self.home_mnc_mcc_sz].mnc = atoi(mnc);
+                                    self.home_mnc_mcc[self.home_mnc_mcc_sz].mcc = atoi(mcc);
+                                    self.home_mnc_mcc_sz++;
+                                }
                             } else if (!strcmp(tai_key, "tac")) {
                                 ogs_yaml_iter_t tac_iter;
                                 ogs_yaml_iter_recurse(&tai_iter, &tac_iter);
@@ -3473,6 +3479,29 @@ int mme_ue_xact_count(mme_ue_t *mme_ue, uint8_t org)
     return org == OGS_GTP_LOCAL_ORIGINATOR ?
             ogs_list_count(&gnode->local_list) :
                 ogs_list_count(&gnode->remote_list);
+}
+
+bool mme_ue_is_roaming(mme_ue_t *mme_ue)
+{
+    ogs_assert(mme_ue);
+    ogs_plmn_id_t *plmn_id = &mme_ue->tai.plmn_id;
+    uint16_t ue_mnc = ogs_plmn_id_mnc(plmn_id);
+    uint16_t ue_mcc = ogs_plmn_id_mcc(plmn_id);
+
+    for (int i = 0; i < mme_self()->home_mnc_mcc_sz; ++i) {
+        uint16_t home_mnc = mme_self()->home_mnc_mcc[i].mnc;
+        uint16_t home_mcc = mme_self()->home_mnc_mcc[i].mcc;
+
+        if ((ue_mnc == home_mnc) &&
+            (ue_mcc == home_mcc))
+        {
+            /* UE is not roaming */
+            return false;
+        }
+    }
+
+    /* UE must be roaming */
+    return true;
 }
 
 void enb_ue_associate_mme_ue(enb_ue_t *enb_ue, mme_ue_t *mme_ue)

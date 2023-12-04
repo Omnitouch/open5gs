@@ -678,6 +678,7 @@ void mme_s6a_send_air(mme_ue_t *mme_ue,
     int ret;
 
     struct msg *req = NULL;
+    struct msg_hdr *hdr = NULL;
     struct avp *avp;
     struct avp *avpch;
     union avp_value val;
@@ -807,6 +808,14 @@ void mme_s6a_send_air(mme_ue_t *mme_ue,
     ret = fd_sess_state_store(mme_s6a_reg, session, &sess_data);
     ogs_assert(ret == 0);
     ogs_assert(sess_data == 0);
+
+    /* Add a preference on diameter peers based on if the UE is roaming or not */
+    fd_msg_hdr(req, &hdr);
+    if (mme_ue_is_roaming(mme_ue)) {
+        hdr->msg_peer_pref = OGS_DIAM_PEER_PREF_RELAY;
+    } else {
+        hdr->msg_peer_pref = OGS_DIAM_S6A_APPLICATION_ID;
+    }
 
     /* Send the request */
     ret = fd_msg_send(&req, mme_s6a_aia_cb, svg);
@@ -1087,6 +1096,7 @@ void mme_s6a_send_ulr(mme_ue_t *mme_ue)
     int ret;
 
     struct msg *req = NULL;
+    struct msg_hdr *hdr = NULL;
     struct avp *avp, *avpch;
     union avp_value val;
     struct sess_state *sess_data = NULL, *svg;
@@ -1228,6 +1238,14 @@ void mme_s6a_send_ulr(mme_ue_t *mme_ue)
     ogs_assert(ret == 0);
     ogs_assert(sess_data == 0);
 
+    /* Add a preference on diameter peers based on if the UE is roaming or not */
+    fd_msg_hdr(req, &hdr);
+    if (mme_ue_is_roaming(mme_ue)) {
+        hdr->msg_peer_pref = OGS_DIAM_PEER_PREF_RELAY;
+    } else {
+        hdr->msg_peer_pref = OGS_DIAM_S6A_APPLICATION_ID;
+    }
+
     /* Send the request */
     ret = fd_msg_send(&req, mme_s6a_ula_cb, svg);
     ogs_assert(ret == 0);
@@ -1244,6 +1262,7 @@ void mme_s6a_send_pur(mme_ue_t *mme_ue)
     int ret;
 
     struct msg *req = NULL;
+    struct msg_hdr *hdr = NULL;
     struct avp *avp;
     union avp_value val;
     struct sess_state *sess_data = NULL, *svg;
@@ -1319,6 +1338,14 @@ void mme_s6a_send_pur(mme_ue_t *mme_ue)
     ret = fd_sess_state_store(mme_s6a_reg, session, &sess_data);
     ogs_assert(ret == 0);
     ogs_assert(sess_data == 0);
+
+    /* Add a preference on diameter peers based on if the UE is roaming or not */
+    fd_msg_hdr(req, &hdr);
+    if (mme_ue_is_roaming(mme_ue)) {
+        hdr->msg_peer_pref = OGS_DIAM_PEER_PREF_RELAY;
+    } else {
+        hdr->msg_peer_pref = OGS_DIAM_S6A_APPLICATION_ID;
+    }
 
     /* Send the request */
     ret = fd_msg_send(&req, mme_s6a_pua_cb, svg);
