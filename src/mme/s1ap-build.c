@@ -2390,23 +2390,26 @@ ogs_pkbuf_t *s1ap_build_mme_status_transfer(
     return ogs_s1ap_encode(&pdu);
 }
 
-ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
+ogs_pkbuf_t *s1ap_build_write_replace_warning_request(SBcAP_Write_Replace_Warning_Request_t *request)
 {
     S1AP_S1AP_PDU_t pdu;
     S1AP_InitiatingMessage_t *initiatingMessage = NULL;
-    S1AP_WriteReplaceWarningRequest_t *WriteReplaceWarningRequest = NULL;
+    S1AP_WriteReplaceWarningRequest_t *writeReplaceWarningRequest = NULL;
 
-    S1AP_WriteReplaceWarningRequestIEs_t *ie = NULL;
-    S1AP_MessageIdentifier_t *MessageIdentifier = NULL;
-    S1AP_SerialNumber_t *SerialNumber = NULL;
-    S1AP_RepetitionPeriod_t *RepetitionPeriod = NULL;
-    S1AP_NumberofBroadcastRequest_t *NumberofBroadcastRequest = NULL;
-    S1AP_DataCodingScheme_t *DataCodingScheme = NULL;
-    S1AP_WarningMessageContents_t *WarningMessageContents = NULL;
+    S1AP_WriteReplaceWarningRequestIEs_t *s1ap_ie = NULL;
+    S1AP_MessageIdentifier_t *s1ap_MessageIdentifier = NULL;
+    S1AP_SerialNumber_t *s1ap_SerialNumber = NULL;
+    S1AP_RepetitionPeriod_t *s1ap_RepetitionPeriod = NULL;
+    S1AP_NumberofBroadcastRequest_t *s1ap_NumberofBroadcastRequest = NULL;
+    S1AP_WarningType_t *s1ap_WarningType = NULL;
+    S1AP_DataCodingScheme_t *s1ap_DataCodingScheme = NULL;
+    S1AP_WarningMessageContents_t *s1ap_WarningMessageContents = NULL;
 
-    ogs_debug("WriteReplaceWarningRequest");
+    SBcAP_Write_Replace_Warning_Request_IEs_t *sbcap_ie = NULL;
 
-    ogs_assert(sbc_pws);
+    ogs_info("Write-Replace-Warning-Request");
+
+    ogs_assert(request);
 
     memset(&pdu, 0, sizeof (S1AP_S1AP_PDU_t));
     pdu.present = S1AP_S1AP_PDU_PR_initiatingMessage;
@@ -2419,131 +2422,203 @@ ogs_pkbuf_t *s1ap_build_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
     initiatingMessage->value.present =
         S1AP_InitiatingMessage__value_PR_WriteReplaceWarningRequest;
 
-    WriteReplaceWarningRequest =
+    writeReplaceWarningRequest =
         &initiatingMessage->value.choice.WriteReplaceWarningRequest;
 
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
+    /* Parse all the SBCAP IEs to S1AP */
+    for (int i = 0; i < request->protocolIEs.list.count; i++) {
+        sbcap_ie = request->protocolIEs.list.array[i];
 
-    ie->id = S1AP_ProtocolIE_ID_id_MessageIdentifier;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_MessageIdentifier;
+        switch (sbcap_ie->id) {
+            case SBcAP_ProtocolIE_ID_Message_Identifier:
+            {
+                SBcAP_Message_Identifier_t *sbcap_MessageIdentifier =
+                    &sbcap_ie->value.choice.Message_Identifier;
 
-    MessageIdentifier = &ie->value.choice.MessageIdentifier;
+                s1ap_ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+                ASN_SEQUENCE_ADD(&writeReplaceWarningRequest->protocolIEs, s1ap_ie);
 
-    MessageIdentifier->size = (16 / 8);
-    MessageIdentifier->buf = 
-        CALLOC(MessageIdentifier->size, sizeof(uint8_t));
-    MessageIdentifier->bits_unused = 0;
-    MessageIdentifier->buf[0] = (sbc_pws->message_id >> 8) & 0xFF;
-    MessageIdentifier->buf[1] = sbc_pws->message_id & 0xFF;
+                s1ap_ie->id = S1AP_ProtocolIE_ID_id_MessageIdentifier;
+                s1ap_ie->criticality = sbcap_ie->criticality;
+                s1ap_ie->value.present =
+                    S1AP_WriteReplaceWarningRequestIEs__value_PR_MessageIdentifier;
 
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
+                s1ap_MessageIdentifier = &s1ap_ie->value.choice.MessageIdentifier;
+                
+                s1ap_MessageIdentifier->size = sbcap_MessageIdentifier->size;
+                s1ap_MessageIdentifier->buf =
+                    CALLOC(s1ap_MessageIdentifier->size, sizeof(uint8_t));
+                s1ap_MessageIdentifier->bits_unused = sbcap_MessageIdentifier->bits_unused;
+                memcpy(s1ap_MessageIdentifier->buf, sbcap_MessageIdentifier->buf, s1ap_MessageIdentifier->size);
+                
+                break;
+            }
+            case SBcAP_ProtocolIE_ID_Serial_Number:
+            {
+                SBcAP_Serial_Number_t *sbacp_SerialNumber =
+                    &sbcap_ie->value.choice.Serial_Number;
 
-    ie->id = S1AP_ProtocolIE_ID_id_SerialNumber;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_SerialNumber;
+                s1ap_ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+                ASN_SEQUENCE_ADD(&writeReplaceWarningRequest->protocolIEs, s1ap_ie);
 
-    SerialNumber = &ie->value.choice.SerialNumber;
+                s1ap_ie->id = S1AP_ProtocolIE_ID_id_SerialNumber;
+                s1ap_ie->criticality = sbcap_ie->criticality;
+                s1ap_ie->value.present =
+                    S1AP_WriteReplaceWarningRequestIEs__value_PR_SerialNumber;
 
-    SerialNumber->size = (16 / 8);
-    SerialNumber->buf = 
-        CALLOC(SerialNumber->size, sizeof(uint8_t));
-    SerialNumber->bits_unused = 0;
-    SerialNumber->buf[0] = (sbc_pws->serial_number >> 8) & 0xFF;
-    SerialNumber->buf[1] = sbc_pws->serial_number & 0xFF;
+                s1ap_SerialNumber = &s1ap_ie->value.choice.SerialNumber;
+
+                s1ap_SerialNumber->size = sbacp_SerialNumber->size;
+                s1ap_SerialNumber->buf =
+                    CALLOC(s1ap_SerialNumber->size, sizeof(uint8_t));
+                s1ap_SerialNumber->bits_unused = sbacp_SerialNumber->bits_unused;
+                memcpy(s1ap_SerialNumber->buf, sbacp_SerialNumber->buf, s1ap_SerialNumber->size);
+
+                break;
+            }
+            case SBcAP_ProtocolIE_ID_Repetition_Period:
+            {
+                SBcAP_Repetition_Period_t *sbacp_RepetitionPeriod =
+                    &sbcap_ie->value.choice.Repetition_Period;
+
+                s1ap_ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+                ASN_SEQUENCE_ADD(&writeReplaceWarningRequest->protocolIEs, s1ap_ie);
+
+                s1ap_ie->id = S1AP_ProtocolIE_ID_id_RepetitionPeriod;
+                s1ap_ie->criticality = sbcap_ie->criticality;
+                s1ap_ie->value.present =
+                    S1AP_WriteReplaceWarningRequestIEs__value_PR_RepetitionPeriod;
+
+                s1ap_RepetitionPeriod = &s1ap_ie->value.choice.RepetitionPeriod;
+
+                *s1ap_RepetitionPeriod = *sbacp_RepetitionPeriod;
+
+                break;
+            }
+            case SBcAP_ProtocolIE_ID_Number_of_Broadcasts_Requested:
+            {
+                SBcAP_Number_of_Broadcasts_Requested_t *sbacp_NumberofBroadcastRequested =
+                    &sbcap_ie->value.choice.Number_of_Broadcasts_Requested;
+
+                s1ap_ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+                ASN_SEQUENCE_ADD(&writeReplaceWarningRequest->protocolIEs, s1ap_ie);
+
+                s1ap_ie->id = S1AP_ProtocolIE_ID_id_NumberofBroadcastRequest;
+                s1ap_ie->criticality = sbcap_ie->criticality;
+                s1ap_ie->value.present =
+                    S1AP_WriteReplaceWarningRequestIEs__value_PR_NumberofBroadcastRequest;
+
+                s1ap_NumberofBroadcastRequest = &s1ap_ie->value.choice.NumberofBroadcastRequest;
+
+                *s1ap_NumberofBroadcastRequest = *sbacp_NumberofBroadcastRequested;
+
+                break;
+            }
+            case SBcAP_ProtocolIE_ID_Warning_Type:
+            {
+                SBcAP_Warning_Type_t *sbcap_WarningType =
+                    &sbcap_ie->value.choice.Warning_Type;
+
+                s1ap_ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+                ASN_SEQUENCE_ADD(&writeReplaceWarningRequest->protocolIEs, s1ap_ie);
+                
+                s1ap_ie->id = S1AP_ProtocolIE_ID_id_WarningType;
+                s1ap_ie->criticality = sbcap_ie->criticality;
+                s1ap_ie->value.present =
+                    S1AP_WriteReplaceWarningRequestIEs__value_PR_WarningType;
+
+                s1ap_WarningType = &s1ap_ie->value.choice.WarningType;
+
+                s1ap_WarningType->size = sbcap_WarningType->size;
+                s1ap_WarningType->buf =
+                    CALLOC(s1ap_WarningType->size, sizeof(uint8_t));
+                memcpy(s1ap_WarningType->buf, sbcap_WarningType->buf, s1ap_WarningType->size);
+
+                break;
+            }
+            case SBcAP_ProtocolIE_ID_Data_Coding_Scheme:
+            {
+                SBcAP_Data_Coding_Scheme_t *sbcap_DataCodingScheme =
+                    &sbcap_ie->value.choice.Data_Coding_Scheme;
+
+                s1ap_ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+                ASN_SEQUENCE_ADD(&writeReplaceWarningRequest->protocolIEs, s1ap_ie);
+
+                s1ap_ie->id = S1AP_ProtocolIE_ID_id_DataCodingScheme;
+                s1ap_ie->criticality = sbcap_ie->criticality;
+                s1ap_ie->value.present =
+                    S1AP_WriteReplaceWarningRequestIEs__value_PR_DataCodingScheme;
+
+                s1ap_DataCodingScheme = &s1ap_ie->value.choice.DataCodingScheme;
+
+                s1ap_DataCodingScheme->size = sbcap_DataCodingScheme->size;
+                s1ap_DataCodingScheme->buf =
+                    CALLOC(s1ap_DataCodingScheme->size, sizeof(uint8_t));
+                memcpy(s1ap_DataCodingScheme->buf, sbcap_DataCodingScheme->buf, s1ap_DataCodingScheme->size);
+                s1ap_DataCodingScheme->bits_unused = sbcap_DataCodingScheme->bits_unused;
+
+                break;
+            }
+            case SBcAP_ProtocolIE_ID_Warning_Message_Content:
+            {
+                SBcAP_Warning_Message_Content_t *sbcap_WarningMessageContents =
+                    &sbcap_ie->value.choice.Warning_Message_Content;
+
+                s1ap_ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+                ASN_SEQUENCE_ADD(&writeReplaceWarningRequest->protocolIEs, s1ap_ie);
+
+                s1ap_ie->id = S1AP_ProtocolIE_ID_id_WarningMessageContents;
+                s1ap_ie->criticality = sbcap_ie->criticality;
+                s1ap_ie->value.present =
+                    S1AP_WriteReplaceWarningRequestIEs__value_PR_WarningMessageContents;
+
+                s1ap_WarningMessageContents = &s1ap_ie->value.choice.WarningMessageContents;
+
+                s1ap_WarningMessageContents->size = sbcap_WarningMessageContents->size;
+                s1ap_WarningMessageContents->buf =
+                    CALLOC(s1ap_WarningMessageContents->size, sizeof(uint8_t));
+                memcpy(s1ap_WarningMessageContents->buf, sbcap_WarningMessageContents->buf, s1ap_WarningMessageContents->size);
+
+                break;
+            }
+            default:
+                ogs_info("Skipping IE with id %li when parsing Write-Replace-Warning-Request", sbcap_ie->id);
+                break;
+        }
+    }
 
     /* TODO: optional Warning Area List */
 
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
-
-    ie->id = S1AP_ProtocolIE_ID_id_RepetitionPeriod;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_RepetitionPeriod;
-
-    RepetitionPeriod = &ie->value.choice.RepetitionPeriod;
-
-    *RepetitionPeriod = sbc_pws->repetition_period;
-
     /* TODO: optional Extended Repetition Period */
 
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
-
-    ie->id = S1AP_ProtocolIE_ID_id_NumberofBroadcastRequest;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_NumberofBroadcastRequest;
-
-    NumberofBroadcastRequest = &ie->value.choice.NumberofBroadcastRequest;
-
-    *NumberofBroadcastRequest = sbc_pws->number_of_broadcast;
-
-    /* TODO: optional Warnging Type */
-
     /* TODO: optional Warning Security Information */
-
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
-
-    ie->id = S1AP_ProtocolIE_ID_id_DataCodingScheme;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_DataCodingScheme;
-
-    DataCodingScheme = &ie->value.choice.DataCodingScheme;
-
-    DataCodingScheme->size = (8 / 8);
-    DataCodingScheme->buf = 
-        CALLOC(DataCodingScheme->size, sizeof(uint8_t));
-    DataCodingScheme->bits_unused = 0;
-    DataCodingScheme->buf[0] = sbc_pws->data_coding_scheme & 0xFF;
-
-    ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
-    ASN_SEQUENCE_ADD(&WriteReplaceWarningRequest->protocolIEs, ie);
-
-    ie->id = S1AP_ProtocolIE_ID_id_WarningMessageContents;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present =
-        S1AP_WriteReplaceWarningRequestIEs__value_PR_WarningMessageContents;
-
-    WarningMessageContents = &ie->value.choice.WarningMessageContents;
-
-    WarningMessageContents->size = sbc_pws->message_length;;
-    WarningMessageContents->buf = 
-        CALLOC(WarningMessageContents->size, sizeof(uint8_t));
-    memcpy(WarningMessageContents->buf,
-            sbc_pws->message_contents, WarningMessageContents->size);
 
     /* TODO: optional Concurrent Warning Message Indicator */
 
     ogs_debug("    Message[%02x,%02x] Serial[%02x,%02x] "
             "Repetition[%d] NumBroadcast[%d]",
-        MessageIdentifier->buf[0], MessageIdentifier->buf[1],
-        SerialNumber->buf[0], SerialNumber->buf[1],
-        (int)*RepetitionPeriod, (int)*NumberofBroadcastRequest);
+        s1ap_MessageIdentifier->buf[0], s1ap_MessageIdentifier->buf[1],
+        s1ap_SerialNumber->buf[0], s1ap_SerialNumber->buf[1],
+        (int)*s1ap_RepetitionPeriod, (int)*s1ap_NumberofBroadcastRequest);
 
     return ogs_s1ap_encode(&pdu);
 }
 
-ogs_pkbuf_t *s1ap_build_kill_request(sbc_pws_data_t *sbc_pws)
+ogs_pkbuf_t *s1ap_build_kill_request(SBcAP_Stop_Warning_Request_t *request)
 {
     S1AP_S1AP_PDU_t pdu;
     S1AP_InitiatingMessage_t *initiatingMessage = NULL;
     S1AP_KillRequest_t *KillRequest = NULL;
 
-    S1AP_KillRequestIEs_t *ie = NULL;
-    S1AP_MessageIdentifier_t *MessageIdentifier = NULL;
-    S1AP_SerialNumber_t *SerialNumber = NULL;
+    S1AP_KillRequestIEs_t *s1ap_ie = NULL;
+    S1AP_MessageIdentifier_t *s1ap_MessageIdentifier = NULL;
+    S1AP_SerialNumber_t *s1ap_SerialNumber = NULL;
 
-    ogs_debug("KillRequest");
+    SBcAP_Stop_Warning_Request_IEs_t *sbcap_ie = NULL;
 
-    ogs_assert(sbc_pws);
+    ogs_info("KillRequest");
+
+    ogs_assert(request);
 
     memset(&pdu, 0, sizeof (S1AP_S1AP_PDU_t));
     pdu.present = S1AP_S1AP_PDU_PR_initiatingMessage;
@@ -2557,43 +2632,68 @@ ogs_pkbuf_t *s1ap_build_kill_request(sbc_pws_data_t *sbc_pws)
 
     KillRequest = &initiatingMessage->value.choice.KillRequest;
 
-    ie = CALLOC(1, sizeof(S1AP_KillRequestIEs_t));
-    ASN_SEQUENCE_ADD(&KillRequest->protocolIEs, ie);
+    for (int i = 0; i < request->protocolIEs.list.count; i++) {
+        sbcap_ie = request->protocolIEs.list.array[i];
 
-    ie->id = S1AP_ProtocolIE_ID_id_MessageIdentifier;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present = S1AP_KillRequestIEs__value_PR_MessageIdentifier;
+        switch (sbcap_ie->id) {
+            case SBcAP_ProtocolIE_ID_Message_Identifier:
+            {
+                SBcAP_Message_Identifier_t *sbcap_MessageIdentifier =
+                    &sbcap_ie->value.choice.Message_Identifier;
 
-    MessageIdentifier = &ie->value.choice.MessageIdentifier;
+                s1ap_ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+                ASN_SEQUENCE_ADD(&KillRequest->protocolIEs, s1ap_ie);
 
-    MessageIdentifier->size = (16 / 8);
-    MessageIdentifier->buf = 
-        CALLOC(MessageIdentifier->size, sizeof(uint8_t));
-    MessageIdentifier->bits_unused = 0;
-    MessageIdentifier->buf[0] = (sbc_pws->message_id >> 8) & 0xFF;
-    MessageIdentifier->buf[1] = sbc_pws->message_id & 0xFF;
+                s1ap_ie->id = S1AP_ProtocolIE_ID_id_MessageIdentifier;
+                s1ap_ie->criticality = sbcap_ie->criticality;
+                s1ap_ie->value.present =
+                    S1AP_KillRequestIEs__value_PR_MessageIdentifier;
 
-    ie = CALLOC(1, sizeof(S1AP_KillRequestIEs_t));
-    ASN_SEQUENCE_ADD(&KillRequest->protocolIEs, ie);
+                s1ap_MessageIdentifier = &s1ap_ie->value.choice.MessageIdentifier;
+                
+                s1ap_MessageIdentifier->size = sbcap_MessageIdentifier->size;
+                s1ap_MessageIdentifier->buf =
+                    CALLOC(s1ap_MessageIdentifier->size, sizeof(uint8_t));
+                s1ap_MessageIdentifier->bits_unused = sbcap_MessageIdentifier->bits_unused;
+                memcpy(s1ap_MessageIdentifier->buf, sbcap_MessageIdentifier->buf, s1ap_MessageIdentifier->size);
+                
+                break;
+            }
+            case SBcAP_ProtocolIE_ID_Serial_Number:
+            {
+                SBcAP_Serial_Number_t *sbacp_SerialNumber =
+                    &sbcap_ie->value.choice.Serial_Number;
 
-    ie->id = S1AP_ProtocolIE_ID_id_SerialNumber;
-    ie->criticality = S1AP_Criticality_reject;
-    ie->value.present = S1AP_KillRequestIEs__value_PR_SerialNumber;
+                s1ap_ie = CALLOC(1, sizeof(S1AP_WriteReplaceWarningRequestIEs_t));
+                        ASN_SEQUENCE_ADD(&KillRequest->protocolIEs, s1ap_ie);
 
-    SerialNumber = &ie->value.choice.SerialNumber;
+                s1ap_ie->id = S1AP_ProtocolIE_ID_id_SerialNumber;
+                s1ap_ie->criticality = sbcap_ie->criticality;
+                s1ap_ie->value.present =
+                    S1AP_KillRequestIEs__value_PR_SerialNumber;
 
-    SerialNumber->size = (16 / 8);
-    SerialNumber->buf = 
-        CALLOC(SerialNumber->size, sizeof(uint8_t));
-    SerialNumber->bits_unused = 0;
-    SerialNumber->buf[0] = (sbc_pws->serial_number >> 8) & 0xFF;
-    SerialNumber->buf[1] = sbc_pws->serial_number & 0xFF;
+                s1ap_SerialNumber = &s1ap_ie->value.choice.SerialNumber;
+
+                s1ap_SerialNumber->size = sbacp_SerialNumber->size;
+                s1ap_SerialNumber->buf =
+                    CALLOC(s1ap_SerialNumber->size, sizeof(uint8_t));
+                s1ap_SerialNumber->bits_unused = sbacp_SerialNumber->bits_unused;
+                memcpy(s1ap_SerialNumber->buf, sbacp_SerialNumber->buf, s1ap_SerialNumber->size);
+
+                break;
+            }
+
+            default:
+                ogs_info("Skipping IE with id %li when parsing Stop-Warning-Request", sbcap_ie->id);
+                break;
+        }
+    }
 
     /* TODO: optional Warning Area List */
 
     ogs_debug("    Message[%02x,%02x] Serial[%02x,%02x]",
-            MessageIdentifier->buf[0], MessageIdentifier->buf[1], 
-            SerialNumber->buf[0], SerialNumber->buf[1]);
+            s1ap_MessageIdentifier->buf[0], s1ap_MessageIdentifier->buf[1], 
+            s1ap_SerialNumber->buf[0], s1ap_SerialNumber->buf[1]);
 
     return ogs_s1ap_encode(&pdu);
 }

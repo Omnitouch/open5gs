@@ -22,6 +22,8 @@ redisContext* ogs_redis_initialise(const char* address, uint32_t port) {
             address,
             port
         );
+        redisFree(connection);
+        connection = NULL;
     } else {
         ogs_debug("Successful connection to redis {address: '%s', port: %i}",
             address,

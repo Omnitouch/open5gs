@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2023 by Ryan Dimsey <ryan@omnitouch.com.au>
  *
  * This file is part of Open5GS.
  *
@@ -17,22 +17,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SBC_HANDLER_H
-#define SBC_HANDLER_H
+#if !defined(OGS_SBCAP_INSIDE) && !defined(OGS_SBCAP_COMPILATION)
+#error "This header cannot be included directly."
+#endif
 
-#include "sbc-message.h"
-
-/* SBc-AP handles */
+#ifndef OGS_SBCAP_CONV_H
+#define OGS_SBCAP_CONV_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void sbc_handle_write_replace_warning_request(sbc_pws_data_t *sbc_pws);
-void sbc_handle_stop_warning_request(sbc_pws_data_t *sbc_pws);
+// void ogs_s1ap_buffer_to_OCTET_STRING(
+//         void *buf, int size, SBCAP_TBCD_STRING_t *tbcd_string);
+
+// void ogs_s1ap_uint32_to_ENB_ID(
+//         SBCAP_ENB_ID_PR present, uint32_t enb_id, SBCAP_ENB_ID_t *eNB_ID);
+// void ogs_s1ap_ENB_ID_to_uint32(
+//         SBCAP_ENB_ID_t *eNB_ID, uint32_t *uint32);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SBC_HANDLER_H */
+#endif /* OGS_SBCAP_CONV_H */
+

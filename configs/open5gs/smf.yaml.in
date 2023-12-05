@@ -434,6 +434,16 @@ sbi:
 #      - 127.0.0.1
 #      - ::1
 #
+# <REDIS>
+#
+#  o To enable random P-CSCF IPv4 address selection from redis include your 
+#    redis set key in the "redis_p_cscf_ipv4_key" option. This will randomly 
+#    select an item from the redis set using the `SRANDMEMBER` command. Without this
+#    option the P-CSCF IPv4 address is obtained from the p-cscf option above.
+#
+#  smf:
+#    redis_p_cscf_ipv4_key: p_cscf_ipv4_set
+#
 # <REDIS IP REUSE>
 #
 # o enabled:
