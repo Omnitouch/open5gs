@@ -29,7 +29,6 @@
 
 /* TODO: This same function exists in mme-context.c, move to common utils file */
 static int rand_under(int val);
-bool is_roaming(ogs_plmn_id_t *plmn_id);
 
 static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
 {
@@ -229,7 +228,7 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
         return OGS_ERROR;
     }
 
-    if (is_roaming(&mme_ue->tai.plmn_id)) {
+    if (mme_ue_is_roaming(mme_ue)) {
         if (0 < mme_self()->sgwc_roaming_hostnames_sz) {
             int pick = rand_under(mme_self()->sgwc_roaming_hostnames_sz);
             char *addr = (char*)mme_self()->sgwc_roaming_hostnames[pick];
@@ -767,23 +766,3 @@ static int rand_under(int val)
     return rand() % val;
 }
 
-bool is_roaming(ogs_plmn_id_t *plmn_id)
-{
-    uint16_t ue_mnc = ogs_plmn_id_mnc(plmn_id);
-    uint16_t ue_mcc = ogs_plmn_id_mcc(plmn_id);
-
-    for (int i = 0; i < mme_self()->home_mnc_mcc_sz; ++i) {
-        uint16_t home_mnc = mme_self()->home_mnc_mcc[i].mnc;
-        uint16_t home_mcc = mme_self()->home_mnc_mcc[i].mcc;
-
-        if ((ue_mnc == home_mnc) &&
-            (ue_mcc == home_mcc))
-        {
-            /* UE is not roaming */
-            return false;
-        }
-    }
-
-    /* UE must be roaming */
-    return true;
-}
