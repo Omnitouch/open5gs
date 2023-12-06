@@ -299,6 +299,9 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST)
         indication.operation_indication = 1;
 
+    if (mme_ue->ue_network_capability.control_plane_ciot_eps_optimization)
+        indication.s11_u_tunnel_flag = 1;
+
     session->paa.session_type = req->pdn_type.u8;
     req->pdn_address_allocation.data = &session->paa;
     if (req->pdn_type.u8 == OGS_PDU_SESSION_TYPE_IPV4)
@@ -395,7 +398,7 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         if (1 == mme_ue->ue_network_capability.control_plane_ciot_eps_optimization) {
             memset(&mme_s11_u_teid[i], 0, sizeof(ogs_gtp2_f_teid_t));
             mme_s11_u_teid[i].interface_type = OGS_GTP2_F_TEID_S11_MME_GTP_U;
-            mme_s11_u_teid[i].teid = htobe32(mme_ue->mme_s11_u_teid);
+            mme_s11_u_teid[i].teid = htobe32(mme_ue->mme_s11_u_teid); // should mme_s11_u_teid be in the bearer ?
             
             rv = ogs_gtp2_sockaddr_to_f_teid(
                 ogs_gtp_self()->gtpu_addr,

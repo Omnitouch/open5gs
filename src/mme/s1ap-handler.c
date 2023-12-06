@@ -235,6 +235,11 @@ void s1ap_handle_initial_ue_message(mme_enb_t *enb, ogs_s1ap_message_t *message)
     InitialUEMessage = &initiatingMessage->value.choice.InitialUEMessage;
     ogs_assert(InitialUEMessage);
 
+// TS 23.401 - 4.3.5.3
+// The MME determines the RAT type the UE is camping on, i.e. NB-IoT or WB-E-UTRAN for terrestrial access and
+// WB-E-UTRAN or NB-IoT RAT types for satellite access, based on the Tracking Area indicated in the INITIAL UE
+// MESSAGE by the eNodeB.
+
     ogs_info("InitialUEMessage");
 
     for (i = 0; i < InitialUEMessage->protocolIEs.list.count; i++) {
@@ -343,6 +348,10 @@ void s1ap_handle_initial_ue_message(mme_enb_t *enb, ogs_s1ap_message_t *message)
             }
         }
     }
+
+    // if (enb_ue->mme_ue) {
+    //     enb_ue->mme_ue->rat_type = OGS_UE_RAT_TYPE_EUTRAN_NB_IoT;
+    // }
 
     if (!NAS_PDU) {
         ogs_error("No NAS_PDU");

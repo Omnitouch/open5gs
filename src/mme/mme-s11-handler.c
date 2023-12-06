@@ -313,8 +313,10 @@ void mme_s11_handle_create_session_response(
             ogs_error("No EPS Bearer ID");
             break;
         }
-        if (rsp->bearer_contexts_created[i].s1_u_enodeb_f_teid.presence == 0) {
-            ogs_error("No SGW-S1U TEID");
+        if ((rsp->bearer_contexts_created[i].s1_u_enodeb_f_teid.presence == 0) &&
+            (rsp->bearer_contexts_created[i].s11_u_mme_f_teid.presence == 0))
+        {
+            ogs_error("No SGW-S1U or MME-S11U TEID");
             break;
         }
         if (rsp->bearer_contexts_created[i].s5_s8_u_sgw_f_teid.presence == 0) {
@@ -331,10 +333,18 @@ void mme_s11_handle_create_session_response(
         }
 
         /* Data Plane(UL) : SGW-S1U */
-        sgw_s1u_teid = rsp->bearer_contexts_created[i].s1_u_enodeb_f_teid.data;
-        bearer->sgw_s1u_teid = be32toh(sgw_s1u_teid->teid);
-        ogs_assert(OGS_OK ==
-                ogs_gtp2_f_teid_to_ip(sgw_s1u_teid, &bearer->sgw_s1u_ip));
+        if (rsp->bearer_contexts_created[i].s1_u_enodeb_f_teid.presence) {
+            sgw_s1u_teid = rsp->bearer_contexts_created[i].s1_u_enodeb_f_teid.data;
+            bearer->sgw_s1u_teid = be32toh(sgw_s1u_teid->teid);
+            ogs_assert(OGS_OK ==
+                    ogs_gtp2_f_teid_to_ip(sgw_s1u_teid, &bearer->sgw_s1u_ip));
+        } else {
+            /* todo change these to be s11 and not s1 */
+            sgw_s1u_teid = rsp->bearer_contexts_created[i].s11_u_mme_f_teid.data;
+            bearer->sgw_s1u_teid = be32toh(sgw_s1u_teid->teid);
+            ogs_assert(OGS_OK ==
+                    ogs_gtp2_f_teid_to_ip(sgw_s1u_teid, &bearer->sgw_s1u_ip));
+        }
 
         /* Data Plane(UL) : PGW-S5U */
         pgw_s5u_teid = rsp->bearer_contexts_created[i].s5_s8_u_sgw_f_teid.data;
