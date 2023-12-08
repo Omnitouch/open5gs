@@ -336,6 +336,9 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 ogs_assert(e->pfcp_xact);
                 smf_gy_handle_cca_update_request(
                         sess, gy_message, e->pfcp_xact);
+                
+                /* Send event to the gsm-sm for reauthing purposes */
+                ogs_fsm_dispatch(&sess->sm, e);
             break;
             case OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST:
                 ogs_fsm_dispatch(&sess->sm, e);

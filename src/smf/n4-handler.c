@@ -1342,6 +1342,7 @@ void smf_n4_handle_session_report_request(
         }
         switch(smf_use_gy_iface()) {
         case 1:
+            ogs_info("here");
             smf_gy_send_ccr(sess, pfcp_xact,
                     OGS_DIAM_GY_CC_REQUEST_TYPE_UPDATE_REQUEST);
             break;

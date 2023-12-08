@@ -62,6 +62,8 @@ typedef enum {
     SMF_EVT_5GSM_MESSAGE,
     SMF_EVT_5GSM_TIMER,
 
+    SMF_EVT_HARD_REAUTH_TERMINATE,
+
     SMF_EVT_TOP,
 
 } smf_event_e;

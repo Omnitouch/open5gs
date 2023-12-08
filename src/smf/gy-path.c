@@ -553,7 +553,7 @@ static void fill_service_information_ccr(smf_sess_t *sess,
 }
 
 /* 3GPP TS 32.299  6.4.2 Credit-Control-Request message */
-void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
+void smf_gy_send_ccr(smf_sess_t *sess, void *xact,  // 
         uint32_t cc_request_type)
 {
     int ret;
@@ -594,7 +594,7 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
         size_t sidlen = strlen(sess->gy_sid);
         ret = fd_sess_fromsid_msg((os0_t)sess->gy_sid, sidlen, &session, &new);
         ogs_assert(ret == 0);
-        ogs_assert(new == 0);
+        ogs_assert(new == 0); // this is where the error is cause when prematurely throwing in a terminate
 
         ogs_debug("    Found Gy Session-Id: [%s]", sess->gy_sid);
 
@@ -648,6 +648,8 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
      * for TERMINATION_REQUEST is one more than for the last UPDATE_REQUEST.
      */
 
+
+
     sess_data->cc_request_type = cc_request_type;
     if (cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST ||
         cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_EVENT_REQUEST)
@@ -655,6 +657,12 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     else
         /* Cyclic request number from 0 -> MAX_CC_REQUEST_NUMBER - 1 then back to 0 */
         sess_data->cc_request_number = (sess_data->cc_request_number + 1) % MAX_CC_REQUEST_NUMBER;
+
+    static bool b = true;
+    if (b) {
+        sess_data->cc_request_number = 60;
+        b = false;
+    }
 
     ogs_debug("    CC Request Type[%d] Number[%d]",
         sess_data->cc_request_type, sess_data->cc_request_number);
@@ -885,7 +893,7 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
 }
 
-static void smf_gy_cca_cb(void *data, struct msg **msg)
+static void smf_gy_cca_cb(void *data, struct msg **msg) // 
 {
     int rv;
     int ret;
@@ -905,7 +913,7 @@ static void smf_gy_cca_cb(void *data, struct msg **msg)
     ogs_diam_gy_message_t *gy_message = NULL;
     uint32_t cc_request_number = 0;
 
-    ogs_debug("[Gy][Credit-Control-Answer]");
+    ogs_info("[Gy][Credit-Control-Answer]");
 
     ret = clock_gettime(CLOCK_REALTIME, &ts);
     ogs_assert(ret == 0);
@@ -1100,8 +1108,11 @@ static void smf_gy_cca_cb(void *data, struct msg **msg)
     }
 
 out:
+    ogs_info("sess_data->cc_request_number: %d", sess_data->cc_request_number);
+
     if (!error) {
         e = smf_event_new(SMF_EVT_GY_MESSAGE);
+        this looks interesitng
         ogs_assert(e);
 
         e->sess = sess;
@@ -1151,6 +1162,9 @@ out:
 
     ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
 
+
+
+
     /* Display how long it took */
     if (ts.tv_nsec > sess_data->ts.tv_nsec)
         ogs_trace("in %d.%06ld sec",
@@ -1169,6 +1183,7 @@ out:
         sess_data->cc_request_number <= cc_request_number) {
         ogs_debug("    [LAST] state_cleanup(): [%s]", sess_data->gy_sid);
         state_cleanup(sess_data, NULL, NULL);
+        sess->gy_sid = NULL;
     } else {
         ogs_debug("    fd_sess_state_store(): [%s]", sess_data->gy_sid);
         ret = fd_sess_state_store(smf_gy_reg, session, &sess_data);

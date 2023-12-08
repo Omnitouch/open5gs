@@ -88,7 +88,7 @@ static void send_gtp_delete_err_msg(const smf_sess_t *sess,
             OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE, gtp_cause);
 }
 
-static bool send_ccr_init_req_gx_gy(smf_sess_t *sess, smf_event_t *e)
+static bool send_ccr_init_req_gx_gy(smf_sess_t *sess, smf_event_t *e) //
 {
     int use_gy = smf_use_gy_iface();
 
@@ -111,13 +111,14 @@ static bool send_ccr_init_req_gx_gy(smf_sess_t *sess, smf_event_t *e)
         /* Gy is available,
          * set up session for the bearer before accepting it towards the UE */
         sess->sm_data.gy_ccr_init_in_flight = true;
+        ogs_info("here");
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST);
     }
     return true;
 }
 
-static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
+static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e) // 
 {
     /* TODO: we should take into account here whether "sess" has an active Gy
        session created, not whether one was supposedly created as per policy */
@@ -148,6 +149,7 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
         /* Gy is available,
          * set up session for the bearer before accepting it towards the UE */
         sess->sm_data.gy_ccr_term_in_flight = true;
+        ogs_info("here");
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST);
     }
@@ -421,10 +423,12 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
         gy_message = e->gy_message;
         ogs_assert(gy_message);
 
+        ogs_info("SMF_EVT_GY_MESSAGE/1");
         switch(gy_message->cmd_code) {
         case OGS_DIAM_GY_CMD_CODE_CREDIT_CONTROL:
             switch(gy_message->cc_request_type) {
             case OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST:
+                ogs_info("OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST");
                 ogs_assert(e->gtp_xact);
                 diam_err = smf_gy_handle_cca_initial_request(sess,
                                 gy_message, e->gtp_xact);
@@ -1241,6 +1245,84 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
         }
         break;
 
+    case SMF_EVT_GY_MESSAGE: // todo handle the case for the gx messages
+        ogs_diam_gy_message_t *gy_message = NULL;
+
+        // we cant trans to the other cca related states as they are coupled with the pfcp shit
+
+        /* When we get an SMF_EVT_GY_MESSAGE event while in smf_gsm_state_operational
+         * we must being doing some reauthing related activities */
+
+        ogs_error("smf_gsm_state_operational/SMF_EVT_GY_MESSAGE");
+        ogs_error("smf_gsm_state_operational/SMF_EVT_GY_MESSAGE");
+        ogs_error("smf_gsm_state_operational/SMF_EVT_GY_MESSAGE");
+        ogs_error("smf_gsm_state_operational/SMF_EVT_GY_MESSAGE");
+        ogs_error("smf_gsm_state_operational/SMF_EVT_GY_MESSAGE");
+        ogs_error("smf_gsm_state_operational/SMF_EVT_GY_MESSAGE");
+
+
+        ogs_assert(e);
+        gy_message = e->gy_message;
+        ogs_assert(gy_message);
+
+        sess = e->sess;
+        ogs_assert(sess);
+
+        switch(gy_message->cmd_code) {
+        case OGS_DIAM_GY_CMD_CODE_CREDIT_CONTROL:
+            switch(gy_message->cc_request_type) {
+                case OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST:
+                    ogs_info("OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST");
+                    ogs_assert(e->gtp_xact);
+                    ogs_expect(ER_DIAMETER_SUCCESS == 
+                        smf_gy_handle_cca_initial_request(sess, gy_message, e->gtp_xact));
+
+                    // see whats being done in the wait for epc auth state above
+
+                    break;
+                case OGS_DIAM_GY_CC_REQUEST_TYPE_UPDATE_REQUEST:
+
+                    // this is gonna be the thing that causes the terminate request to fire
+                    static int dummy = 0;
+                    // todo now send the terminate for the 
+
+                    if (1 < dummy) {
+                        ogs_expect(send_ccr_termination_req_gx_gy_s6b(sess, e) == true);
+                        dummy = 0;
+                    } else {
+                        dummy++;
+                    }
+                break;
+                case OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST:
+                    ogs_info("OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST");
+
+                    ogs_assert(e->gtp_xact);
+                    ogs_expect(ER_DIAMETER_SUCCESS == 
+                        smf_gy_handle_cca_termination_request(sess, gy_message, e->gtp_xact));
+
+                    // todo now send the init request for the gy
+
+                    // see whats being done in the wait for epc release state below
+                    break;
+                default:
+                    ogs_error("Not implemented(%d)", gy_message->cc_request_type);
+                    break;
+            }
+
+            break;
+        default:
+            ogs_error("Invalid type(%d)", gy_message->cmd_code);
+            break;
+        }
+
+        // after handling the update in smf-sm send a event to here and try kill via the above
+        // might have to re-connect the n4 and CCR stuff? 
+
+        break;
+
+    case SMF_EVT_HARD_REAUTH_TERMINATE:
+        break;
+
     default:
         ogs_error("Unknown event [%s]", smf_event_get_name(e));
     }
@@ -1430,10 +1512,13 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
         gy_message = e->gy_message;
         ogs_assert(gy_message);
 
+        ogs_info("SMF_EVT_GY_MESSAGE/1");
         switch(gy_message->cmd_code) {
         case OGS_DIAM_GY_CMD_CODE_CREDIT_CONTROL:
             switch(gy_message->cc_request_type) {
             case OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST:
+                ogs_info("OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST");
+
                 ogs_assert(e->gtp_xact);
                 diam_err = smf_gy_handle_cca_termination_request(sess,
                                 gy_message, e->gtp_xact);
