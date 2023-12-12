@@ -3833,21 +3833,38 @@ int mme_ue_xact_count(mme_ue_t *mme_ue, uint8_t org)
                 ogs_list_count(&gnode->remote_list);
 }
 
-bool plmn_id_is_roaming(ogs_plmn_id_t *plmn_id)
+bool mme_ue_is_roaming(mme_ue_t *mme_ue)
 {
-    ogs_assert(plmn_id);
-    uint16_t ue_mnc = ogs_plmn_id_mnc(plmn_id);
-    uint16_t ue_mcc = ogs_plmn_id_mcc(plmn_id);
+    ogs_assert(mme_ue);
+    
+    if (OGS_NAS_EPS_MOBILE_IDENTITY_IMSI != mme_ue->nas_mobile_identity_imsi.type) {
+        ogs_warn("eps_mobile_identity type was not OGS_NAS_EPS_MOBILE_IDENTITY_IMSI, assuming not roaming");
+        return false;
+    }
+    
+    uint16_t ue_mcc = 100 * mme_ue->nas_mobile_identity_imsi.digit1 +
+                      10 * mme_ue->nas_mobile_identity_imsi.digit2 +
+                      1 * mme_ue->nas_mobile_identity_imsi.digit3;
+
+    uint16_t ue_mnc_2_digit = 10 * mme_ue->nas_mobile_identity_imsi.digit4 +
+                              1 * mme_ue->nas_mobile_identity_imsi.digit5;
+
+    uint16_t ue_mnc_3_digit = 100 * mme_ue->nas_mobile_identity_imsi.digit4 +
+                              10 * mme_ue->nas_mobile_identity_imsi.digit5 +
+                              1 * mme_ue->nas_mobile_identity_imsi.digit6;
 
     for (int i = 0; i < mme_self()->home_mnc_mcc_sz; ++i) {
-        uint16_t home_mnc = mme_self()->home_mnc_mcc[i].mnc;
         uint16_t home_mcc = mme_self()->home_mnc_mcc[i].mcc;
+        uint16_t home_mnc = mme_self()->home_mnc_mcc[i].mnc;
 
-        if ((ue_mnc == home_mnc) &&
-            (ue_mcc == home_mcc))
+        if (ue_mcc == home_mcc)
         {
-            /* Is not roaming */
-            return false;
+            if ((ue_mnc_2_digit == home_mnc) ||
+                (ue_mnc_3_digit == home_mnc)) 
+            {
+                /* Is not roaming */
+                return false;
+            }
         }
     }
 

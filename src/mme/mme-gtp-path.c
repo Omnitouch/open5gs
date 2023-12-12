@@ -236,7 +236,7 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
         return OGS_ERROR;
     }
 
-    if (plmn_id_is_roaming(&mme_ue->tai.plmn_id)) {
+    if (mme_ue_is_roaming(mme_ue)) {
         /* If the current sgw isnt a roaming one then randomly select a roaming one */
         if (!mme_sgw_roaming_find_by_addr(&mme_ue->sgw_ue->sgw->gnode.addr)) {
             mme_sgw_t *sgw = select_random_sgw_roaming();

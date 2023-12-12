@@ -925,6 +925,8 @@ bool mme_sess_have_session_release_pending(mme_sess_t *sess);
 
 int mme_ue_xact_count(mme_ue_t *mme_ue, uint8_t org);
 
+bool mme_ue_is_roaming(mme_ue_t *mme_ue);
+
 /*
  * o RECV Initial UE-Message : S-TMSI
  * o RECV Attach Request : IMSI, GUTI
@@ -1025,8 +1027,6 @@ void mme_ebi_pool_clear(mme_ue_t *mme_ue);
 
 uint8_t mme_selected_int_algorithm(mme_ue_t *mme_ue);
 uint8_t mme_selected_enc_algorithm(mme_ue_t *mme_ue);
-
-bool plmn_id_is_roaming(ogs_plmn_id_t *plmn_id);
 
 #ifdef __cplusplus
 }
