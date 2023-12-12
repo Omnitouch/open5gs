@@ -237,7 +237,17 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
     }
 
     if (plmn_id_is_roaming(&mme_ue->tai.plmn_id)) {
-        /* Don't change the SGW */
+        /* If the current sgw isnt a roaming one then randomly select a roaming one */
+        if (!mme_sgw_roaming_find_by_addr(&mme_ue->sgw_ue->sgw->gnode.addr)) {
+            mme_sgw_t *sgw = select_random_sgw_roaming();
+
+            if (sgw) {
+                ogs_info("Changing SGWC node to roaming node");
+                mme_ue->sgw_ue->sgw = sgw;
+            } else {
+                ogs_error("Roaming UE could not be given a roaming SGW as none have been specified in the config");
+            }
+        }
     } else if (mme_self()->dns_target_sgw) {
         char ipv4[INET_ADDRSTRLEN] = "";
         ResolverContext context = {};

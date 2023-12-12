@@ -69,7 +69,6 @@ static void stats_remove_mme_session(void);
 static bool compare_ue_info(mme_sgw_t *node, enb_ue_t *enb_ue);
 static mme_sgw_t *selected_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue);
 static mme_sgw_t *select_random_sgw(void);
-static mme_sgw_t *select_random_sgw_roaming(void);
 static mme_sgw_t *changed_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue);
 
 static int rand_under(int val);
@@ -2427,6 +2426,33 @@ mme_sgw_t *mme_sgw_roaming_find_by_addr(ogs_sockaddr_t *addr)
     return sgw;
 }
 
+mme_sgw_t *select_random_sgw_roaming()
+{
+    char buf[OGS_ADDRSTRLEN];
+    mme_sgw_t *random;
+    int sgw_count;
+    int index;
+
+    /* Select a random sgw */
+    sgw_count = ogs_list_count(&mme_self()->sgw_roaming_list);
+
+    if (0 == sgw_count) {
+        ogs_error("There are no roaming SGWs in our list");
+        return NULL;
+    }
+
+    index = rand_under(sgw_count);
+    ogs_info("There are %i roaming SGWs in our list, we have randomly picked the one at index %i", sgw_count, index);
+    random = ogs_list_at(&mme_self()->sgw_roaming_list, index);
+
+    ogs_info(
+        "Roaming SGWC address chosen was '%s'",
+        OGS_ADDR(random->gnode.sa_list, buf)
+    );
+
+    return random;
+}
+
 mme_pgw_t *mme_pgw_add(ogs_sockaddr_t *addr)
 {
     mme_pgw_t *pgw = NULL;
@@ -3181,33 +3207,6 @@ static mme_sgw_t *select_random_sgw()
     return random;
 }
 
-static mme_sgw_t *select_random_sgw_roaming()
-{
-    char buf[OGS_ADDRSTRLEN];
-    mme_sgw_t *random;
-    int sgw_count;
-    int index;
-
-    /* Select a random sgw */
-    sgw_count = ogs_list_count(&mme_self()->sgw_roaming_list);
-
-    if (0 == sgw_count) {
-        ogs_error("There are no roaming SGWs in our list");
-        return NULL;
-    }
-
-    index = rand_under(sgw_count);
-    ogs_info("There are %i roaming SGWs in our list, we have randomly picked the one at index %i", sgw_count, index);
-    random = ogs_list_at(&mme_self()->sgw_roaming_list, index);
-
-    ogs_info(
-        "Roaming SGWC address chosen was '%s'",
-        OGS_ADDR(random->gnode.sa_list, buf)
-    );
-
-    return random;
-}
-
 static mme_sgw_t *changed_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue)
 {
     mme_sgw_t *changed = NULL;
@@ -3314,16 +3313,7 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue)
             &mme_ue->mme_s11_teid, sizeof(mme_ue->mme_s11_teid), mme_ue);
 
     /* Select an SGW to use for this UE */
-    if (plmn_id_is_roaming(&enb_ue->saved.tai.plmn_id)) {
-        mme_self()->sgw = select_random_sgw_roaming();
-        
-        if (!mme_self()->sgw) {
-            ogs_error("Roaming UE could not be given a roaming SGW as none have been specified in the config");
-        }
-    }
-    if (!mme_self()->sgw) {
-        mme_self()->sgw = select_random_sgw();
-    }
+    mme_self()->sgw = select_random_sgw();
     ogs_assert(mme_self()->sgw);
 
     sgw_ue = sgw_ue_add(mme_self()->sgw);
