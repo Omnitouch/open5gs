@@ -27,9 +27,6 @@
 #include "mme-sm.h"
 #include "dns_resolvers.h"
 
-/* TODO: This same function exists in mme-context.c, move to common utils file */
-static int rand_under(int val);
-
 static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
 {
     int rv;
@@ -58,6 +55,10 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
     ogs_pkbuf_trim(pkbuf, size);
 
     sgw = mme_sgw_find_by_addr(&from);
+    if (!sgw) {
+        sgw = mme_sgw_roaming_find_by_addr(&from);
+    }
+
     if (!sgw) {
         ogs_error("Unknown SGW : %s", OGS_ADDR(&from, buf));
         ogs_pkbuf_free(pkbuf);
@@ -190,6 +191,13 @@ int mme_gtp_open(void)
         ogs_assert(rv == OGS_OK);
     }
 
+    ogs_list_for_each(&mme_self()->sgw_roaming_list, sgw) {
+        rv = ogs_gtp_connect(
+                ogs_gtp_self()->gtpc_sock, ogs_gtp_self()->gtpc_sock6,
+                (ogs_gtp_node_t *)sgw);
+        ogs_assert(rv == OGS_OK);
+    }
+
     return OGS_OK;
 }
 
@@ -228,15 +236,8 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
         return OGS_ERROR;
     }
 
-    if (mme_ue_is_roaming(mme_ue)) {
-        if (0 < mme_self()->sgwc_roaming_hostnames_sz) {
-            int pick = rand_under(mme_self()->sgwc_roaming_hostnames_sz);
-            char *addr = (char*)mme_self()->sgwc_roaming_hostnames[pick];
-            ogs_info("Roaming UE was given SGW with IP '%s'", addr);
-            ogs_ipv4_from_string((uint32_t*)&sgw_ue->gnode->addr.sa.sa_data[2], addr);
-        } else {
-            ogs_error("Roaming UE could not be given a roaming SGW as none have been specified in the config");
-        }
+    if (plmn_id_is_roaming(&mme_ue->tai.plmn_id)) {
+        /* Don't change the SGW */
     } else if (mme_self()->dns_target_sgw) {
         char ipv4[INET_ADDRSTRLEN] = "";
         ResolverContext context = {};
@@ -756,13 +757,3 @@ int mme_gtp_send_bearer_resource_command(
 
     return rv;
 }
-
-static int rand_under(int val)
-{
-    if (val < 2) {
-        return 0;
-    }
-    srand(time(NULL));
-    return rand() % val;
-}
-

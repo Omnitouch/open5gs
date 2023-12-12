@@ -128,6 +128,7 @@ typedef struct mme_context_s {
     ogs_list_t      s1ap_list6;     /* MME S1AP IPv6 Server List */
 
     ogs_list_t      sgw_list;       /* SGW GTPC Client List */
+    ogs_list_t      sgw_roaming_list; /* SGW GTPC Client List for roaming UEs */
     mme_sgw_t       *sgw;           /* Iterator for SGW round-robin */
     
     ogs_list_t      sbcap_list;     /* MME SBC IPv4 Server List */
@@ -220,8 +221,6 @@ typedef struct mme_context_s {
     char dns_base_domain[MAX_DNS_BASE_DOMAIN_NAME];
     struct { uint16_t mnc; uint16_t mcc; } home_mnc_mcc[OGS_MAX_NUM_OF_SERVED_TAI];
     size_t home_mnc_mcc_sz;
-    const char *sgwc_roaming_hostnames[OGS_MAX_NUM_OF_HOSTNAME];
-    size_t sgwc_roaming_hostnames_sz;
 
     bool include_local_time_zone;
 
@@ -836,6 +835,11 @@ void mme_sgw_remove(mme_sgw_t *sgw);
 void mme_sgw_remove_all(void);
 mme_sgw_t *mme_sgw_find_by_addr(ogs_sockaddr_t *addr);
 
+mme_sgw_t *mme_sgw_roaming_add(ogs_sockaddr_t *addr);
+void mme_sgw_roaming_remove(mme_sgw_t *sgw);
+void mme_sgw_roaming_remove_all(void);
+mme_sgw_t *mme_sgw_roaming_find_by_addr(ogs_sockaddr_t *addr);
+
 mme_pgw_t *mme_pgw_add(ogs_sockaddr_t *addr);
 void mme_pgw_remove(mme_pgw_t *pgw);
 void mme_pgw_remove_all(void);
@@ -919,7 +923,6 @@ bool mme_ue_have_session_release_pending(mme_ue_t *mme_ue);
 bool mme_sess_have_session_release_pending(mme_sess_t *sess);
 
 int mme_ue_xact_count(mme_ue_t *mme_ue, uint8_t org);
-bool mme_ue_is_roaming(mme_ue_t *mme_ue);
 
 /*
  * o RECV Initial UE-Message : S-TMSI
@@ -1021,6 +1024,8 @@ void mme_ebi_pool_clear(mme_ue_t *mme_ue);
 
 uint8_t mme_selected_int_algorithm(mme_ue_t *mme_ue);
 uint8_t mme_selected_enc_algorithm(mme_ue_t *mme_ue);
+
+bool plmn_id_is_roaming(ogs_plmn_id_t *plmn_id);
 
 #ifdef __cplusplus
 }

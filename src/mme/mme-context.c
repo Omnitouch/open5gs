@@ -69,6 +69,7 @@ static void stats_remove_mme_session(void);
 static bool compare_ue_info(mme_sgw_t *node, enb_ue_t *enb_ue);
 static mme_sgw_t *selected_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue);
 static mme_sgw_t *select_random_sgw(void);
+static mme_sgw_t *select_random_sgw_roaming(void);
 static mme_sgw_t *changed_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue);
 
 static int rand_under(int val);
@@ -98,6 +99,7 @@ void mme_context_init(void)
     ogs_list_init(&self.s1ap_list6);
 
     ogs_list_init(&self.sgw_list);
+    ogs_list_init(&self.sgw_roaming_list);
     ogs_list_init(&self.pgw_list);
     ogs_list_init(&self.enb_list);
     ogs_list_init(&self.vlr_list);
@@ -146,6 +148,7 @@ void mme_context_final(void)
     mme_ue_remove_all();
 
     mme_sgw_remove_all();
+    mme_sgw_roaming_remove_all();
     mme_pgw_remove_all();
     mme_csmap_remove_all();
     mme_vlr_remove_all();
@@ -230,6 +233,10 @@ static int mme_context_validation(void)
     if (ogs_list_first(&self.sgw_list) == NULL) {
         ogs_error("No sgw.gtpc in '%s'", ogs_app()->file);
         return OGS_ERROR;
+    }
+
+    if (ogs_list_first(&self.sgw_roaming_list) == NULL) {
+        ogs_warn("No sgw_roaming.gtpc in '%s'", ogs_app()->file);
     }
 
     if (ogs_list_first(&self.pgw_list) == NULL) {
@@ -1872,6 +1879,17 @@ int mme_context_parse_config(void)
             }
         } else if (!strcmp(root_key, "sgwc_roaming")) {
             ogs_yaml_iter_t sgwc_roaming_iter;
+            mme_sgw_t *sgw = NULL;
+            ogs_sockaddr_t *addr = NULL;
+            int family = AF_UNSPEC;
+            int i, num = 0;
+            const char *hostname[OGS_MAX_NUM_OF_HOSTNAME];
+            uint16_t port = ogs_gtp_self()->gtpc_port;
+            uint16_t tac[OGS_MAX_NUM_OF_TAI] = {0,};
+            int num_of_tac = 0;
+            uint32_t e_cell_id[OGS_MAX_NUM_OF_CELL_ID] = {0,};
+            int num_of_e_cell_id = 0;
+
             ogs_yaml_iter_recurse(&root_iter, &sgwc_roaming_iter);
             while (ogs_yaml_iter_next(&sgwc_roaming_iter)) {
                 const char *sgwc_roaming_key = ogs_yaml_iter_key(&sgwc_roaming_iter);
@@ -1880,8 +1898,6 @@ int mme_context_parse_config(void)
                     ogs_yaml_iter_t gtpc_array, gtpc_iter;
                     ogs_yaml_iter_recurse(&sgwc_roaming_iter, &gtpc_array);
                     do {
-                        const char **hostnames = self.sgwc_roaming_hostnames;
-
                         if (ogs_yaml_iter_type(&gtpc_array) ==
                                 YAML_MAPPING_NODE) {
                             memcpy(&gtpc_iter, &gtpc_array,
@@ -1915,8 +1931,8 @@ int mme_context_parse_config(void)
                                             break;
                                     }
 
-                                    ogs_assert(self.sgwc_roaming_hostnames_sz < OGS_MAX_NUM_OF_HOSTNAME);
-                                    hostnames[self.sgwc_roaming_hostnames_sz++] =
+                                    ogs_assert(num < OGS_MAX_NUM_OF_HOSTNAME);
+                                    hostname[num++] =
                                         ogs_yaml_iter_value(&hostname_iter);
                                 } while (
                                     ogs_yaml_iter_type(&hostname_iter) ==
@@ -1927,6 +1943,36 @@ int mme_context_parse_config(void)
                     } while (ogs_yaml_iter_type(&gtpc_array) ==
                             YAML_SEQUENCE_NODE);
                 }
+            }
+
+            addr = NULL;
+            for (i = 0; i < num; i++) {
+                rv = ogs_addaddrinfo(&addr,
+                        family, hostname[i], port, 0);
+                ogs_assert(rv == OGS_OK);
+            }
+
+            while (addr) {
+                ogs_filter_ip_version(&addr,
+                        ogs_app()->parameter.no_ipv4,
+                        ogs_app()->parameter.no_ipv6,
+                        ogs_app()->parameter.prefer_ipv4);
+
+                if (addr == NULL) continue;
+
+                sgw = mme_sgw_roaming_add(addr);
+                ogs_assert(sgw);
+
+                sgw->num_of_tac = num_of_tac;
+                if (num_of_tac != 0)
+                    memcpy(sgw->tac, tac, sizeof(sgw->tac));
+
+                sgw->num_of_e_cell_id = num_of_e_cell_id;
+                if (num_of_e_cell_id != 0)
+                    memcpy(sgw->e_cell_id, e_cell_id,
+                            sizeof(sgw->e_cell_id));
+
+                addr = addr->next;
             }
         } else if (!strcmp(root_key, "sgw") || !strcmp(root_key, "sgwc")) {
             ogs_yaml_iter_t sgw_iter;
@@ -2318,6 +2364,62 @@ mme_sgw_t *mme_sgw_find_by_addr(ogs_sockaddr_t *addr)
     ogs_assert(addr);
 
     ogs_list_for_each(&self.sgw_list, sgw) {
+        if (ogs_sockaddr_is_equal(&sgw->gnode.addr, addr) == true)
+            break;
+    }
+
+    return sgw;
+}
+
+mme_sgw_t *mme_sgw_roaming_add(ogs_sockaddr_t *addr)
+{
+    mme_sgw_t *sgw = NULL;
+
+    ogs_assert(addr);
+
+    ogs_pool_alloc(&mme_sgw_pool, &sgw);
+    ogs_assert(sgw);
+    memset(sgw, 0, sizeof *sgw);
+
+    sgw->gnode.sa_list = addr;
+
+    ogs_list_init(&sgw->gnode.local_list);
+    ogs_list_init(&sgw->gnode.remote_list);
+
+    ogs_list_init(&sgw->sgw_ue_list);
+
+    ogs_list_add(&self.sgw_roaming_list, sgw);
+
+    return sgw;
+}
+
+void mme_sgw_roaming_remove(mme_sgw_t *sgw)
+{
+    ogs_assert(sgw);
+
+    ogs_list_remove(&self.sgw_roaming_list, sgw);
+
+    ogs_gtp_xact_delete_all(&sgw->gnode);
+    ogs_freeaddrinfo(sgw->gnode.sa_list);
+
+    ogs_pool_free(&mme_sgw_pool, sgw);
+}
+
+void mme_sgw_roaming_remove_all(void)
+{
+    mme_sgw_t *sgw = NULL, *next_sgw = NULL;
+
+    ogs_list_for_each_safe(&self.sgw_roaming_list, next_sgw, sgw)
+        mme_sgw_roaming_remove(sgw);
+}
+
+mme_sgw_t *mme_sgw_roaming_find_by_addr(ogs_sockaddr_t *addr)
+{
+    mme_sgw_t *sgw = NULL;
+
+    ogs_assert(addr);
+
+    ogs_list_for_each(&self.sgw_roaming_list, sgw) {
         if (ogs_sockaddr_is_equal(&sgw->gnode.addr, addr) == true)
             break;
     }
@@ -3079,6 +3181,33 @@ static mme_sgw_t *select_random_sgw()
     return random;
 }
 
+static mme_sgw_t *select_random_sgw_roaming()
+{
+    char buf[OGS_ADDRSTRLEN];
+    mme_sgw_t *random;
+    int sgw_count;
+    int index;
+
+    /* Select a random sgw */
+    sgw_count = ogs_list_count(&mme_self()->sgw_roaming_list);
+
+    if (0 == sgw_count) {
+        ogs_error("There are no roaming SGWs in our list");
+        return NULL;
+    }
+
+    index = rand_under(sgw_count);
+    ogs_info("There are %i roaming SGWs in our list, we have randomly picked the one at index %i", sgw_count, index);
+    random = ogs_list_at(&mme_self()->sgw_roaming_list, index);
+
+    ogs_info(
+        "Roaming SGWC address chosen was '%s'",
+        OGS_ADDR(random->gnode.sa_list, buf)
+    );
+
+    return random;
+}
+
 static mme_sgw_t *changed_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue)
 {
     mme_sgw_t *changed = NULL;
@@ -3185,7 +3314,16 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue)
             &mme_ue->mme_s11_teid, sizeof(mme_ue->mme_s11_teid), mme_ue);
 
     /* Select an SGW to use for this UE */
-    mme_self()->sgw = select_random_sgw();
+    if (plmn_id_is_roaming(&enb_ue->saved.tai.plmn_id)) {
+        mme_self()->sgw = select_random_sgw_roaming();
+        
+        if (!mme_self()->sgw) {
+            ogs_error("Roaming UE could not be given a roaming SGW as none have been specified in the config");
+        }
+    }
+    if (!mme_self()->sgw) {
+        mme_self()->sgw = select_random_sgw();
+    }
     ogs_assert(mme_self()->sgw);
 
     sgw_ue = sgw_ue_add(mme_self()->sgw);
@@ -3705,10 +3843,9 @@ int mme_ue_xact_count(mme_ue_t *mme_ue, uint8_t org)
                 ogs_list_count(&gnode->remote_list);
 }
 
-bool mme_ue_is_roaming(mme_ue_t *mme_ue)
+bool plmn_id_is_roaming(ogs_plmn_id_t *plmn_id)
 {
-    ogs_assert(mme_ue);
-    ogs_plmn_id_t *plmn_id = &mme_ue->tai.plmn_id;
+    ogs_assert(plmn_id);
     uint16_t ue_mnc = ogs_plmn_id_mnc(plmn_id);
     uint16_t ue_mcc = ogs_plmn_id_mcc(plmn_id);
 
@@ -3719,12 +3856,12 @@ bool mme_ue_is_roaming(mme_ue_t *mme_ue)
         if ((ue_mnc == home_mnc) &&
             (ue_mcc == home_mcc))
         {
-            /* UE is not roaming */
+            /* Is not roaming */
             return false;
         }
     }
 
-    /* UE must be roaming */
+    /* Must be roaming */
     return true;
 }
 
