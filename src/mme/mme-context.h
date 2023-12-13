@@ -129,7 +129,6 @@ typedef struct mme_context_s {
 
     ogs_list_t      sgw_list;       /* SGW GTPC Client List */
     ogs_list_t      sgw_roaming_list; /* SGW GTPC Client List for roaming UEs */
-    mme_sgw_t       *sgw;           /* Iterator for SGW round-robin */
     
     ogs_list_t      sbcap_list;     /* MME SBC IPv4 Server List */
     ogs_list_t      sbcap_list6;    /* MME SBC IPv6 Server List */

@@ -3226,9 +3226,8 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue, ogs_nas_eps_message_t *nas_message)
     mme_enb_t *enb = NULL;
     mme_ue_t *mme_ue = NULL;
     sgw_ue_t *sgw_ue = NULL;
+    mme_sgw_t *sgw = NULL;
     ogs_nas_mobile_identity_imsi_t *nas_mobile_identity_imsi = NULL; 
-
-    char buf[OGS_ADDRSTRLEN];
 
     ogs_assert(enb_ue);
     ogs_assert(nas_message);
@@ -3319,14 +3318,13 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue, ogs_nas_eps_message_t *nas_message)
 
     /* Select an SGW to use for this UE */
     if (imsi_is_roaming(nas_mobile_identity_imsi)) {
-        mme_self()->sgw = select_random_sgw_roaming();
-    } 
-    if (NULL == mme_self()->sgw) {
-        mme_self()->sgw = select_random_sgw();
+        sgw = select_random_sgw_roaming();
+    } else {
+        sgw = select_random_sgw();
     }
-    ogs_assert(mme_self()->sgw);
+    ogs_assert(sgw);
 
-    sgw_ue = sgw_ue_add(mme_self()->sgw);
+    sgw_ue = sgw_ue_add(sgw);
     ogs_assert(sgw_ue);
     ogs_assert(sgw_ue->gnode);
 
@@ -3337,9 +3335,6 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue, ogs_nas_eps_message_t *nas_message)
                 &mme_self()->pgw_list, AF_INET);
     mme_ue->pgw_addr6 = mme_pgw_addr_select_random(
         &mme_self()->pgw_list, AF_INET6);
-
-    ogs_info("UE using SGW on IP[%s]", OGS_ADDR(sgw_ue->gnode->sa_list, buf));
-    ogs_info("UE using PGW on IP[%s]", OGS_ADDR(mme_ue->pgw_addr, buf));
 
     /* Clear VLR */
     mme_ue->csmap = NULL;
@@ -3848,7 +3843,8 @@ bool imsi_is_roaming(ogs_nas_mobile_identity_imsi_t *nas_imsi)
     ogs_assert(nas_imsi);
     
     if (OGS_NAS_EPS_MOBILE_IDENTITY_IMSI != nas_imsi->type) {
-        ogs_warn("eps_mobile_identity type was not OGS_NAS_EPS_MOBILE_IDENTITY_IMSI, assuming not roaming");
+        /* In this case we need to wait for emm_handle_identity_response to get the imsi */
+        ogs_warn("eps_mobile_identity type was not OGS_NAS_EPS_MOBILE_IDENTITY_IMSI, assuming not roaming for now");
         return false;
     }
     

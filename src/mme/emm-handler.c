@@ -322,6 +322,25 @@ int emm_handle_identity_response(
         }
 
         ogs_info("    IMSI[%s]", mme_ue->imsi_bcd);
+
+        /* When we create the mme_ue without an imsi we assume its not roaming.
+         * Now that we have the imsi, if its roaming change the sgw to a roaming sgw */
+        if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi)) {
+            sgw_ue_t *sgw_ue = NULL;
+            mme_sgw_t *sgw = select_random_sgw_roaming();
+            
+            if (NULL != sgw) {
+                /* Remove the default one */
+                sgw_ue_remove(mme_ue->sgw_ue);
+
+                sgw_ue = sgw_ue_add(sgw);
+                ogs_assert(sgw_ue);
+                ogs_assert(sgw_ue->gnode);
+
+                sgw_ue_associate_mme_ue(sgw_ue, mme_ue);
+            }
+        }
+
     } else {
         ogs_warn("Not supported Identity type[%d]", mobile_identity->imsi.type);
     }
