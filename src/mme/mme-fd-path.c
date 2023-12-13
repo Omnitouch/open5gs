@@ -811,7 +811,7 @@ void mme_s6a_send_air(mme_ue_t *mme_ue,
 
     /* Add a preference on diameter peers based on if the UE is roaming or not */
     fd_msg_hdr(req, &hdr);
-    if (mme_ue_is_roaming(mme_ue)) {
+    if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi)) {
         hdr->msg_peer_pref = OGS_DIAM_PEER_PREF_RELAY;
     } else {
         hdr->msg_peer_pref = OGS_DIAM_S6A_APPLICATION_ID;
@@ -1240,7 +1240,7 @@ void mme_s6a_send_ulr(mme_ue_t *mme_ue)
 
     /* Add a preference on diameter peers based on if the UE is roaming or not */
     fd_msg_hdr(req, &hdr);
-    if (mme_ue_is_roaming(mme_ue)) {
+    if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi)) {
         hdr->msg_peer_pref = OGS_DIAM_PEER_PREF_RELAY;
     } else {
         hdr->msg_peer_pref = OGS_DIAM_S6A_APPLICATION_ID;
@@ -1341,7 +1341,7 @@ void mme_s6a_send_pur(mme_ue_t *mme_ue)
 
     /* Add a preference on diameter peers based on if the UE is roaming or not */
     fd_msg_hdr(req, &hdr);
-    if (mme_ue_is_roaming(mme_ue)) {
+    if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi)) {
         hdr->msg_peer_pref = OGS_DIAM_PEER_PREF_RELAY;
     } else {
         hdr->msg_peer_pref = OGS_DIAM_S6A_APPLICATION_ID;

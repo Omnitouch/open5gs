@@ -899,7 +899,7 @@ sgw_relocation_e sgw_ue_check_if_relocated(mme_ue_t *mme_ue);
 void mme_ue_new_guti(mme_ue_t *mme_ue);
 void mme_ue_confirm_guti(mme_ue_t *mme_ue);
 
-mme_ue_t *mme_ue_add(enb_ue_t *enb_ue);
+mme_ue_t *mme_ue_add(enb_ue_t *enb_ue, ogs_nas_eps_message_t *nas_message);
 void mme_ue_remove(mme_ue_t *mme_ue);
 void mme_ue_remove_all(void);
 mme_ue_t *mme_ue_cycle(mme_ue_t *mme_ue);
@@ -925,7 +925,7 @@ bool mme_sess_have_session_release_pending(mme_sess_t *sess);
 
 int mme_ue_xact_count(mme_ue_t *mme_ue, uint8_t org);
 
-bool mme_ue_is_roaming(mme_ue_t *mme_ue);
+bool imsi_is_roaming(ogs_nas_mobile_identity_imsi_t *nas_imsi);
 
 /*
  * o RECV Initial UE-Message : S-TMSI

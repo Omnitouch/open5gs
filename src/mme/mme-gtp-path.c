@@ -236,18 +236,8 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
         return OGS_ERROR;
     }
 
-    if (mme_ue_is_roaming(mme_ue)) {
-        /* If the current sgw isnt a roaming one then randomly select a roaming one */
-        if (!mme_sgw_roaming_find_by_addr(&mme_ue->sgw_ue->sgw->gnode.addr)) {
-            mme_sgw_t *sgw = select_random_sgw_roaming();
-
-            if (sgw) {
-                ogs_info("Changing SGWC node to roaming node");
-                mme_ue->sgw_ue->sgw = sgw;
-            } else {
-                ogs_error("Roaming UE could not be given a roaming SGW as none have been specified in the config");
-            }
-        }
+    if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi)) {
+        /* Leave as is */
     } else if (mme_self()->dns_target_sgw) {
         char ipv4[INET_ADDRSTRLEN] = "";
         ResolverContext context = {};

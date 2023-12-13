@@ -3221,17 +3221,22 @@ static mme_sgw_t *changed_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue)
     return NULL;
 }
 
-mme_ue_t *mme_ue_add(enb_ue_t *enb_ue)
+mme_ue_t *mme_ue_add(enb_ue_t *enb_ue, ogs_nas_eps_message_t *nas_message)
 {
     mme_enb_t *enb = NULL;
     mme_ue_t *mme_ue = NULL;
     sgw_ue_t *sgw_ue = NULL;
+    ogs_nas_mobile_identity_imsi_t *nas_mobile_identity_imsi = NULL; 
 
     char buf[OGS_ADDRSTRLEN];
 
     ogs_assert(enb_ue);
+    ogs_assert(nas_message);
     enb = enb_ue->enb;
+    nas_mobile_identity_imsi =
+        &nas_message->emm.attach_request.eps_mobile_identity.imsi;
     ogs_assert(enb);
+    ogs_assert(nas_mobile_identity_imsi);
 
     ogs_pool_alloc(&mme_ue_pool, &mme_ue);
     if (mme_ue == NULL) {
@@ -3313,7 +3318,12 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue)
             &mme_ue->mme_s11_teid, sizeof(mme_ue->mme_s11_teid), mme_ue);
 
     /* Select an SGW to use for this UE */
-    mme_self()->sgw = select_random_sgw();
+    if (imsi_is_roaming(nas_mobile_identity_imsi)) {
+        mme_self()->sgw = select_random_sgw_roaming();
+    } 
+    if (NULL == mme_self()->sgw) {
+        mme_self()->sgw = select_random_sgw();
+    }
     ogs_assert(mme_self()->sgw);
 
     sgw_ue = sgw_ue_add(mme_self()->sgw);
@@ -3833,25 +3843,26 @@ int mme_ue_xact_count(mme_ue_t *mme_ue, uint8_t org)
                 ogs_list_count(&gnode->remote_list);
 }
 
-bool mme_ue_is_roaming(mme_ue_t *mme_ue)
+bool imsi_is_roaming(ogs_nas_mobile_identity_imsi_t *nas_imsi)
 {
-    ogs_assert(mme_ue);
+    ogs_assert(nas_imsi);
     
-    if (OGS_NAS_EPS_MOBILE_IDENTITY_IMSI != mme_ue->nas_mobile_identity_imsi.type) {
+    if (OGS_NAS_EPS_MOBILE_IDENTITY_IMSI != nas_imsi->type) {
         ogs_warn("eps_mobile_identity type was not OGS_NAS_EPS_MOBILE_IDENTITY_IMSI, assuming not roaming");
         return false;
     }
     
-    uint16_t ue_mcc = 100 * mme_ue->nas_mobile_identity_imsi.digit1 +
-                      10 * mme_ue->nas_mobile_identity_imsi.digit2 +
-                      1 * mme_ue->nas_mobile_identity_imsi.digit3;
+    uint16_t ue_mcc = 100 * nas_imsi->digit1 +
+                      10 * nas_imsi->digit2 +
+                      1 * nas_imsi->digit3;
 
-    uint16_t ue_mnc_2_digit = 10 * mme_ue->nas_mobile_identity_imsi.digit4 +
-                              1 * mme_ue->nas_mobile_identity_imsi.digit5;
+    uint16_t ue_mnc_3_digit = 100 * nas_imsi->digit4 +
+                              10 * nas_imsi->digit5 +
+                              1 * nas_imsi->digit6;
 
-    uint16_t ue_mnc_3_digit = 100 * mme_ue->nas_mobile_identity_imsi.digit4 +
-                              10 * mme_ue->nas_mobile_identity_imsi.digit5 +
-                              1 * mme_ue->nas_mobile_identity_imsi.digit6;
+    uint16_t ue_mnc_2_digit = 10 * nas_imsi->digit4 +
+                              1 * nas_imsi->digit5;
+
 
     for (int i = 0; i < mme_self()->home_mnc_mcc_sz; ++i) {
         uint16_t home_mcc = mme_self()->home_mnc_mcc[i].mcc;

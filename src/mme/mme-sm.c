@@ -384,7 +384,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         if (!mme_ue) {
             mme_ue = mme_ue_find_by_message(&nas_message);
             if (!mme_ue) {
-                mme_ue = mme_ue_add(enb_ue);
+                mme_ue = mme_ue_add(enb_ue, &nas_message);
                 if (mme_ue == NULL) {
                     r = s1ap_send_ue_context_release_command(enb_ue,
                             S1AP_Cause_PR_misc,
