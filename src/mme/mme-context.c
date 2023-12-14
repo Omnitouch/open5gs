@@ -1873,6 +1873,8 @@ int mme_context_parse_config(void)
                         ogs_info("Local time IE will not be included in NAS-PDU messages");
                         self.include_local_time_zone = false;
                     }
+                } else if (!strcmp(mme_key, "network_access_mode_default")) {
+                    self.network_access_mode_default = atoi(ogs_yaml_iter_value(&mme_iter));
                 } else
                     ogs_warn("unknown key `%s`", mme_key);
             }

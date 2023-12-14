@@ -29,6 +29,21 @@ logger:
 #      cbc:
 #        - addr: 10.177.1.115
 #
+#  <Default network access mode>
+#
+#  o When the S6a Subscription-Data subdatamask doesn't 
+#    include the OGS_DIAM_S6A_SUBDATA_NAM (1 << 3) flag
+#    it will set the network access mode to one of the
+#    following defaults. If this field isn't included 
+#    not included it defaults to 0, i.e. 
+#    OGS_NETWORK_ACCESS_MODE_PACKET_AND_CIRCUIT
+#
+#  0 -> OGS_NETWORK_ACCESS_MODE_PACKET_AND_CIRCUIT
+#  1 -> OGS_NETWORK_ACCESS_MODE_RESERVED
+#  2 -> OGS_NETWORK_ACCESS_MODE_ONLY_PACKET
+#
+#  mme:
+#      network_access_mode_default: 0 | 1 | 2
 #
 #  <S1AP Server>>
 #

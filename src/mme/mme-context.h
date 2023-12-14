@@ -228,6 +228,8 @@ typedef struct mme_context_s {
     
     /* Cell Broadcast Service */
     mme_cbc_t cbc;
+
+    uint32_t network_access_mode_default;
 } mme_context_t;
 
 typedef struct mme_sgw_s {

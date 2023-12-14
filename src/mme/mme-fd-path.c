@@ -1519,9 +1519,23 @@ static void mme_s6a_ula_cb(void *data, struct msg **msg)
             &subdatamask);
 
         if (!(subdatamask & OGS_DIAM_S6A_SUBDATA_NAM)) {
-            mme_ue->network_access_mode = 0;
+            const char *network_access_mode_str = "unknown";
+            mme_ue->network_access_mode = mme_self()->network_access_mode_default;
+
+            switch (mme_ue->network_access_mode) {
+                case OGS_NETWORK_ACCESS_MODE_PACKET_AND_CIRCUIT:
+                    network_access_mode_str = "OGS_NETWORK_ACCESS_MODE_PACKET_AND_CIRCUIT";
+                    break;
+                case OGS_NETWORK_ACCESS_MODE_RESERVED:
+                    network_access_mode_str = "OGS_NETWORK_ACCESS_MODE_RESERVED";
+                    break;
+                case OGS_NETWORK_ACCESS_MODE_ONLY_PACKET:
+                    network_access_mode_str = "OGS_NETWORK_ACCESS_MODE_ONLY_PACKET";
+                    break;
+            }
+            
             ogs_warn("no subscribed Network-Access-Mode, defaulting to "
-                "PACKET_AND_CIRCUIT (0)");
+                "%s (%i)", network_access_mode_str, mme_ue->network_access_mode);
         }
         if (!(subdatamask & OGS_DIAM_S6A_SUBDATA_CC)) {
             memcpy(mme_ue->charging_characteristics, (uint8_t *)"\x00\x00", 
