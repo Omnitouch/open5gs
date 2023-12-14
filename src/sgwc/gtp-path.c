@@ -74,7 +74,7 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
      *   However in this case, the cause code shall not be set to
      *   "Context not found".
      */
-    gnode = ogs_gtp_node_find_by_addr(&sgwc_self()->pgw_s5c_list, &from);
+    gnode = ogs_gtp_node_find_by_addr_only(&sgwc_self()->pgw_s5c_list, &from);
     if (gnode) {
         e = sgwc_event_new(SGWC_EVT_S5C_MESSAGE);
         ogs_assert(e);
