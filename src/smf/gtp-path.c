@@ -87,7 +87,7 @@ static void _gtpv1v2_c_recv_cb(short when, ogs_socket_t fd, void *data)
         return;
     }
 
-    gnode = ogs_gtp_node_find_by_addr_only(&smf_self()->sgw_s5c_list, &from);
+    gnode = ogs_gtp_node_find_by_addr(&smf_self()->sgw_s5c_list, &from);
     if (!gnode) {
         gnode = ogs_gtp_node_add_by_addr(&smf_self()->sgw_s5c_list, &from);
         if (!gnode) {
