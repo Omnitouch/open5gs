@@ -1043,7 +1043,8 @@ void sgwc_s11_handle_delete_bearer_response(
     ogs_assert(s11_xact);
     s5c_xact = s11_xact->assoc_xact;
 
-    if ((s11_xact->xid & OGS_GTP_CMD_XACT_ID) && (NULL != s5c_xact))
+    // if ((s11_xact->xid & OGS_GTP_CMD_XACT_ID) && (NULL != s5c_xact))
+    if ((s11_xact->xid & OGS_GTP_CMD_XACT_ID))
         /* MME received Bearer Resource Modification Request */
         bearer = s5c_xact->data;
     else
@@ -1090,14 +1091,13 @@ void sgwc_s11_handle_delete_bearer_response(
             ogs_error("No Cause");
         }
 
-        /* Release entire session: */
         ogs_assert(OGS_OK ==
-            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
-    } else if ((1 == rsp->cause.presence) &&
-               (OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND == cause_value)) {
-        /* Release entire session: */
-        ogs_assert(OGS_OK ==
-            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
+            sgwc_pfcp_send_session_deletion_request(sess, s5c_xact, gtpbuf));
+    // } else if ((1 == rsp->cause.presence) &&
+    //            (OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND == cause_value)) {
+    //     /* Release entire session: */
+    //     ogs_assert(OGS_OK ==
+    //         sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
     } else {
        /*
         * << EPS Bearer IDs >>

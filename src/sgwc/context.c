@@ -263,7 +263,7 @@ int sgwc_ue_remove(sgwc_ue_t *sgwc_ue)
             &sgwc_ue->sgw_s11_teid, sizeof(sgwc_ue->sgw_s11_teid), NULL);
     ogs_hash_set(self.imsi_ue_hash, sgwc_ue->imsi, sgwc_ue->imsi_len, NULL);
 
-    sgwc_sess_remove_all_sync(sgwc_ue);
+    sgwc_sess_remove_all(sgwc_ue);
 
     ogs_pool_free(&sgwc_s11_teid_pool, sgwc_ue->sgw_s11_teid_node);
     ogs_pool_free(&sgwc_ue_pool, sgwc_ue);

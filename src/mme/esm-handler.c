@@ -314,6 +314,8 @@ int esm_handle_bearer_resource_modification_request(
  * either the SGWC or SMF send a delete bearer request in response to bearer
  * inactivity timeout occurring */
 static bool has_valid_bearers(mme_sess_t *sess) {
+    return true;
+
     mme_bearer_t *bearer = NULL;
     
     ogs_assert(sess);
