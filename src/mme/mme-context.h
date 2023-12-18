@@ -840,6 +840,7 @@ mme_sgw_t *mme_sgw_roaming_add(ogs_sockaddr_t *addr);
 void mme_sgw_roaming_remove(mme_sgw_t *sgw);
 void mme_sgw_roaming_remove_all(void);
 mme_sgw_t *mme_sgw_roaming_find_by_addr(ogs_sockaddr_t *addr);
+mme_sgw_t *select_random_sgw(void);
 mme_sgw_t *select_random_sgw_roaming(void);
 
 mme_pgw_t *mme_pgw_add(ogs_sockaddr_t *addr);

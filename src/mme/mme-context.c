@@ -68,7 +68,6 @@ static void stats_remove_mme_session(void);
 
 static bool compare_ue_info(mme_sgw_t *node, enb_ue_t *enb_ue);
 static mme_sgw_t *selected_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue);
-static mme_sgw_t *select_random_sgw(void);
 static mme_sgw_t *changed_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue);
 
 static int rand_under(int val);
@@ -2428,6 +2427,27 @@ mme_sgw_t *mme_sgw_roaming_find_by_addr(ogs_sockaddr_t *addr)
     return sgw;
 }
 
+mme_sgw_t *select_random_sgw()
+{
+    char buf[OGS_ADDRSTRLEN];
+    mme_sgw_t *random;
+    int sgw_count;
+    int index;
+
+    /* Select a random sgw */
+    sgw_count = ogs_list_count(&mme_self()->sgw_list);
+    index = rand_under(sgw_count);
+    ogs_debug("There are %i SGWs in our list, we have randomly picked the one at index %i", sgw_count, index);
+    random = ogs_list_at(&mme_self()->sgw_list, index);
+
+    ogs_info(
+        "SGWC address chosen was '%s'",
+        OGS_ADDR(random->gnode.sa_list, buf)
+    );
+
+    return random;
+}
+
 mme_sgw_t *select_random_sgw_roaming()
 {
     char buf[OGS_ADDRSTRLEN];
@@ -3188,27 +3208,6 @@ static mme_sgw_t *selected_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue)
     return random;
 }
 
-static mme_sgw_t *select_random_sgw()
-{
-    char buf[OGS_ADDRSTRLEN];
-    mme_sgw_t *random;
-    int sgw_count;
-    int index;
-
-    /* Select a random sgw */
-    sgw_count = ogs_list_count(&mme_self()->sgw_list);
-    index = rand_under(sgw_count);
-    ogs_debug("There are %i SGWs in our list, we have randomly picked the one at index %i", sgw_count, index);
-    random = ogs_list_at(&mme_self()->sgw_list, index);
-
-    ogs_info(
-        "SGWC address chosen was '%s'",
-        OGS_ADDR(random->gnode.sa_list, buf)
-    );
-
-    return random;
-}
-
 static mme_sgw_t *changed_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue)
 {
     mme_sgw_t *changed = NULL;
@@ -3227,8 +3226,6 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue, ogs_nas_eps_message_t *nas_message)
 {
     mme_enb_t *enb = NULL;
     mme_ue_t *mme_ue = NULL;
-    sgw_ue_t *sgw_ue = NULL;
-    mme_sgw_t *sgw = NULL;
     ogs_nas_mobile_identity_imsi_t *nas_mobile_identity_imsi = NULL; 
 
     ogs_assert(enb_ue);
@@ -3318,25 +3315,8 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue, ogs_nas_eps_message_t *nas_message)
     ogs_hash_set(self.mme_s11_teid_hash,
             &mme_ue->mme_s11_teid, sizeof(mme_ue->mme_s11_teid), mme_ue);
 
-    /* Select an SGW to use for this UE */
-    if (imsi_is_roaming(nas_mobile_identity_imsi)) {
-        sgw = select_random_sgw_roaming();
-    } else {
-        sgw = select_random_sgw();
-    }
-    ogs_assert(sgw);
-
-    sgw_ue = sgw_ue_add(sgw);
-    ogs_assert(sgw_ue);
-    ogs_assert(sgw_ue->gnode);
-
-    sgw_ue_associate_mme_ue(sgw_ue, mme_ue);
-
-    /* Select the PGW that the SGW will use for this UE */
-    mme_ue->pgw_addr = mme_pgw_addr_select_random(
-                &mme_self()->pgw_list, AF_INET);
-    mme_ue->pgw_addr6 = mme_pgw_addr_select_random(
-        &mme_self()->pgw_list, AF_INET6);
+    /* SGW selection takes place in mme_s11_build_create_session_request */
+    /* PGW selection takes place in mme_s11_build_create_session_request */
 
     /* Clear VLR */
     mme_ue->csmap = NULL;
