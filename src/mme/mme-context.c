@@ -3030,7 +3030,11 @@ void sgw_ue_remove(sgw_ue_t *sgw_ue)
 {
     mme_sgw_t *sgw = NULL;
 
-    ogs_assert(sgw_ue);
+    if (NULL == sgw_ue) {
+        /* If the sgw_ue was never set we don't need to do anything */
+        return;
+    }
+
     sgw = sgw_ue->sgw;
     ogs_assert(sgw);
 
@@ -3343,7 +3347,6 @@ void mme_ue_remove(mme_ue_t *mme_ue)
     ogs_hash_set(self.mme_s11_teid_hash,
             &mme_ue->mme_s11_teid, sizeof(mme_ue->mme_s11_teid), NULL);
 
-    ogs_assert(mme_ue->sgw_ue);
     sgw_ue_remove(mme_ue->sgw_ue);
 
     if (0 != mme_ue->imsi_len) {

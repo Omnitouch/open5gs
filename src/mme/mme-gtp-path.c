@@ -435,7 +435,11 @@ int mme_gtp_send_delete_session_request(
     ogs_assert(sess);
     mme_ue = sess->mme_ue;
     ogs_assert(mme_ue);
-    ogs_assert(sgw_ue);
+
+    if (NULL == sgw_ue) {
+        /* If the sgw_ue was never set we don't need to do anything */
+        return OGS_OK;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_DELETE_SESSION_REQUEST_TYPE;
@@ -470,9 +474,13 @@ void mme_gtp_send_delete_all_sessions(mme_ue_t *mme_ue, int action)
     sgw_ue_t *sgw_ue = NULL;
 
     ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
     ogs_assert(action);
+    
+    sgw_ue = mme_ue->sgw_ue;
+    if (NULL == sgw_ue) {
+        /* If the sgw_ue was never set we don't need to do anything */
+        return;
+    }
 
     ogs_list_for_each_safe(&mme_ue->sess_list, next_sess, sess) {
         if (MME_HAVE_SGW_S1U_PATH(sess)) {
