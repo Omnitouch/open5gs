@@ -396,7 +396,13 @@ int mme_gtp_send_modify_bearer_request(
 
     ogs_assert(mme_ue);
     sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
+
+    if (NULL == sgw_ue) {
+        /* sgw_ue is set in mme_gtp_send_create_session_request */
+        ogs_error("Trying to send a modify bearer request before create session request has been sent");
+        ogs_error("\tuli_presence: %i, modify_action: %i", uli_presence, modify_action);
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_MODIFY_BEARER_REQUEST_TYPE;
@@ -438,6 +444,7 @@ int mme_gtp_send_delete_session_request(
 
     if (NULL == sgw_ue) {
         /* If the sgw_ue was never set we don't need to do anything */
+        ogs_warn("Trying to send a delete session request before create session request has been sent");
         return OGS_OK;
     }
 
@@ -478,6 +485,7 @@ void mme_gtp_send_delete_all_sessions(mme_ue_t *mme_ue, int action)
     
     sgw_ue = mme_ue->sgw_ue;
     if (NULL == sgw_ue) {
+        ogs_warn("Trying to delete all sessions before create session request has been sent");
         /* If the sgw_ue was never set we don't need to do anything */
         return;
     }
@@ -507,7 +515,14 @@ int mme_gtp_send_create_bearer_response(
     mme_ue = bearer->mme_ue;
     ogs_assert(mme_ue);
     sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
+    
+    if (NULL == sgw_ue) {
+        /* sgw_ue is set in mme_gtp_send_create_session_request */
+        ogs_error("Trying to send a create bearer response before create session request has been sent");
+        ogs_error("\tcause_value: %i", cause_value);
+        return OGS_ERROR;
+    }
+
     xact = ogs_gtp_xact_cycle(bearer->create.xact);
     if (!xact) {
         ogs_warn("GTP transaction(CREATE) has already been removed");
@@ -552,7 +567,14 @@ int mme_gtp_send_update_bearer_response(
     mme_ue = bearer->mme_ue;
     ogs_assert(mme_ue);
     sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
+
+    if (NULL == sgw_ue) {
+        /* sgw_ue is set in mme_gtp_send_create_session_request */
+        ogs_error("Trying to send a update bearer response before create session request has been sent");
+        ogs_error("\tcause_value: %i", cause_value);
+        return OGS_ERROR;
+    }
+
     xact = ogs_gtp_xact_cycle(bearer->update.xact);
     if (!xact) {
         ogs_warn("GTP transaction(UPDATE) has already been removed");
@@ -597,7 +619,14 @@ int mme_gtp_send_delete_bearer_response(
     mme_ue = bearer->mme_ue;
     ogs_assert(mme_ue);
     sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
+
+    if (NULL == sgw_ue) {
+        /* sgw_ue is set in mme_gtp_send_create_session_request */
+        ogs_error("Trying to send a delete bearer response before create session request has been sent");
+        ogs_error("\tcause_value: %i", cause_value);
+        return OGS_ERROR;
+    }
+
     xact = ogs_gtp_xact_cycle(bearer->delete.xact);
     if (!xact) {
         ogs_warn("GTP transaction(DELETE) has already been removed");
@@ -637,7 +666,13 @@ int mme_gtp_send_release_access_bearers_request(mme_ue_t *mme_ue, int action)
     ogs_assert(action);
     ogs_assert(mme_ue);
     sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
+
+    if (NULL == sgw_ue) {
+        /* sgw_ue is set in mme_gtp_send_create_session_request */
+        ogs_error("Trying to send a release access bearers request before create session request has been sent");
+        ogs_error("\taction: %i", action);
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_RELEASE_ACCESS_BEARERS_REQUEST_TYPE;
@@ -733,7 +768,13 @@ int mme_gtp_send_downlink_data_notification_ack(
     mme_ue = bearer->mme_ue;
     ogs_assert(mme_ue);
     sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
+
+    if (NULL == sgw_ue) {
+        /* sgw_ue is set in mme_gtp_send_create_session_request */
+        ogs_error("Trying to send a send downlink data notification ack before create session request has been sent");
+        ogs_error("\tcause_value: %i", cause_value);
+        return OGS_ERROR;
+    }
 
     /* Build Downlink data notification ack */
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
@@ -769,7 +810,12 @@ int mme_gtp_send_create_indirect_data_forwarding_tunnel_request(
 
     ogs_assert(mme_ue);
     sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
+
+    if (NULL == sgw_ue) {
+        /* sgw_ue is set in mme_gtp_send_create_session_request */
+        ogs_error("Trying to send a create indirect data forwarding tunnel request before create session request has been sent");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_CREATE_INDIRECT_DATA_FORWARDING_TUNNEL_REQUEST_TYPE;
@@ -808,7 +854,13 @@ int mme_gtp_send_delete_indirect_data_forwarding_tunnel_request(
     ogs_assert(action);
     ogs_assert(mme_ue);
     sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
+
+    if (NULL == sgw_ue) {
+        /* sgw_ue is set in mme_gtp_send_create_session_request */
+        ogs_error("Trying to send a delete indirect data forwarding tunnel request before create session request has been sent");
+        ogs_error("\taction: %i", action);
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_DELETE_INDIRECT_DATA_FORWARDING_TUNNEL_REQUEST_TYPE;
@@ -850,7 +902,12 @@ int mme_gtp_send_bearer_resource_command(
     mme_ue = bearer->mme_ue;
     ogs_assert(mme_ue);
     sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
+    
+    if (NULL == sgw_ue) {
+        /* sgw_ue is set in mme_gtp_send_create_session_request */
+        ogs_error("Trying to send a bearer resource command before create session request has been sent");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_BEARER_RESOURCE_COMMAND_TYPE;

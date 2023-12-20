@@ -1881,7 +1881,7 @@ int mme_context_parse_config(void)
             ogs_yaml_iter_t sgwc_roaming_iter;
             mme_sgw_t *sgw = NULL;
             ogs_sockaddr_t *addr = NULL;
-            int family = AF_UNSPEC;
+            int family = AF_INET;
             int i, num = 0;
             const char *hostname[OGS_MAX_NUM_OF_HOSTNAME];
             uint16_t port = ogs_gtp_self()->gtpc_port;

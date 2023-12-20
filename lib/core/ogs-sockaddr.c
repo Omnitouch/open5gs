@@ -373,7 +373,6 @@ const char *ogs_inet_ntop(void *sa, char *buf, int buflen)
                 INET6_ADDRSTRLEN);
     default:
         ogs_fatal("Unknown family(%d)", family);
-        ogs_abort();
         return NULL;
     }
 }
