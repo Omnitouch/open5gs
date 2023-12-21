@@ -484,11 +484,6 @@ void mme_gtp_send_delete_all_sessions(mme_ue_t *mme_ue, int action)
     ogs_assert(action);
     
     sgw_ue = mme_ue->sgw_ue;
-    if (NULL == sgw_ue) {
-        ogs_warn("Trying to delete all sessions before create session request has been sent");
-        /* If the sgw_ue was never set we don't need to do anything */
-        return;
-    }
 
     ogs_list_for_each_safe(&mme_ue->sess_list, next_sess, sess) {
         if (MME_HAVE_SGW_S1U_PATH(sess)) {
