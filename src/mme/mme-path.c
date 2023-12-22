@@ -156,7 +156,7 @@ void mme_send_release_access_bearer_or_ue_context_release(enb_ue_t *enb_ue)
     ogs_assert(enb_ue);
 
     mme_ue = enb_ue->mme_ue;
-    if (mme_ue) {
+    if (mme_ue && mme_ue->sgw_ue) {
         ogs_debug("[%s] Release access bearer request", mme_ue->imsi_bcd);
         ogs_assert(OGS_OK ==
             mme_gtp_send_release_access_bearers_request(

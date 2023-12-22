@@ -701,7 +701,7 @@ void mme_gtp_send_release_all_ue_in_enb(mme_enb_t *enb, int action)
     ogs_list_for_each_safe(&enb->enb_ue_list, next, enb_ue) {
         mme_ue = enb_ue->mme_ue;
 
-        if (mme_ue) {
+        if (mme_ue && mme_ue->sgw_ue) {
             if (action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_LO_CONNREFUSED) {
                 /*
                  * https://github.com/open5gs/open5gs/pull/1497

@@ -3330,15 +3330,10 @@ void s1ap_handle_s1_reset(
             enb_ue->part_of_s1_reset_requested = true;
 
             mme_ue = enb_ue->mme_ue;
-            if (mme_ue) {
-                if (mme_ue->sgw_ue) {
-                    ogs_assert(OGS_OK ==
-                        mme_gtp_send_release_access_bearers_request(mme_ue,
-                            OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_RESET_PARTIAL));
-                } else {
-                    enb_ue_unlink(mme_ue);
-                    enb_ue_remove(enb_ue);
-                }
+            if (mme_ue && mme_ue->sgw_ue) {
+                ogs_assert(OGS_OK ==
+                    mme_gtp_send_release_access_bearers_request(mme_ue,
+                        OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_RESET_PARTIAL));
             } else {
                 enb_ue_remove(enb_ue);
             }
