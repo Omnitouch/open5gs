@@ -63,13 +63,17 @@ typedef uint32_t ogs_pool_id_t;
     } \
 } while (0)
 
+/* Make sure to memset after to avoid potental double free issues */
 #define ogs_pool_final(pool) do { \
     if (((pool)->size != (pool)->avail)) \
         ogs_error("%d in '%s[%d]' were not released.", \
                 (pool)->size - (pool)->avail, (pool)->name, (pool)->size); \
+    if ((0 == (pool)->free) || (0 == (pool)->array) || (0 == (pool)->index)) \
+        ogs_fatal("Trying to free memory that wasnt allocated!"); \
     ogs_pool_destroy((pool)->free); \
     ogs_pool_destroy((pool)->array); \
     ogs_pool_destroy((pool)->index); \
+    memset((pool), 0, sizeof(*(pool))); \
 } while (0)
 
 #define ogs_pool_index(pool, node) (((node) - (pool)->array)+1)
