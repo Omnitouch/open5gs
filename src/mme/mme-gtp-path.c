@@ -445,7 +445,7 @@ int mme_gtp_send_delete_session_request(
     if (NULL == sgw_ue) {
         /* If the sgw_ue was never set we don't need to do anything */
         ogs_warn("Trying to send a delete session request before create session request has been sent");
-        return OGS_OK;
+        return OGS_ERROR;
     }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
@@ -486,7 +486,7 @@ void mme_gtp_send_delete_all_sessions(mme_ue_t *mme_ue, int action)
     sgw_ue = mme_ue->sgw_ue;
 
     ogs_list_for_each_safe(&mme_ue->sess_list, next_sess, sess) {
-        if (MME_HAVE_SGW_S1U_PATH(sess)) {
+        if (sgw_ue && MME_HAVE_SGW_S1U_PATH(sess)) {
             mme_gtp_send_delete_session_request(sgw_ue, sess, action);
         } else {
             mme_sess_remove(sess);

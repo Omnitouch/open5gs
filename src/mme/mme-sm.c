@@ -901,7 +901,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         ogs_info("P-CSCF Restoration");
         ogs_info("    IMSI[%s] PTI[%d]",
                 mme_ue->imsi_bcd, sess->pti);
-        if (MME_HAVE_SGW_S1U_PATH(sess)) {
+        if (mme_ue->sgw_ue && MME_HAVE_SGW_S1U_PATH(sess)) {
             ogs_assert(OGS_OK ==
                 mme_gtp_send_delete_session_request(mme_ue->sgw_ue, sess,
                 OGS_GTP_DELETE_SEND_DEACTIVATE_BEARER_CONTEXT_REQUEST));
