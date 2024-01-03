@@ -28,7 +28,8 @@ typedef enum S1AP_CauseNas {
 	 * Enumeration is extensible
 	 */
 	S1AP_CauseNas_csg_subscription_expiry	= 4,
-	S1AP_CauseNas_uE_not_in_PLMN_serving_area	= 5
+	S1AP_CauseNas_uE_not_in_PLMN_serving_area	= 5,
+	S1AP_CauseNas_user_inactivity = 20
 } e_S1AP_CauseNas;
 
 /* S1AP_CauseNas */

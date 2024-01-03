@@ -934,7 +934,7 @@ void s1ap_handle_initial_context_setup_failure(
      * may in principle be adopted. The eNB should ensure
      * that no hanging resources remain at the eNB.
      */
-    mme_send_release_access_bearer_or_ue_context_release(enb_ue);
+    mme_send_release_access_bearer_or_ue_context_release(enb_ue, OGS_GTP_RELEASE_SEND_UE_CONTEXT_RELEASE_COMMAND);
 }
 
 void s1ap_handle_ue_context_modification_response(
@@ -1345,11 +1345,12 @@ void s1ap_handle_e_rab_setup_response(
     }
 }
 
-void s1ap_handle_ue_context_release_request(
+void s1ap_handle_ue_context_release_request( // 
         mme_enb_t *enb, ogs_s1ap_message_t *message)
 {
     char buf[OGS_ADDRSTRLEN];
     int i, r;
+    int action = OGS_GTP_RELEASE_SEND_UE_CONTEXT_RELEASE_COMMAND;
 
     S1AP_InitiatingMessage_t *initiatingMessage = NULL;
     S1AP_UEContextReleaseRequest_t *UEContextReleaseRequest = NULL;
@@ -1429,14 +1430,16 @@ void s1ap_handle_ue_context_release_request(
     ogs_debug("    Cause[Group:%d Cause:%d]",
             Cause->present, (int)Cause->choice.radioNetwork);
 
-    if ((S1AP_Cause_PR_radioNetwork == Cause->present) && 
-        (20 == (int)Cause->choice.radioNetwork)        &&
-        (NULL != enb_ue->mme_ue)) {
-        mme_metrics_ue_idle_add(enb_ue->mme_ue->imsi_bcd);
-    }
-
     switch (Cause->present) {
     case S1AP_Cause_PR_radioNetwork:
+        if (S1AP_CauseNas_user_inactivity == Cause->choice.radioNetwork) {
+            action = OGS_GTP_RELEASE_SEND_UE_CONTEXT_RELEASE_COMMAND_USER_INACTIVITY;
+
+            if (NULL != enb_ue->mme_ue) {
+                mme_metrics_ue_idle_add(enb_ue->mme_ue->imsi_bcd);
+            }
+        }
+        break;
     case S1AP_Cause_PR_transport:
     case S1AP_Cause_PR_protocol:
     case S1AP_Cause_PR_misc:
@@ -1449,7 +1452,7 @@ void s1ap_handle_ue_context_release_request(
         break;
     }
 
-    mme_send_release_access_bearer_or_ue_context_release(enb_ue);
+    mme_send_release_access_bearer_or_ue_context_release(enb_ue, action);
 }
 
 void s1ap_handle_ue_context_release_complete(

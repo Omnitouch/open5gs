@@ -575,7 +575,7 @@ static void common_register_state(ogs_fsm_t *s, mme_event_t *e,
             }
 
             if (!mme_ue->nas_eps.update.active_flag)
-                mme_send_release_access_bearer_or_ue_context_release(enb_ue);
+                mme_send_release_access_bearer_or_ue_context_release(enb_ue, OGS_GTP_RELEASE_SEND_UE_CONTEXT_RELEASE_COMMAND);
 
             if (mme_ue->next.m_tmsi) {
                 ogs_fatal("MME does not create new GUTI");
@@ -637,7 +637,7 @@ static void common_register_state(ogs_fsm_t *s, mme_event_t *e,
                     ogs_expect(r == OGS_OK);
                     ogs_assert(r != OGS_ERROR);
                     mme_send_release_access_bearer_or_ue_context_release(
-                            enb_ue);
+                            enb_ue, OGS_GTP_RELEASE_SEND_UE_CONTEXT_RELEASE_COMMAND);
                     break;
                 }
 

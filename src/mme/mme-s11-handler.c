@@ -1351,6 +1351,17 @@ void mme_s11_handle_release_access_bearers_response(
         } else {
             ogs_error("ENB-S1 Context has already been removed");
         }
+    } else if (action == OGS_GTP_RELEASE_SEND_UE_CONTEXT_RELEASE_COMMAND_USER_INACTIVITY) {
+        enb_ue = enb_ue_cycle(mme_ue->enb_ue);
+        if (enb_ue) {
+            r = s1ap_send_ue_context_release_command(enb_ue,
+                    S1AP_Cause_PR_nas, S1AP_CauseNas_user_inactivity,
+                    S1AP_UE_CTX_REL_S1_REMOVE_AND_UNLINK, 0);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
+        } else {
+            ogs_error("ENB-S1 Context has already been removed");
+        }
     } else if (action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_LO_CONNREFUSED) {
     /* enb_ue_unlink() and enb_ue_remove() has already been executed.
      * So, there is no `enb_ue` context */
