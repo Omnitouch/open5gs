@@ -3388,11 +3388,16 @@ void mme_ue_remove(mme_ue_t *mme_ue)
     enb_ue_unlink(mme_ue);
 
     mme_sess_remove_all(mme_ue);
-    mme_session_remove_all(mme_ue);
+
+    ogs_info("before mme_sess_remove_all(mme_ue);");
+    mme_sess_remove_all(mme_ue); // maybe? 
+    ogs_info("after mme_sess_remove_all(mme_ue);");
 
     mme_ebi_pool_final(mme_ue);
 
+    ogs_info("after ebi pool final");
     ogs_pool_free(&mme_s11_teid_pool, mme_ue->mme_s11_teid_node);
+    ogs_info("after pool free s11 teid");
     ogs_pool_free(&mme_ue_pool, mme_ue);
 
     ogs_info("[Removed] Number of MME-UEs is now %d",
@@ -3855,11 +3860,12 @@ bool imsi_is_roaming(ogs_nas_mobile_identity_imsi_t *nas_imsi)
                 (ue_mnc_3_digit == home_mnc)) 
             {
                 /* Is not roaming */
-                return false;
+ogs_info("not a roaming sim!");
+    		    return false;
             }
         }
     }
-
+ogs_info("is a roaming sim!");
     /* Must be roaming */
     return true;
 }
@@ -4034,6 +4040,9 @@ void mme_sess_remove(mme_sess_t *sess)
     OGS_NAS_CLEAR_DATA(&sess->ue_epco);
     OGS_TLV_CLEAR_DATA(&sess->pgw_pco);
     OGS_TLV_CLEAR_DATA(&sess->pgw_epco);
+
+        /* Clear sess so if somehow used again pointers are NULL */
+    memset(sess, 0, sizeof(*sess));
 
     ogs_pool_free(&mme_sess_pool, sess);
 
@@ -4662,7 +4671,24 @@ void mme_ebi_pool_final(mme_ue_t *mme_ue)
 {
     ogs_assert(mme_ue);
 
+    ogs_info("finalising the pool...");
+    ogs_info("(&mme_ue->ebi_pool)->size = %i", (&mme_ue->ebi_pool)->size);
+    ogs_info("(&mme_ue->ebi_pool)->avail = %i", (&mme_ue->ebi_pool)->avail);
+    ogs_info("calling ogs_talloc_free(%p)", (&mme_ue->ebi_pool)->free);
+    ogs_info("calling ogs_talloc_free(%p)", (&mme_ue->ebi_pool)->array);
+    ogs_info("calling ogs_talloc_free(%p)", (&mme_ue->ebi_pool)->index);
+
+    if ((0 == (&mme_ue->ebi_pool)->free) ||
+        (0 == (&mme_ue->ebi_pool)->array) ||
+        (0 == (&mme_ue->ebi_pool)->index)) 
+    {
+        ogs_fatal("This potential double free detected!");
+    }
+
     ogs_pool_final(&mme_ue->ebi_pool);
+    ogs_info("pool has been finalised!");
+    memset(&mme_ue->ebi_pool, 0, sizeof(mme_ue->ebi_pool));
+
 }
 
 void mme_ebi_pool_clear(mme_ue_t *mme_ue)

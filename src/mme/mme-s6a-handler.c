@@ -150,7 +150,9 @@ uint8_t mme_s6a_handle_pua(
     if (pua_message->pua_flags & OGS_DIAM_S6A_PUA_FLAGS_FREEZE_MTMSI)
         ogs_debug("Freeze M-TMSI requested but not implemented.");
 
-    mme_ue_remove(mme_ue);
+    ogs_info("before mme_ue_remove(mme_ue);");
+    mme_ue_remove(mme_ue); // probably
+    ogs_info("after mme_ue_remove(mme_ue);");
 
     return OGS_OK;
 }

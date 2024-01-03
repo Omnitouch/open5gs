@@ -499,7 +499,7 @@ ogs_pkbuf_t *mme_s11_build_delete_session_request(
     bearer = mme_default_bearer_in_sess(sess);
     ogs_assert(bearer);
 
-    ogs_debug("Delete Session Request");
+    ogs_info("Delete Session Request");
 
     memset(&gtp_message, 0, sizeof(ogs_gtp2_message_t));
 
