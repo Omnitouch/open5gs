@@ -3032,6 +3032,7 @@ void sgw_ue_remove(sgw_ue_t *sgw_ue)
 
     if (NULL == sgw_ue) {
         /* If the sgw_ue was never set we don't need to do anything */
+        ogs_debug("sgw_ue_remove called with NULL sgw_ue");
         return;
     }
 
@@ -3702,10 +3703,30 @@ int mme_ue_set_imsi(mme_ue_t *mme_ue, char *imsi_bcd)
             /* Phase-3 : Clear Session Context in OLD MME-UE Context */
             memset(&old_mme_ue->sess_list, 0, sizeof(old_mme_ue->sess_list));
 
-            /* Phase-4 : Move sgw_ue->sgw_s11_teid */
-            ogs_assert(old_mme_ue->sgw_ue);
-            ogs_assert(mme_ue->sgw_ue);
-            mme_ue->sgw_ue->sgw_s11_teid = old_mme_ue->sgw_ue->sgw_s11_teid;
+            /* Phase-4 : Move sgw_ue->sgw_s11_teid if possible */
+            if (NULL == old_mme_ue->sgw_ue) {
+                /* If the old_mme_ue doesn't have a sgw_ue it 
+                 * must not have received a Create Session Response.
+                 * In this case we dont need to do anything as the new
+                 * mme_ue will get a fresh sgw_ue when the Create Session
+                 * Request is sent */
+                ogs_debug("old_mme_ue->sgw_ue does not exist");
+            } else if (NULL == mme_ue->sgw_ue) {
+                /* If the new mme_ue doesn't have a sgw_ue a
+                 * Create Session Request hasn't been sent yet.
+                 * At this point we know that the old sgw_ue exists
+                 * so lets take that one. After copying the sgw_ue
+                 * we unlink the old_mme_ue's sgw_ue so that the
+                 * call to mme_ue_remove doesn't free up that sgw_ue 
+                 * memory. */
+                ogs_debug("old_mme_ue->sgw_ue exists but mme_ue->sgw_ue does not");
+                sgw_ue_associate_mme_ue(old_mme_ue->sgw_ue, mme_ue);
+                sgw_ue_unlink(old_mme_ue);
+            } else {
+                /* If a new connection exists (mme_ue->sgw_ue != NULL)
+                 * then we need to remove the old connection */
+                ogs_error("New and old sgw connections (sgw_ue) found for imsi '%s', removing the old and keeping the new", imsi_bcd);
+            }
 
             mme_ue_remove(old_mme_ue);
         }
