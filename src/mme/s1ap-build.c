@@ -890,7 +890,6 @@ ogs_pkbuf_t *s1ap_build_ue_context_release_command(
         UE_S1AP_IDs->choice.uE_S1AP_ID_pair->eNB_UE_S1AP_ID = 
             enb_ue->enb_ue_s1ap_id;
     }
-
     Cause->present = group;
     Cause->choice.radioNetwork = cause;
 
