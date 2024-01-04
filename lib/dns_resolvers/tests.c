@@ -7,6 +7,7 @@ int main(int argc, char **argv) {
 
     ResolverContext context = {};
     char ipv4[INET_ADDRSTRLEN] = "";
+    bool resolved = false;
 
     if (argc != 8) {
         printf("Not enough arguments for cli runs!\n");
@@ -48,8 +49,9 @@ int main(int argc, char **argv) {
     printf("protocol      : '%s'\n", context.protocol);
 
 
-    resolve_naptr(&context, ipv4, INET_ADDRSTRLEN);
+    resolved = resolve_naptr(&context, ipv4, INET_ADDRSTRLEN);
     printf("===========================================\n");
+    printf("Resolved: '%s'\n", resolved ? "TRUE" : "FALSE");
     printf("The the final resolved IP is '%s'\n", ipv4);
 
     return 0;

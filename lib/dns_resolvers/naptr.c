@@ -31,7 +31,7 @@ enum { ORDER_SZ_BYTES = 2,
        SERVICE_LEN_SZ_BYTES = 1,
        REGEX_LEN_SZ_BYTES = 1 };
 
-enum { MAX_ANSWER_BYTES = 1024 };
+enum { MAX_ANSWER_BYTES = 4096 };
 
 
 static naptr_resource_record * parse_naptr_resource_records(ns_msg * const handle, int count);
@@ -189,7 +189,11 @@ static naptr_resource_record * parse_naptr_resource_records(ns_msg * const handl
     if ((NULL == handle) || (0 == count)) return NULL;
 
     for (i = 0; i < count; i++) {
-        ns_parserr(handle, ns_s_an, i, &rr);
+        if (0 != ns_parserr(handle, ns_s_an, i, &rr)) {
+            ogs_error("Failed to parse NAPTR Resource Record... skipping...");
+            continue;
+        }
+
         if (ns_rr_type(rr) == ns_t_naptr) {
             /* Make memory for new nrr */
             nrr_current = (naptr_resource_record*)malloc(sizeof(naptr_resource_record));
