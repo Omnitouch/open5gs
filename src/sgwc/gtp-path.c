@@ -87,13 +87,32 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
             ogs_pkbuf_free(pkbuf);
             return;
         }
+    
+            ogs_warn("!@#$ Just added a gnode(%s:%u) on a different port ASSUMING ITS A PGW",
+            OGS_ADDR(&from, frombuf), OGS_PORT(&from));
+	gnode->sock = data;
+    } else if (OGS_GTPV2_C_UDP_PORT != OGS_PORT(&from)) {
+        /* Catch special case when SGWC is restarted and PGW sends a message
+         * on non-gtp port due to state mismatch */
+        gnode = ogs_gtp_node_add_by_addr(&sgwc_self()->pgw_s5c_list, &from);
+        if (!gnode) {
+            ogs_error("Failed to create new gnode(%s:%u), mempool full, ignoring msg!",
+                      OGS_ADDR(&from, frombuf), OGS_PORT(&from));
+            ogs_pkbuf_free(pkbuf);
+            return;
+        }
         gnode->sock = data;
+            ogs_warn("!@#$ Just added a THAT WE HAVENT SEEN BEFORE gnode(%s:%u) on a different port ASSUMING ITS A PGW, %u:%u",
+                      OGS_ADDR(&from, frombuf), OGS_PORT(&from), OGS_GTPV2_C_UDP_PORT, OGS_PORT(&from));
     }
 
     if (gnode) {
         e = sgwc_event_new(SGWC_EVT_S5C_MESSAGE);
         ogs_assert(e);
         e->gnode = gnode;
+	        ogs_warn("!@#$ Got data from existing gnode(%s:%u) ASSUMING ITS A PGW",
+            OGS_ADDR(&from, frombuf), OGS_PORT(&from));
+
     } else {
         e = sgwc_event_new(SGWC_EVT_S11_MESSAGE);
         gnode = ogs_gtp_node_find_by_addr(&sgwc_self()->mme_s11_list, &from);
@@ -109,6 +128,8 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
         }
         ogs_assert(e);
         e->gnode = gnode;
+        ogs_warn("!@#$ Got data from new gnode(%s:%u) ASSUMING ITS A MME",
+                          OGS_ADDR(&from, frombuf), OGS_PORT(&from));
     }
 
     e->pkbuf = pkbuf;
