@@ -101,8 +101,11 @@ static void timeout(ogs_gtp_xact_t *xact, void *data)
         break;
     case OGS_GTP2_CREATE_SESSION_REQUEST_TYPE:
     case OGS_GTP2_DELETE_SESSION_REQUEST_TYPE:
-        sess = data;
-        ogs_assert(sess);
+        sess = mme_sess_cycle(data);
+        if (NULL == sess) {
+            ogs_error("OGS_GTP2_DELETE_SESSION_REQUEST_TYPE timeout for mme_sess that doesn't exist anymore");
+            return;
+        }
         mme_ue = sess->mme_ue;
         ogs_assert(mme_ue);
         break;
