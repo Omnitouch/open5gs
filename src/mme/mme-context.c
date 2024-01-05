@@ -3856,7 +3856,7 @@ bool mme_sess_have_session_release_pending(mme_sess_t *sess)
     return false;
 }
 
-mme_ue_t *mme_sess_cycle(mme_sess_t *sess)
+mme_sess_t *mme_sess_cycle(mme_sess_t *sess)
 {
     return ogs_pool_cycle(&mme_sess_pool, sess);
 }
