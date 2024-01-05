@@ -647,6 +647,7 @@ ogs_pkbuf_t *emm_build_tau_accept(mme_ue_t *mme_ue)
         ims_voice_over_ps_session_in_s1_mode = 1;
     tau_accept->eps_network_feature_support.
         extended_protocol_configuration_options = 1;
+    tau_accept->eps_network_feature_support.emergency_bearer_services_in_s1_mode = mme_self()->emergency_bearer_services;
 
     return nas_eps_security_encode(mme_ue, &message);
 }
