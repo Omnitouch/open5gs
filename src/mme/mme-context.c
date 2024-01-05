@@ -2346,6 +2346,9 @@ void mme_sgw_remove(mme_sgw_t *sgw)
     ogs_gtp_xact_delete_all(&sgw->gnode);
     ogs_freeaddrinfo(sgw->gnode.sa_list);
 
+    /* Clear sgw so if pointer is used again use-after-free is easier to detect */
+    memset(sgw, 0, sizeof(*sgw));
+
     ogs_pool_free(&mme_sgw_pool, sgw);
 }
 
@@ -2401,6 +2404,9 @@ void mme_sgw_roaming_remove(mme_sgw_t *sgw)
 
     ogs_gtp_xact_delete_all(&sgw->gnode);
     ogs_freeaddrinfo(sgw->gnode.sa_list);
+
+    /* Clear sgw so if pointer is used again use-after-free is easier to detect */
+    memset(sgw, 0, sizeof(*sgw));
 
     ogs_pool_free(&mme_sgw_pool, sgw);
 }
@@ -2499,6 +2505,10 @@ void mme_pgw_remove(mme_pgw_t *pgw)
     ogs_list_remove(&self.pgw_list, pgw);
 
     ogs_freeaddrinfo(pgw->sa_list);
+
+    /* Clear pgw so if pointer is used again use-after-free is easier to detect */
+    memset(pgw, 0, sizeof(*pgw));
+
     ogs_pool_free(&mme_pgw_pool, pgw);
 }
 
@@ -2615,6 +2625,9 @@ void mme_vlr_remove(mme_vlr_t *vlr)
     if (vlr->option)
         ogs_free(vlr->option);
 
+    /* Clear vlr so if pointer is used again use-after-free is easier to detect */
+    memset(vlr, 0, sizeof(*vlr));
+
     ogs_pool_free(&mme_vlr_pool, vlr);
 }
 
@@ -2671,6 +2684,9 @@ void mme_csmap_remove(mme_csmap_t *csmap)
     ogs_assert(csmap);
 
     ogs_list_remove(&self.csmap_list, csmap);
+
+    /* Clear csmap so if pointer is used again use-after-free is easier to detect */
+    memset(csmap, 0, sizeof(*csmap));
 
     ogs_pool_free(&mme_csmap_pool, csmap);
 }
@@ -2951,6 +2967,9 @@ void enb_ue_remove(enb_ue_t *enb_ue)
     ogs_assert(enb_ue->t_s1_holding);
     ogs_timer_delete(enb_ue->t_s1_holding);
 
+    /* Clear enb_ue so if pointer is used again use-after-free is easier to detect */
+    memset(enb_ue, 0, sizeof(*enb_ue));
+
     ogs_pool_free(&enb_ue_pool, enb_ue);
 
     stats_remove_enb_ue();
@@ -3043,6 +3062,9 @@ void sgw_ue_remove(sgw_ue_t *sgw_ue)
 
     ogs_assert(sgw_ue->t_s11_holding);
     ogs_timer_delete(sgw_ue->t_s11_holding);
+
+    /* Clear sgw_ue so if pointer is used again use-after-free is easier to detect */
+    memset(sgw_ue, 0, sizeof(*sgw_ue));
 
     ogs_pool_free(&sgw_ue_pool, sgw_ue);
 }
@@ -3399,6 +3421,10 @@ void mme_ue_remove(mme_ue_t *mme_ue)
     ogs_info("after ebi pool final");
     ogs_pool_free(&mme_s11_teid_pool, mme_ue->mme_s11_teid_node);
     ogs_info("after pool free s11 teid");
+
+    /* Clear mme_ue so if pointer is used again use-after-free is easier to detect */
+    memset(mme_ue, 0, sizeof(*mme_ue));
+
     ogs_pool_free(&mme_ue_pool, mme_ue);
 
     ogs_info("[Removed] Number of MME-UEs is now %d",
@@ -3830,6 +3856,11 @@ bool mme_sess_have_session_release_pending(mme_sess_t *sess)
     return false;
 }
 
+mme_ue_t *mme_sess_cycle(mme_sess_t *sess)
+{
+    return ogs_pool_cycle(&mme_sess_pool, sess);
+}
+
 int mme_ue_xact_count(mme_ue_t *mme_ue, uint8_t org)
 {
     sgw_ue_t *sgw_ue = NULL;
@@ -4062,7 +4093,7 @@ void mme_sess_remove(mme_sess_t *sess)
     OGS_TLV_CLEAR_DATA(&sess->pgw_pco);
     OGS_TLV_CLEAR_DATA(&sess->pgw_epco);
 
-        /* Clear sess so if somehow used again pointers are NULL */
+    /* Clear sess so if pointer is used again use-after-free is easier to detect */
     memset(sess, 0, sizeof(*sess));
 
     ogs_pool_free(&mme_sess_pool, sess);
@@ -4208,6 +4239,9 @@ void mme_bearer_remove(mme_bearer_t *bearer)
 
     if (bearer->ebi_node)
         ogs_pool_free(&bearer->mme_ue->ebi_pool, bearer->ebi_node);
+
+    /* Clear bearer so if pointer is used again use-after-free is easier to detect */
+    memset(bearer, 0, sizeof(*bearer));
 
     ogs_pool_free(&mme_bearer_pool, bearer);
 }
