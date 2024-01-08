@@ -213,6 +213,7 @@ typedef struct mme_context_s {
     bool emergency_bearer_services;
     size_t num_emergency_number_list_items;
     emergency_number_list_item_t emergency_number_list[MAX_NUM_EMERGENCY_NUMBER_LIST_ITEMS];
+    int default_emergency_session_type;
 
     /* DNS */
     bool dns_target_sgw;

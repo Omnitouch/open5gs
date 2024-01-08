@@ -110,14 +110,14 @@ uint8_t mme_s6a_handle_ula(
 
     mme_ue->context_identifier = slice_data->context_identifier;
 
-    /* If there is no sos session we should add one */
-    if (NULL == mme_emergency_session(mme_ue)) {
+    /* If there is no sos session and the config has specified to add one, we add one */
+    if ((NULL == mme_emergency_session(mme_ue)) && (0 != mme_self()->default_emergency_session_type)) {
         if (mme_ue->num_of_session < OGS_MAX_NUM_OF_SESS) {
             ogs_session_t *session = &mme_ue->session[mme_ue->num_of_session];
             
             session->name = (char*)"sos";
             session->context_identifier = 0;
-            session->session_type =  OGS_PDU_SESSION_TYPE_IPV4; //mme_self()->default_emergency_session_type;//
+            session->session_type = mme_self()->default_emergency_session_type;
             memset(&session->paa, 0, sizeof(session->paa));
             session->charging_characteristics_presence = false;
             session->qos.arp.pre_emption_capability = 1;

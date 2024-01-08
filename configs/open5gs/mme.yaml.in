@@ -349,6 +349,23 @@ logger:
 #     10011: UTC+10:30 # Adelaide Time
 #
 #
+# <Default Emergency Session>
+#
+#  When a ULA doesn't return any sessions with an APN with "sos"
+#  this field is used along with the internal defaults to create
+#  a "sos" session for the UE. The following values can be used to
+#  set the session type.
+#
+#   o 1 => OGS_PDU_SESSION_TYPE_IPV4
+#   o 2 => OGS_PDU_SESSION_TYPE_IPV6
+#   o 3 => OGS_PDU_SESSION_TYPE_IPV4V6
+#   o 4 => OGS_PDU_SESSION_TYPE_UNSTRUCTURED
+#   o 5 => OGS_PDU_SESSION_TYPE_ETHERNET
+#
+# mme:
+#   default_emergency_session_type: 1
+#
+#
 mme:
     freeDiameter: @sysconfdir@/freeDiameter/mme.conf
     s1ap:
@@ -383,6 +400,7 @@ mme:
       eni:
         services: [ MOUNTAIN_RESCUE, MARINE_GUARD, FIRE_BRIGADE, AMBULANCE, POLICE ]
         bcd: 115
+    default_emergency_session_type: 1
     redis:
       enabled: True
       addr: "127.0.0.1"

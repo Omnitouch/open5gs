@@ -1785,6 +1785,9 @@ int mme_context_parse_config(void)
                         ogs_info("Emergency bearer services have been disabled");
                         *emergency_bearer_services = false;
                     }
+                } else if (!strcmp(mme_key, "default_emergency_session_type")) {
+                    const char *c_default_emergency_session_type = ogs_yaml_iter_value(&mme_iter);
+                    self.default_emergency_session_type = atoi(c_default_emergency_session_type);
                 } else if (!strcmp(mme_key, "redis_server")) {
                     ogs_yaml_iter_t redis_iter;
                     ogs_yaml_iter_recurse(&mme_iter, &redis_iter);
