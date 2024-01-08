@@ -227,7 +227,10 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
     if (NULL == sgw_ue) {
         mme_sgw_t *sgw = NULL;
 
-        if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi)) {
+        if ((NULL != sess->session) && (0 == strcmp("sos", sess->session->name))) {
+            /* If APN is SOS then skip DNS lookup and assign SGW/PGW from local config */
+            sgw = select_random_sgw();
+        } else if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi)) {
             sgw = select_random_sgw_roaming();
         } else if (mme_self()->dns_target_sgw) {
             char ipv4[INET_ADDRSTRLEN] = "";
@@ -284,7 +287,13 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
     if ((NULL == mme_ue->pgw_addr) && (NULL == mme_ue->pgw_addr6)) {
         bool resolved_dns = false;
 
-        if (mme_self()->dns_target_pgw) {
+        if ((NULL != sess->session) && (0 == strcmp("sos", sess->session->name))) {
+            /* If APN is SOS then skip DNS lookup and assign SGW/PGW from local config */
+            mme_ue->pgw_addr = mme_pgw_addr_select_random(
+                &mme_self()->pgw_list, AF_INET);
+            mme_ue->pgw_addr6 = mme_pgw_addr_select_random(
+                &mme_self()->pgw_list, AF_INET6);
+        } else if (mme_self()->dns_target_pgw) {
             enum { MAX_MCC_MNC_STR = 4 };
             char ipv4[INET_ADDRSTRLEN] = "";
             ResolverContext context = {};

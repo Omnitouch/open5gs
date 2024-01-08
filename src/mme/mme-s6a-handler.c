@@ -110,6 +110,35 @@ uint8_t mme_s6a_handle_ula(
 
     mme_ue->context_identifier = slice_data->context_identifier;
 
+    /* If there is no sos session we should add one */
+    if (NULL == mme_emergency_session(mme_ue)) {
+        if (mme_ue->num_of_session < OGS_MAX_NUM_OF_SESS) {
+            ogs_session_t *session = &mme_ue->session[mme_ue->num_of_session];
+            
+            session->name = (char*)"sos";
+            session->context_identifier = 0;
+            session->session_type =  OGS_PDU_SESSION_TYPE_IPV4; //mme_self()->default_emergency_session_type;//
+            memset(&session->paa, 0, sizeof(session->paa));
+            session->charging_characteristics_presence = false;
+            session->qos.arp.pre_emption_capability = 1;
+            session->qos.arp.pre_emption_vulnerability = 1;
+            session->qos.arp.priority_level = 1;
+            session->qos.gbr.downlink = 0;
+            session->qos.gbr.uplink = 0;
+            session->qos.index = 5;
+            session->qos.mbr.downlink = 0;
+            session->qos.mbr.uplink = 0;
+            session->ambr.downlink = 128000;
+            session->ambr.uplink = 128000;
+            memset(&session->smf_ip, 0, sizeof(session->smf_ip));
+
+            mme_ue->num_of_session++;
+        } else {
+            ogs_error("Cannot add sos session to mme_ue, not enough session slots... rejecting UE...");
+            return OGS_NAS_EMM_CAUSE_SEVERE_NETWORK_FAILURE;
+        }
+    }
+
     if (mme_ue->nas_eps.type == MME_EPS_TYPE_ATTACH_REQUEST) {
         rv = nas_eps_send_emm_to_esm(mme_ue,
                 &mme_ue->pdn_connectivity_request);
