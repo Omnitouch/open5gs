@@ -39,8 +39,7 @@ enum
     TIMEZONE_RAW_STR_MAX_LEN = 16,
     EVENT_STR_MAX_LEN = 32,
     IP_STR_MAX_LEN = 64,
-    LOG_DIR_STR_MAX_LEN = 64,
-    PLACEHOLDER_STR_MAX_LEN = 32,
+    LOG_DIR_STR_MAX_LEN = 64
 };
 
 typedef struct
@@ -52,7 +51,7 @@ typedef struct
     uint64_t octets_out;
 
     char event[EVENT_STR_MAX_LEN];
-    char charging_id[PLACEHOLDER_STR_MAX_LEN];
+    uint32_t charging_id;
     char msisdn_bcd[MSISDN_BCD_STR_MAX_LEN];
     char imeisv_bcd[IMEISV_BCD_STR_MAX_LEN];
     char timezone_raw[TIMEZONE_RAW_STR_MAX_LEN];

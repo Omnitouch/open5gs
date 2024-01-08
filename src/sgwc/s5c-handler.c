@@ -272,6 +272,11 @@ void sgwc_s5c_handle_create_session_response(
             ogs_pfcp_ip_to_outer_header_creation(&ul_tunnel->remote_ip,
                 &far->outer_header_creation, &far->outer_header_creation_len));
         far->outer_header_creation.teid = ul_tunnel->remote_teid;
+
+        /* Set the charging id to be used for CDR (See log_start_usage_reports in sxa-handler.c) */
+        if (rsp->bearer_contexts_created[i].charging_id.presence) {
+            bearer->charging_id = rsp->bearer_contexts_created[i].charging_id.u32;
+        }
     }
 
     /* Receive Control Plane(UL) : PGW-S5C */
