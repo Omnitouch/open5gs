@@ -287,9 +287,9 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
     if ((NULL != sess->session) && (0 == strcmp(sess->session->name, "sos"))) {
         /* The sessions PGW is of higher priority it will be the one chosen in mme_s11_build_create_session_request */
         if ((NULL == mme_ue->pgw_addr) && (NULL == mme_ue->pgw_addr6)) {
-            mme_ue->pgw_addr = mme_pgw_addr_select_random(
+            sess->session->pgw_addr = mme_pgw_addr_select_random(
                 &mme_self()->pgw_list, AF_INET);
-            mme_ue->pgw_addr6 = mme_pgw_addr_select_random(
+            sess->session->pgw_addr6 = mme_pgw_addr_select_random(
                 &mme_self()->pgw_list, AF_INET6);            
         }
     } else if ((NULL == mme_ue->pgw_addr) && (NULL == mme_ue->pgw_addr6)) {
