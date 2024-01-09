@@ -121,6 +121,7 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     memset(&pgw_s5c_teid, 0, sizeof(ogs_gtp2_f_teid_t));
     pgw_s5c_teid.interface_type = OGS_GTP2_F_TEID_S5_S8_PGW_GTP_C;
     pgw_s5c_teid.teid = htobe32(sess->pgw_s5c_teid);
+
     if (session->smf_ip.ipv4 || session->smf_ip.ipv6) {
         pgw_s5c_teid.ipv4 = session->smf_ip.ipv4;
         pgw_s5c_teid.ipv6 = session->smf_ip.ipv6;
@@ -143,6 +144,21 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         req->pgw_s5_s8_address_for_control_plane_or_pmip.presence = 1;
         req->pgw_s5_s8_address_for_control_plane_or_pmip.data =
             &pgw_s5c_teid;
+
+    } else if ((NULL != session->pgw_addr) || (NULL != session->pgw_addr6)) {
+        ogs_sockaddr_t *pgw_addr = NULL;
+        ogs_sockaddr_t *pgw_addr6 = NULL;
+
+        pgw_addr = session->pgw_addr;
+        pgw_addr6 = session->pgw_addr6;
+
+        rv = ogs_gtp2_sockaddr_to_f_teid(
+                pgw_addr, pgw_addr6, &pgw_s5c_teid, &len);
+        ogs_assert(rv == OGS_OK);
+        req->pgw_s5_s8_address_for_control_plane_or_pmip.presence = 1;
+        req->pgw_s5_s8_address_for_control_plane_or_pmip.data = &pgw_s5c_teid;
+        req->pgw_s5_s8_address_for_control_plane_or_pmip.len = len;
+
     } else {
         ogs_sockaddr_t *pgw_addr = NULL;
         ogs_sockaddr_t *pgw_addr6 = NULL;

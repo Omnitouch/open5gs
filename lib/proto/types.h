@@ -491,6 +491,9 @@ typedef struct ogs_session_s {
     char **ipv4_framed_routes;
     char **ipv6_framed_routes;
     ogs_ip_t smf_ip;
+
+    ogs_sockaddr_t  *pgw_addr;
+    ogs_sockaddr_t  *pgw_addr6;
 } ogs_session_t;
 
 int ogs_fqdn_build(char *dst, char *src, int len);
