@@ -22,6 +22,7 @@ project('open5gs', 'c', 'cpp',
     default_options : [
         'warning_level=1',
         'c_std=gnu89',
+        'b_sanitize=address,undefined',
     ],
 )
 

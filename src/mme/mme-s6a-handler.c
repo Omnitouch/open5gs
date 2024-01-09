@@ -82,6 +82,8 @@ uint8_t mme_s6a_handle_ula(
     ogs_slice_data_t *slice_data = NULL;
     int r, rv, num_of_session;
 
+    ogs_debug("Handle ULA");
+
     ogs_assert(mme_ue);
     ogs_assert(s6a_message);
     ula_message = &s6a_message->ula_message;
@@ -99,9 +101,12 @@ uint8_t mme_s6a_handle_ula(
 
     memcpy(&mme_ue->ambr, &subscription_data->ambr, sizeof(ogs_bitrate_t));
 
+    ogs_debug("removing all mme sessions");
     mme_session_remove_all(mme_ue);
+    ogs_debug("finished removing all mme sessions");
 
     num_of_session = mme_ue_session_from_slice_data(mme_ue, slice_data);
+    ogs_debug("num_of_session in slice data: %i", num_of_session);
     if (num_of_session == 0) {
         ogs_error("No Session");
         return OGS_NAS_EMM_CAUSE_SEVERE_NETWORK_FAILURE;
@@ -113,6 +118,7 @@ uint8_t mme_s6a_handle_ula(
     /* If there is no sos session and the config has specified to add one, we add one */
     if ((NULL == mme_emergency_session(mme_ue)) && (0 != mme_self()->default_emergency_session_type)) {
         if (mme_ue->num_of_session < OGS_MAX_NUM_OF_SESS) {
+            ogs_debug("no sos session, adding one now");
             ogs_session_t *session = &mme_ue->session[mme_ue->num_of_session];
             
             session->name = (char*)"sos";
@@ -133,6 +139,7 @@ uint8_t mme_s6a_handle_ula(
             memset(&session->smf_ip, 0, sizeof(session->smf_ip));
 
             mme_ue->num_of_session++;
+            ogs_debug("number of sessions is now %i", mme_ue->num_of_session);
         } else {
             ogs_error("Cannot add sos session to mme_ue, not enough session slots... rejecting UE...");
             return OGS_NAS_EMM_CAUSE_SEVERE_NETWORK_FAILURE;
@@ -155,6 +162,8 @@ uint8_t mme_s6a_handle_ula(
         ogs_error("Invalid Type[%d]", mme_ue->nas_eps.type);
         return OGS_NAS_EMM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED;
     }
+
+    ogs_debug("ula handles successfully");
 
     return OGS_NAS_EMM_CAUSE_REQUEST_ACCEPTED;
 }

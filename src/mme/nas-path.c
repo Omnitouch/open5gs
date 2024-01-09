@@ -50,6 +50,8 @@ int nas_eps_send_emm_to_esm(mme_ue_t *mme_ue,
     int rv;
     ogs_pkbuf_t *esmbuf = NULL;
 
+    ogs_debug("nas_eps_send_emm_to_esm");
+
     if (!mme_ue_cycle(mme_ue)) {
         ogs_error("UE(mme-ue) context has already been removed");
         return OGS_NOTFOUND;
@@ -806,6 +808,8 @@ int nas_eps_send_tau_accept(
 {
     int rv;
     ogs_pkbuf_t *emmbuf = NULL;
+
+    ogs_debug("nas_eps_send_tau_accept");
 
     if (!mme_ue_cycle(mme_ue)) {
         ogs_error("UE(mme-ue) context has already been removed");

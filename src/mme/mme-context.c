@@ -3364,6 +3364,13 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue, ogs_nas_eps_message_t *nas_message)
 
 void mme_ue_remove(mme_ue_t *mme_ue)
 {
+    mme_ue = mme_ue_cycle(mme_ue);
+
+    if (NULL == mme_ue) {
+        ogs_fatal("Was trying to remove a mme that doesnt exist!");
+        return;
+    }
+
     ogs_assert(mme_ue);
 
     ogs_list_remove(&self.mme_ue_list, mme_ue);
@@ -3422,7 +3429,12 @@ void mme_ue_remove(mme_ue_t *mme_ue)
     mme_ebi_pool_final(mme_ue);
 
     ogs_info("after ebi pool final");
-    ogs_pool_free(&mme_s11_teid_pool, mme_ue->mme_s11_teid_node);
+    if (NULL == mme_ue->mme_s11_teid_node) {
+        ogs_error("was trying to free mme_ue->mme_s11_teid_node which doesnt exist!");
+    } else {
+        ogs_fatal("trying to free mme_ue->mme_s11_teid_node = %p/%d", mme_ue->mme_s11_teid_node, *mme_ue->mme_s11_teid_node);
+        ogs_pool_free(&mme_s11_teid_pool, mme_ue->mme_s11_teid_node); // this is crashing things
+    }
     ogs_info("after pool free s11 teid");
 
     /* Clear mme_ue so if pointer is used again use-after-free is easier to detect */
