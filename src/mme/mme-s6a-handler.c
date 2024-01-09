@@ -84,6 +84,8 @@ uint8_t mme_s6a_handle_ula(
 
     ogs_debug("Handle ULA");
 
+    mme_ue = mme_ue_cycle(mme_ue);
+
     ogs_assert(mme_ue);
     ogs_assert(s6a_message);
     ula_message = &s6a_message->ula_message;

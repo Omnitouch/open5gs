@@ -3430,9 +3430,9 @@ void mme_ue_remove(mme_ue_t *mme_ue)
 
     ogs_info("after ebi pool final");
     if (NULL == mme_ue->mme_s11_teid_node) {
-        ogs_error("was trying to free mme_ue->mme_s11_teid_node which doesnt exist!");
+        ogs_fatal("was trying to free mme_ue->mme_s11_teid_node which doesnt exist!");
     } else {
-        ogs_fatal("trying to free mme_ue->mme_s11_teid_node = %p/%d", mme_ue->mme_s11_teid_node, *mme_ue->mme_s11_teid_node);
+        ogs_debug("trying to free mme_ue->mme_s11_teid_node = %p/%d", mme_ue->mme_s11_teid_node, *mme_ue->mme_s11_teid_node);
         ogs_pool_free(&mme_s11_teid_pool, mme_ue->mme_s11_teid_node); // this is crashing things
     }
     ogs_info("after pool free s11 teid");
@@ -4529,12 +4529,16 @@ void mme_session_remove_all(mme_ue_t *mme_ue)
 {
     int i;
 
+    mme_ue = mme_ue_cycle(mme_ue);
     ogs_assert(mme_ue);
 
     ogs_assert(mme_ue->num_of_session <= OGS_MAX_NUM_OF_SESS);
+    ogs_debug("mme_ue->num_of_session: %d", mme_ue->num_of_session);
     for (i = 0; i < mme_ue->num_of_session; i++) {
-        if (mme_ue->session[i].name)
+        if (mme_ue->session[i].name) {
+            ogs_debug("mme_ue->session[%i].name = '%s'", i, mme_ue->session[i].name);
             ogs_free(mme_ue->session[i].name);
+        }
     }
 
     mme_ue->num_of_session = 0;
