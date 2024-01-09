@@ -123,7 +123,7 @@ uint8_t mme_s6a_handle_ula(
             ogs_debug("no sos session, adding one now");
             ogs_session_t *session = &mme_ue->session[mme_ue->num_of_session];
             
-            session->name = (char*)"sos";
+            session->name = ogs_strdup("sos");
             session->context_identifier = 0;
             session->session_type = mme_self()->default_emergency_session_type;
             memset(&session->paa, 0, sizeof(session->paa));
