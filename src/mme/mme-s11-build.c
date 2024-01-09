@@ -123,6 +123,7 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     pgw_s5c_teid.teid = htobe32(sess->pgw_s5c_teid);
 
     if (session->smf_ip.ipv4 || session->smf_ip.ipv6) {
+        ogs_debug("session->smf_ip exsits so were gonna use that bad boy");
         pgw_s5c_teid.ipv4 = session->smf_ip.ipv4;
         pgw_s5c_teid.ipv6 = session->smf_ip.ipv6;
         if (pgw_s5c_teid.ipv4 && pgw_s5c_teid.ipv6) {
@@ -146,6 +147,7 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
             &pgw_s5c_teid;
 
     } else if ((NULL != session->pgw_addr) || (NULL != session->pgw_addr6)) {
+        ogs_debug("session->pgw_addr exsits so were gonna use that bad boy");
         ogs_sockaddr_t *pgw_addr = NULL;
         ogs_sockaddr_t *pgw_addr6 = NULL;
 
@@ -160,6 +162,7 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         req->pgw_s5_s8_address_for_control_plane_or_pmip.len = len;
 
     } else {
+        ogs_debug("session->pgw_addr = %p, session->pgw_addr6 = %p", session->pgw_addr, session->pgw_addr6);
         ogs_sockaddr_t *pgw_addr = NULL;
         ogs_sockaddr_t *pgw_addr6 = NULL;
 
