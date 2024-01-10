@@ -134,6 +134,8 @@ typedef struct sgwc_bearer_s {
 
     /* Used to deactivate unused bearers */
     ogs_timer_t* timer_bearer_deactivation;
+
+    uint32_t charging_id;
 } sgwc_bearer_t;
 
 typedef struct sgwc_tunnel_s {
@@ -198,6 +200,8 @@ sgwc_bearer_t *sgwc_bearer_find_by_sess_ebi(
                                 sgwc_sess_t *sess, uint8_t ebi);
 sgwc_bearer_t *sgwc_bearer_find_by_ue_ebi(
                                 sgwc_ue_t *sgwc_ue, uint8_t ebi);
+sgwc_bearer_t *sgwc_bearer_find_by_sess_urr_id(
+                                sgwc_sess_t *sess, uint32_t urr_id);
 sgwc_bearer_t *sgwc_default_bearer_in_sess(sgwc_sess_t *sess);
 sgwc_bearer_t *sgwc_bearer_cycle(sgwc_bearer_t *bearer);
 

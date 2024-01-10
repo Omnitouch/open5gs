@@ -41,7 +41,7 @@ bool log_usage_data(UsageLoggerState *state, time_t current_epoch_sec, UsageLogg
                 "%li,"   /* epoch */
                 "%s,"    /* imsi */
                 "%s,"    /* event */
-                "%s,"    /* charging_id */
+                "%u,"    /* charging_id */
                 "%s,"    /* msisdn */
                 "%s,"    /* ue_imei */
                 "%s,"    /* timezone_raw */
