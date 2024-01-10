@@ -182,8 +182,36 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     }
 
     req->access_point_name.presence = 1;
-    req->access_point_name.len = ogs_fqdn_build(
-            apn, session->name, strlen(session->name));
+
+    /* Update the apn to use the following format: <apn>.mncXXX.mccYYY.gprs */
+    if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi)) {
+        /* Change the ANP */
+        char edited[OGS_MAX_APN_LEN+1] = "";
+
+        uint16_t ue_mcc = 100 * mme_ue->nas_mobile_identity_imsi.digit1 +
+                          10 * mme_ue->nas_mobile_identity_imsi.digit2 +
+                          1 * mme_ue->nas_mobile_identity_imsi.digit3;
+
+        uint16_t ue_mnc = 100 * mme_ue->nas_mobile_identity_imsi.digit4 +
+                          10 * mme_ue->nas_mobile_identity_imsi.digit5 +
+                          1 * mme_ue->nas_mobile_identity_imsi.digit6;
+
+        snprintf(
+            edited,
+            OGS_MAX_APN_LEN,
+            "%s.mnc%03u.mcc%03u.gprs",
+            session->name,
+            ue_mnc,
+            ue_mcc
+        );
+
+        req->access_point_name.len = ogs_fqdn_build(
+                apn, edited, strlen(edited));
+    } else {
+        req->access_point_name.len = ogs_fqdn_build(
+                apn, session->name, strlen(session->name));
+    }
+
     req->access_point_name.data = apn;
 
     req->selection_mode.presence = 1;
