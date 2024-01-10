@@ -162,22 +162,16 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         req->pgw_s5_s8_address_for_control_plane_or_pmip.len = len;
 
     } else {
-        ogs_debug("session->pgw_addr = %p, session->pgw_addr6 = %p", session->pgw_addr, session->pgw_addr6);
+        ogs_fatal("session->pgw_addr = %p, session->pgw_addr6 = %p", session->pgw_addr, session->pgw_addr6);
         ogs_sockaddr_t *pgw_addr = NULL;
         ogs_sockaddr_t *pgw_addr6 = NULL;
 
-        /* If UE already has a designated PGW use that */
-        pgw_addr = mme_ue->pgw_addr;
-        pgw_addr6 = mme_ue->pgw_addr6;
+        session->pgw_addr = mme_pgw_addr_find_by_apn(
+                &mme_self()->pgw_list, AF_INET, session->name);
+        session->pgw_addr6 = mme_pgw_addr_find_by_apn(
+                &mme_self()->pgw_list, AF_INET6, session->name);
 
-        if (!pgw_addr && !pgw_addr6) {
-            pgw_addr = mme_pgw_addr_find_by_apn(
-                    &mme_self()->pgw_list, AF_INET, session->name);
-            pgw_addr6 = mme_pgw_addr_find_by_apn(
-                    &mme_self()->pgw_list, AF_INET6, session->name);
-
-            ogs_assert(pgw_addr || pgw_addr6);
-        }
+        ogs_assert(session->pgw_addr || session->pgw_addr6);
 
         rv = ogs_gtp2_sockaddr_to_f_teid(
                 pgw_addr, pgw_addr6, &pgw_s5c_teid, &len);

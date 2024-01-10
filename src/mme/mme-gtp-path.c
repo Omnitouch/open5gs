@@ -218,16 +218,20 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
     ogs_gtp_xact_t *xact = NULL;
     mme_ue_t *mme_ue = NULL;
     sgw_ue_t *sgw_ue = NULL;
+    ogs_session_t *session = NULL;
 
+    ogs_assert(sess);
     mme_ue = sess->mme_ue;
     ogs_assert(mme_ue);
+    session = sess->session;
+    ogs_assert(session);
     sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
 
     /* Pick SGW if one has not been chosen */
     if (NULL == sgw_ue) {
         mme_sgw_t *sgw = NULL;
 
-        if ((NULL != sess->session) && (0 == strcmp("sos", sess->session->name))) {
+        if (0 == strcmp(session->name, "sos")) {
             /* If APN is SOS then skip DNS lookup and assign SGW/PGW from local config */
             sgw = select_random_sgw();
         } else if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi)) {
@@ -284,23 +288,20 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
     ogs_assert(sgw_ue);
 
     /* If this is a SOS APN the we want to set the address in the session to a local PGW */
-    if ((NULL != sess->session) && (0 == strcmp(sess->session->name, "sos"))) {
+    if (0 == strcmp(session->name, "sos")) {
         ogs_debug("We have a sos session, setting the pgw address to a random local");
         /* The sessions PGW is of higher priority it will be the one chosen in mme_s11_build_create_session_request */
-        if ((NULL == sess->session->pgw_addr) && (NULL == sess->session->pgw_addr6)) {
-            sess->session->pgw_addr = mme_pgw_addr_select_random(
+        if ((NULL == session->pgw_addr) && (NULL == session->pgw_addr6)) {
+            session->pgw_addr = mme_pgw_addr_select_random(
                 &mme_self()->pgw_list, AF_INET);
-            sess->session->pgw_addr6 = mme_pgw_addr_select_random(
+            session->pgw_addr6 = mme_pgw_addr_select_random(
                 &mme_self()->pgw_list, AF_INET6);            
         }
-    } else if ((NULL == mme_ue->pgw_addr) && (NULL == mme_ue->pgw_addr6)) {
+    } else if ((NULL == session->pgw_addr) && (NULL == session->pgw_addr6)) {
         /* Pick PGW if one has not been chosen */
         bool resolved_dns = false;
 
-        if ((NULL != sess->session) && (0 == strcmp(sess->session->name, "sos"))) {
-            /* If APN is SOS then skip DNS lookup and assign PGW from local config */
-            resolved_dns = false;
-        } else if (mme_self()->dns_target_pgw) {
+        if (mme_self()->dns_target_pgw) {
             enum { MAX_MCC_MNC_STR = 4 };
             char ipv4[INET_ADDRSTRLEN] = "";
             ResolverContext context = {};
@@ -354,7 +355,7 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
             if (resolved_dns) {
                 ogs_info("NAPTR resolve success, PGW address is '%s'", ipv4);
                 ogs_addaddrinfo(
-                    &mme_ue->pgw_addr,
+                    &session->pgw_addr,
                     AF_INET,
                     ipv4,
                     ogs_gtp_self()->gtpc_port,
@@ -366,9 +367,9 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
         }
         
         if (!resolved_dns) {
-            mme_ue->pgw_addr = mme_pgw_addr_select_random(
+            session->pgw_addr = mme_pgw_addr_select_random(
                 &mme_self()->pgw_list, AF_INET);
-            mme_ue->pgw_addr6 = mme_pgw_addr_select_random(
+            session->pgw_addr6 = mme_pgw_addr_select_random(
                 &mme_self()->pgw_list, AF_INET6);
         }
     }

@@ -578,10 +578,6 @@ struct mme_ue_s {
     /* SGW UE context */
     sgw_ue_t        *sgw_ue;
 
-    /* The PGW that the SGW will use */
-    ogs_sockaddr_t  *pgw_addr;
-    ogs_sockaddr_t  *pgw_addr6;
-
     /* Save PDN Connectivity Request */
     ogs_nas_esm_message_container_t pdn_connectivity_request;
 
