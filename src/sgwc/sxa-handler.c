@@ -22,10 +22,10 @@
 #include "sxa-handler.h"
 #include "usage_logger.h"
 
-static void handle_usage_reports(sgwc_sess_t *sess, uint32_t charging_id, ogs_pfcp_session_report_request_t *pfcp_req);
-static void log_deletion_usage_reports(sgwc_sess_t *sess, uint32_t charging_id, ogs_pfcp_session_deletion_response_t *pfcp_rsp);
-static void log_start_usage_reports(sgwc_sess_t *sess, uint32_t charging_id);
-static UsageLoggerData build_usage_logger_data(sgwc_sess_t *sess, uint32_t charging_id, char const* event, uint64_t octets_in, uint64_t octets_out);
+static void handle_usage_reports(sgwc_bearer_t *bearer, ogs_pfcp_session_report_request_t *pfcp_req);
+static void log_deletion_usage_reports(sgwc_bearer_t *bearer, ogs_pfcp_session_deletion_response_t *pfcp_rsp);
+static void log_start_usage_reports(sgwc_bearer_t *bearer);
+static UsageLoggerData build_usage_logger_data(sgwc_bearer_t *bearer, char const* event, uint64_t octets_in, uint64_t octets_out);
 static void log_usage_logger_data(UsageLoggerData usageLoggerData);
 static bool hex_array_to_string(uint8_t* hex_array, size_t hex_array_len, char* hex_string, size_t hex_string_len);
 
@@ -299,7 +299,7 @@ void sgwc_sxa_handle_session_establishment_response(
 
         /* Start a logging record for each bearer created */
         if (ogs_pfcp_self()->usageLoggerState.enabled) {
-            log_start_usage_reports(sess, bearer->charging_id);
+            log_start_usage_reports(bearer);
         }
 
         i++;
@@ -1378,7 +1378,7 @@ void sgwc_sxa_handle_session_deletion_response(
 
     ogs_list_for_each(&sess->bearer_list, bearer) {
         if (pfcp_rsp->usage_report->presence) {
-            log_deletion_usage_reports(sess, bearer->charging_id, pfcp_rsp);
+            log_deletion_usage_reports(bearer, pfcp_rsp);
         }
     }
 
@@ -1543,41 +1543,37 @@ void sgwc_sxa_handle_session_report_request(
             ogs_error("Cannot find Session in Error Indication");
 
     } else if (report_type.usage_report) {
-        uint32_t charging_id = 0;
-
         if (pfcp_req->usage_report->urr_id.presence) {
             bearer = sgwc_bearer_find_by_sess_urr_id(sess, pfcp_req->usage_report->urr_id.u32);
 
             if (bearer) {
-                charging_id = bearer->charging_id;
+                handle_usage_reports(bearer, pfcp_req);
             } else {
-                ogs_error("Unable to bearer with URR ID of %u for UE session, charging ID will default to 0", pfcp_req->usage_report->urr_id.u32);
+                ogs_error("Unable to bearer with URR ID of %u for UE session", pfcp_req->usage_report->urr_id.u32);
             }
         } else {
-            ogs_error("Got a URR without a URR ID, charging ID will default to 0");
+            ogs_error("Got a URR without a URR ID, cannot log usage report");
         }
-        
-        handle_usage_reports(sess, charging_id, pfcp_req);
     } else {
         ogs_error("Not supported Report Type[%d]", report_type.value);
     }
 }
 
-static void log_start_usage_reports(sgwc_sess_t *sess, uint32_t charging_id) {
-    UsageLoggerData usageLoggerData = build_usage_logger_data(sess, charging_id, "session_start", 0, 0);
+static void log_start_usage_reports(sgwc_bearer_t *bearer) {
+    UsageLoggerData usageLoggerData = build_usage_logger_data(bearer, "session_start", 0, 0);
     log_usage_logger_data(usageLoggerData);
 }
 
-static void handle_usage_reports(sgwc_sess_t *sess, uint32_t charging_id, ogs_pfcp_session_report_request_t *pfcp_req) {
+static void handle_usage_reports(sgwc_bearer_t *bearer, ogs_pfcp_session_report_request_t *pfcp_req) {
     int i = 0;
     sgwc_ue_t *sgwc_ue = NULL;
-    sgwc_bearer_t *bearer = NULL;
+    sgwc_sess_t *sess = NULL;
     
+    ogs_assert(bearer);
+    sess = sgwc_sess_cycle(bearer->sess);
     ogs_assert(sess);
-    sgwc_ue = sess->sgwc_ue;
+    sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
     ogs_assert(sgwc_ue);
-    bearer = sgwc_default_bearer_in_sess(sess);
-    ogs_expect(bearer);
 
     for (i = 0; i < OGS_ARRAY_SIZE(pfcp_req->usage_report); i++) {
         ogs_pfcp_tlv_usage_report_session_report_request_t *usage_report =
@@ -1640,17 +1636,20 @@ static void handle_usage_reports(sgwc_sess_t *sess, uint32_t charging_id, ogs_pf
             }
         }
 
-        usageLoggerData = build_usage_logger_data(sess, charging_id, "session_update", volume.uplink_volume, volume.downlink_volume);
+        usageLoggerData = build_usage_logger_data(bearer, "session_update", volume.uplink_volume, volume.downlink_volume);
         log_usage_logger_data(usageLoggerData);
     }
 }
 
-static void log_deletion_usage_reports(sgwc_sess_t *sess, uint32_t charging_id, ogs_pfcp_session_deletion_response_t *pfcp_rsp) {
+static void log_deletion_usage_reports(sgwc_bearer_t *bearer, ogs_pfcp_session_deletion_response_t *pfcp_rsp) {
     int i = 0;
     sgwc_ue_t *sgwc_ue = NULL;
+    sgwc_sess_t *sess = NULL;
     
+    ogs_assert(bearer);
+    sess = sgwc_sess_cycle(bearer->sess);
     ogs_assert(sess);
-    sgwc_ue = sess->sgwc_ue;
+    sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
     ogs_assert(sgwc_ue);
 
     for (i = 0; i < OGS_ARRAY_SIZE(pfcp_rsp->usage_report); i++) {
@@ -1685,25 +1684,27 @@ static void log_deletion_usage_reports(sgwc_sess_t *sess, uint32_t charging_id, 
             continue;
         }
 
-        usageLoggerData = build_usage_logger_data(sess, charging_id, "session_end", volume.uplink_volume, volume.downlink_volume);
+        usageLoggerData = build_usage_logger_data(bearer, "session_end", volume.uplink_volume, volume.downlink_volume);
         log_usage_logger_data(usageLoggerData);
     }
 }
 
-static UsageLoggerData build_usage_logger_data(sgwc_sess_t *sess, uint32_t charging_id, char const* event, uint64_t octets_in, uint64_t octets_out) {
+static UsageLoggerData build_usage_logger_data(sgwc_bearer_t *bearer, char const* event, uint64_t octets_in, uint64_t octets_out) {
     sgwc_ue_t *sgwc_ue = NULL;
     UsageLoggerData usageLoggerData = {0};
+    sgwc_sess_t *sess = NULL;
     
-    sess = sgwc_sess_cycle(sess);
+    ogs_assert(bearer);
+    sess = sgwc_sess_cycle(bearer->sess);
     ogs_assert(sess);
     sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
     ogs_assert(sgwc_ue);
 
-    usageLoggerData.charging_id = charging_id;
+    usageLoggerData.charging_id = bearer->charging_id;
     strncpy(usageLoggerData.event, event, EVENT_STR_MAX_LEN);
     strncpy(usageLoggerData.imsi, sgwc_ue->imsi_bcd, IMSI_STR_MAX_LEN);
     strncpy(usageLoggerData.apn, sess->session.name, APN_STR_MAX_LEN);
-    usageLoggerData.qci = sess->session.qos.arp.priority_level;
+    usageLoggerData.qci = bearer->qci;
     usageLoggerData.octets_in = octets_in;
     usageLoggerData.octets_out = octets_out;
 

@@ -136,6 +136,7 @@ typedef struct sgwc_bearer_s {
     ogs_timer_t* timer_bearer_deactivation;
 
     uint32_t charging_id;
+    uint8_t qci;
 } sgwc_bearer_t;
 
 typedef struct sgwc_tunnel_s {

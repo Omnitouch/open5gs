@@ -334,6 +334,9 @@ void sgwc_s11_handle_create_session_request(
         /* Set Bearer EBI */
         bearer->ebi = req->bearer_contexts_to_be_created[i].eps_bearer_id.u8;
 
+        /* Record Bearer QCI */
+        bearer->qci = bearer_qos.qci;
+
         if (req->bearer_contexts_to_be_created[i].s1_u_enodeb_f_teid.presence) {
 
             sgwc_tunnel_t *dl_tunnel = NULL;
