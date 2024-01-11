@@ -1694,8 +1694,9 @@ static UsageLoggerData build_usage_logger_data(sgwc_sess_t *sess, uint32_t charg
     sgwc_ue_t *sgwc_ue = NULL;
     UsageLoggerData usageLoggerData = {0};
     
+    sess = sgwc_sess_cycle(sess);
     ogs_assert(sess);
-    sgwc_ue = sess->sgwc_ue;
+    sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
     ogs_assert(sgwc_ue);
 
     usageLoggerData.charging_id = charging_id;

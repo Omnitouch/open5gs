@@ -266,6 +266,8 @@ int sgwc_ue_remove(sgwc_ue_t *sgwc_ue)
     sgwc_sess_remove_all_sync(sgwc_ue);
 
     ogs_pool_free(&sgwc_s11_teid_pool, sgwc_ue->sgw_s11_teid_node);
+
+    memset(sgwc_ue, 0, sizeof(*sgwc_ue));
     ogs_pool_free(&sgwc_ue_pool, sgwc_ue);
 
     ogs_info("[Removed] Number of SGWC-UEs is now %d",
@@ -461,6 +463,8 @@ int sgwc_sess_remove(sgwc_sess_t *sess)
     ogs_free(sess->session.name);
 
     ogs_pool_free(&sgwc_sxa_seid_pool, sess->sgwc_sxa_seid_node);
+
+    memset(sess, 0, sizeof(*sess));
     ogs_pool_free(&sgwc_sess_pool, sess);
 
     stats_remove_sgwc_session();
@@ -530,6 +534,11 @@ sgwc_sess_t *sgwc_sess_find_by_ebi(sgwc_ue_t *sgwc_ue, uint8_t ebi)
 sgwc_sess_t *sgwc_sess_cycle(sgwc_sess_t *sess)
 {
     return ogs_pool_cycle(&sgwc_sess_pool, sess);
+}
+
+sgwc_ue_t *sgwc_ue_cycle(sgwc_ue_t *sgwc_ue)
+{
+    return ogs_pool_cycle(&sgwc_ue_pool, sgwc_ue);
 }
 
 int sgwc_sess_pfcp_xact_count(
