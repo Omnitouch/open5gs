@@ -183,11 +183,23 @@ static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
     uint8_t type = 0;
 
     ogs_assert(xact);
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    sgwc_ue = sess->sgwc_ue;
-    ogs_assert(sgwc_ue);
+    bearer = sgwc_bearer_cycle(bearer);    
+    if (NULL == bearer) {
+        ogs_error("Got a bearer timeout for a bearer that dosn't exist anymore!");
+        return;
+    }
+    
+    sess = sgwc_sess_cycle(bearer->sess);
+    if (NULL == sess) {
+        ogs_error("Got a bearer timeout for a sess that dosn't exist anymore!");
+        return;
+    }
+
+    sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
+    if (NULL == sgwc_ue) {
+        ogs_error("Got a bearer timeout for a sgw_ue that dosn't exist anymore!");
+        return;
+    }
 
     type = xact->seq[0].type;
 
