@@ -647,6 +647,11 @@ void sgwc_s5c_handle_create_bearer_request(
         return;
     }
 
+    /* Set the charging ID for new bearer */
+    if (req->bearer_contexts.charging_id.presence) {
+        bearer->charging_id = req->bearer_contexts.charging_id.u32;
+    }
+
     far = ul_tunnel->far;
     ogs_assert(far);
 
