@@ -555,6 +555,11 @@ void sgwc_sxa_handle_session_modification_response(
 
             if (!pdr)
                 break;
+
+            tunnel = sgwc_tunnel_find_by_pdr_id(sess, pdr->id);
+            if (ogs_pfcp_self()->usageLoggerState.enabled && tunnel && tunnel->bearer) {
+                log_start_usage_reports(tunnel->bearer);
+            }
         }
 
         ogs_list_for_each_entry(&pdr_to_create_list, pdr, to_create_node) {
