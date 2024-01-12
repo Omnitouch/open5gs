@@ -43,6 +43,20 @@ static void sgwu_sxa_handle_create_urr(sgwu_sess_t *sess, ogs_pfcp_tlv_create_ur
     }
 }
 
+static void sgwu_sxa_handle_remove_urr(sgwu_sess_t *sess, ogs_pfcp_tlv_remove_urr_t *remove_urr_arr,
+                              uint8_t *cause_value, uint8_t *offending_ie_value)
+{
+    int i;
+
+    *cause_value = OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
+
+    for (i = 0; i < OGS_MAX_NUM_OF_URR; i++) {
+        if (ogs_pfcp_handle_remove_urr(&sess->pfcp, &remove_urr_arr[i],
+                cause_value, offending_ie_value) == false)
+            break;
+    }
+}
+
 void sgwu_sxa_handle_session_establishment_request(
         sgwu_sess_t *sess, ogs_pfcp_xact_t *xact, 
         ogs_pfcp_session_establishment_request_t *req)
@@ -229,6 +243,18 @@ void sgwu_sxa_handle_session_modification_request(
     }
     if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED)
         goto cleanup;
+
+    sgwu_sxa_handle_create_urr(sess, &req->create_urr[0], &cause_value, &offending_ie_value);
+    if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
+        ogs_error("Failed to handle create URR!");
+        goto cleanup;
+    }
+
+    sgwu_sxa_handle_remove_urr(sess, &req->remove_urr[0], &cause_value, &offending_ie_value);
+    if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
+        ogs_error("Failed to handle remove URR!");
+        goto cleanup;
+    }
 
     /* Send End Marker to gNB */
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {

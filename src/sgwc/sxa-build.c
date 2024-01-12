@@ -131,7 +131,9 @@ ogs_pkbuf_t *sgwc_sxa_build_bearer_to_modify_list(
 
     int num_of_remove_pdr = 0;
     int num_of_remove_far = 0;
+    int num_of_remove_urr = 0;
     int num_of_create_pdr = 0;
+    int num_of_create_urr = 0;
     int num_of_create_far = 0;
     int num_of_update_far = 0;
 
@@ -188,6 +190,19 @@ ogs_pkbuf_t *sgwc_sxa_build_bearer_to_modify_list(
                         message->pdr_id.u16 = pdr->id;
 
                         num_of_remove_pdr++;
+
+                        /* Remove all URRs associated with this PDR */
+                        for (int i = 0; i < pdr->num_of_urr; ++i) {
+                            ogs_pfcp_tlv_remove_urr_t *message =
+                                &req->remove_urr[num_of_remove_urr];
+        
+                            message->presence = 1;
+                            message->urr_id.presence = 1;
+                            message->urr_id.u32 = pdr->urr[i]->id;
+
+                            num_of_remove_pdr++;
+                        }
+
                     } else
                         ogs_assert_if_reached();
 
@@ -215,6 +230,14 @@ ogs_pkbuf_t *sgwc_sxa_build_bearer_to_modify_list(
 
                         ogs_list_add(&xact->pdr_to_create_list,
                                         &pdr->to_create_node);
+
+                        /* Create all URRs associated with this PDR */
+                        for (int i = 0; i < pdr->num_of_urr; ++i) {
+                            ogs_pfcp_build_create_urr(
+                                &req->create_urr[num_of_create_urr],
+                                num_of_create_urr, pdr->urr[i]);
+                            num_of_create_urr++;
+                        }
                     } else
                         ogs_assert_if_reached();
 
