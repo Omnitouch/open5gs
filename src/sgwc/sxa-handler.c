@@ -76,7 +76,11 @@ static void sess_timeout(ogs_gtp_xact_t *xact, void *data)
     uint8_t type = 0;
 
     ogs_assert(xact);
-    ogs_assert(sess);
+    sess = sgwc_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("Just got a sess timeout for a sess that doesnt exist!");
+        return;
+    }
     sgwc_ue = sess->sgwc_ue;
     ogs_assert(sgwc_ue);
 

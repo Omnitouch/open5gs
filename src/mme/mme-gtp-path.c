@@ -299,9 +299,9 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
         }
     } else if ((NULL == session->pgw_addr) && (NULL == session->pgw_addr6)) {
         /* Pick PGW if one has not been chosen */
-        bool resolved_dns = false;
 
         if (mme_self()->dns_target_pgw) {
+            bool resolved_dns = false;
             enum { MAX_MCC_MNC_STR = 4 };
             char ipv4[INET_ADDRSTRLEN] = "";
             ResolverContext context = {};
@@ -362,15 +362,19 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
                     0
                 );
             } else {
-                ogs_info("Failed to resolve dns and update PGW IP in CSR, falling back to default selection method");
+                ogs_info("Failed to resolve dns and update PGW IP in CSR, cannot send Create Session Request");
             }
-        }
-        
-        if (!resolved_dns) {
+        } else {
             session->pgw_addr = mme_pgw_addr_select_random(
                 &mme_self()->pgw_list, AF_INET);
             session->pgw_addr6 = mme_pgw_addr_select_random(
                 &mme_self()->pgw_list, AF_INET6);
+        }
+
+        if ((NULL == session->pgw_addr) && (NULL == session->pgw_addr6)) {
+            /* If we failed to assign an address return error */
+            ogs_error("Failed to assign a PGW address");
+            return OGS_ERROR;
         }
     }
 

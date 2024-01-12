@@ -160,8 +160,13 @@ int esm_handle_pdn_connectivity_request(mme_bearer_t *bearer,
             }
         }
 
-        ogs_assert(OGS_OK ==
-            mme_gtp_send_create_session_request(sess, create_action));
+        if (OGS_OK != mme_gtp_send_create_session_request(sess, create_action)) {
+            ogs_error("Failed to send create session request");
+            r = nas_eps_send_pdn_connectivity_reject(
+                    sess, OGS_NAS_ESM_CAUSE_NETWORK_FAILURE, create_action);
+            ogs_expect(r == OGS_OK);
+            return OGS_ERROR;
+        }
 
         if (!strcmp("sos", sess->session->name)) {
             mme_metrics_inst_global_inc(MME_METR_GLOB_GAUGE_EMERGENCY_BEARERS);
@@ -251,9 +256,13 @@ int esm_handle_information_response(mme_sess_t *sess,
                 ogs_assert(r != OGS_ERROR);
             }
         } else {
-            ogs_assert(OGS_OK ==
-                mme_gtp_send_create_session_request(
-                    sess, OGS_GTP_CREATE_IN_ATTACH_REQUEST));
+            if (OGS_OK != mme_gtp_send_create_session_request(sess, OGS_GTP_CREATE_IN_ATTACH_REQUEST)) {
+                ogs_error("Failed to send create session request");
+                r = nas_eps_send_pdn_connectivity_reject(
+                        sess, OGS_NAS_ESM_CAUSE_NETWORK_FAILURE, OGS_GTP_CREATE_IN_ATTACH_REQUEST);
+                ogs_expect(r == OGS_OK);
+                return OGS_ERROR;
+            }
         }
     } else {
         if (rsp->access_point_name.length)

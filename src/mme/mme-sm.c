@@ -369,7 +369,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         break;
 
     case MME_EVENT_EMM_MESSAGE:
-        enb_ue = e->enb_ue;
+        enb_ue = enb_ue_cycle(e->enb_ue);
         ogs_assert(enb_ue);
         pkbuf = e->pkbuf;
         ogs_assert(pkbuf);
@@ -380,7 +380,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
             return;
         }
 
-        mme_ue = enb_ue->mme_ue;
+        mme_ue = mme_ue_cycle(enb_ue->mme_ue);
         if (!mme_ue) {
             mme_ue = mme_ue_find_by_message(&nas_message);
             if (!mme_ue) {
