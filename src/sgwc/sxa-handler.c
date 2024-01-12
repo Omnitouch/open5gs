@@ -22,8 +22,9 @@
 #include "sxa-handler.h"
 #include "usage_logger.h"
 
-static void handle_usage_reports(sgwc_bearer_t *bearer, ogs_pfcp_session_report_request_t *pfcp_req);
-static void log_deletion_usage_reports(sgwc_bearer_t *bearer, ogs_pfcp_session_deletion_response_t *pfcp_rsp);
+static void handle_usage_reports(sgwc_sess_t *sess, ogs_pfcp_session_report_request_t *pfcp_req);
+static void log_deletion_usage_reports_session_deletion_response(sgwc_sess_t *sess, ogs_pfcp_session_deletion_response_t *pfcp_rsp);
+static void log_deletion_usage_reports_session_modification_response(sgwc_sess_t *sess, ogs_pfcp_session_modification_response_t *pfcp_rsp);
 static void log_start_usage_reports(sgwc_bearer_t *bearer);
 static UsageLoggerData build_usage_logger_data(sgwc_bearer_t *bearer, char const* event, uint64_t octets_in, uint64_t octets_out);
 static void log_usage_logger_data(UsageLoggerData usageLoggerData);
@@ -584,6 +585,8 @@ void sgwc_sxa_handle_session_modification_response(
                 }
             }
         }
+
+        log_deletion_usage_reports_session_modification_response(sess, pfcp_rsp);
 
         cause_value = gtp_cause_from_pfcp(pfcp_cause_value);
         sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_MODIFYPFCPSESSIONSUCC);
@@ -1292,7 +1295,6 @@ void sgwc_sxa_handle_session_deletion_response(
 
     ogs_gtp_xact_t *gtp_xact = NULL;
     ogs_pkbuf_t *pkbuf = NULL;
-    sgwc_bearer_t *bearer = NULL;
 
     ogs_debug("Session Deletion Response");
 
@@ -1376,11 +1378,7 @@ void sgwc_sxa_handle_session_deletion_response(
     sgwc_ue = sess->sgwc_ue;
     ogs_assert(sgwc_ue);
 
-    ogs_list_for_each(&sess->bearer_list, bearer) {
-        if (pfcp_rsp->usage_report->presence) {
-            log_deletion_usage_reports(bearer, pfcp_rsp);
-        }
-    }
+    log_deletion_usage_reports_session_deletion_response(sess, pfcp_rsp);
 
     if (gtp_xact) {
         /*
@@ -1543,17 +1541,7 @@ void sgwc_sxa_handle_session_report_request(
             ogs_error("Cannot find Session in Error Indication");
 
     } else if (report_type.usage_report) {
-        if (pfcp_req->usage_report->urr_id.presence) {
-            bearer = sgwc_bearer_find_by_sess_urr_id(sess, pfcp_req->usage_report->urr_id.u32);
-
-            if (bearer) {
-                handle_usage_reports(bearer, pfcp_req);
-            } else {
-                ogs_error("Unable to bearer with URR ID of %u for UE session", pfcp_req->usage_report->urr_id.u32);
-            }
-        } else {
-            ogs_error("Got a URR without a URR ID, cannot log usage report");
-        }
+        handle_usage_reports(sess, pfcp_req);
     } else {
         ogs_error("Not supported Report Type[%d]", report_type.value);
     }
@@ -1564,13 +1552,12 @@ static void log_start_usage_reports(sgwc_bearer_t *bearer) {
     log_usage_logger_data(usageLoggerData);
 }
 
-static void handle_usage_reports(sgwc_bearer_t *bearer, ogs_pfcp_session_report_request_t *pfcp_req) {
+static void handle_usage_reports(sgwc_sess_t *sess, ogs_pfcp_session_report_request_t *pfcp_req) {
     int i = 0;
     sgwc_ue_t *sgwc_ue = NULL;
-    sgwc_sess_t *sess = NULL;
+    sgwc_bearer_t *bearer = NULL;
     
-    ogs_assert(bearer);
-    sess = sgwc_sess_cycle(bearer->sess);
+    sess = sgwc_sess_cycle(sess);
     ogs_assert(sess);
     sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
     ogs_assert(sgwc_ue);
@@ -1589,6 +1576,14 @@ static void handle_usage_reports(sgwc_bearer_t *bearer, ogs_pfcp_session_report_
 
         if (0 == usage_report->urr_id.presence) {
             ogs_error("Usage report URR has no ID field!");
+            continue;
+        }
+
+        bearer = sgwc_bearer_cycle(
+            sgwc_bearer_find_by_sess_urr_id(sess, usage_report->urr_id.u32));
+        
+        if (NULL == bearer) {
+            ogs_error("Could not find bearer for usage report with id %d!", usage_report->urr_id.u32);
             continue;
         }
 
@@ -1641,13 +1636,12 @@ static void handle_usage_reports(sgwc_bearer_t *bearer, ogs_pfcp_session_report_
     }
 }
 
-static void log_deletion_usage_reports(sgwc_bearer_t *bearer, ogs_pfcp_session_deletion_response_t *pfcp_rsp) {
+static void log_deletion_usage_reports_session_deletion_response(sgwc_sess_t *sess, ogs_pfcp_session_deletion_response_t *pfcp_rsp) {
     int i = 0;
     sgwc_ue_t *sgwc_ue = NULL;
-    sgwc_sess_t *sess = NULL;
+    sgwc_bearer_t *bearer = NULL;
     
-    ogs_assert(bearer);
-    sess = sgwc_sess_cycle(bearer->sess);
+    sess = sgwc_sess_cycle(sess);
     ogs_assert(sess);
     sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
     ogs_assert(sgwc_ue);
@@ -1666,6 +1660,69 @@ static void log_deletion_usage_reports(sgwc_bearer_t *bearer, ogs_pfcp_session_d
 
         if (0 == usage_report->urr_id.presence) {
             ogs_error("Usage report URR has no ID field!");
+            continue;
+        }
+
+        bearer = sgwc_bearer_cycle(
+            sgwc_bearer_find_by_sess_urr_id(sess, usage_report->urr_id.u32));
+        
+        if (NULL == bearer) {
+            ogs_error("Could not find bearer for usage report with id %d!", usage_report->urr_id.u32);
+            continue;
+        }
+
+        if (0 == usage_report->volume_measurement.presence) {
+            ogs_error("No volume measurements in usage report!");
+            continue;
+        }
+
+        ogs_pfcp_parse_volume_measurement(&volume, &usage_report->volume_measurement);
+        if (0 == volume.ulvol) {
+            ogs_error("URR did not contain uplink volume measurement!");
+            continue;
+        } 
+        if (0 == volume.dlvol) {
+            ogs_error("URR did not contain downlink volume measurement!");
+            continue;
+        }
+
+        usageLoggerData = build_usage_logger_data(bearer, "session_end", volume.uplink_volume, volume.downlink_volume);
+        log_usage_logger_data(usageLoggerData);
+    }
+}
+
+static void log_deletion_usage_reports_session_modification_response(sgwc_sess_t *sess, ogs_pfcp_session_modification_response_t *pfcp_rsp) {
+    int i = 0;
+    sgwc_ue_t *sgwc_ue = NULL;
+    sgwc_bearer_t *bearer = NULL;
+    
+    sess = sgwc_sess_cycle(sess);
+    ogs_assert(sess);
+    sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
+    ogs_assert(sgwc_ue);
+
+    for (i = 0; i < OGS_ARRAY_SIZE(pfcp_rsp->usage_report); i++) {
+        ogs_pfcp_tlv_usage_report_session_modification_response_t *usage_report =
+            &pfcp_rsp->usage_report[i];
+
+        ogs_pfcp_volume_measurement_t volume;
+        UsageLoggerData usageLoggerData = {0};
+
+        if (0 == usage_report->presence) {
+            /* We have reached the end of the usage_report list */
+            break;
+        }
+
+        if (0 == usage_report->urr_id.presence) {
+            ogs_error("Usage report URR has no ID field!");
+            continue;
+        }
+
+        bearer = sgwc_bearer_cycle(
+            sgwc_bearer_find_by_sess_urr_id(sess, usage_report->urr_id.u32));
+        
+        if (NULL == bearer) {
+            ogs_error("Could not find bearer for usage report with id %d!", usage_report->urr_id.u32);
             continue;
         }
 
