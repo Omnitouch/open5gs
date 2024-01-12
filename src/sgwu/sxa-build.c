@@ -128,7 +128,6 @@ ogs_pkbuf_t *sgwu_sxa_build_session_modification_response(uint8_t type,
     }
 
     if ((NULL != report) && (report->type.usage_report)) {
-        ogs_assert(report->num_of_usage_report > 0);
         for (i = 0; i < report->num_of_usage_report; i++) {
             rsp->usage_report[i].presence = 1;
             rsp->usage_report[i].urr_id.presence = 1;
