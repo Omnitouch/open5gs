@@ -43,20 +43,6 @@ static void sgwu_sxa_handle_create_urr(sgwu_sess_t *sess, ogs_pfcp_tlv_create_ur
     }
 }
 
-// static void sgwu_sxa_handle_remove_urr(sgwu_sess_t *sess, ogs_pfcp_tlv_remove_urr_t *remove_urr_arr,
-//                               uint8_t *cause_value, uint8_t *offending_ie_value)
-// {
-//     int i;
-
-//     *cause_value = OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
-
-//     for (i = 0; i < OGS_MAX_NUM_OF_URR; i++) {
-//         if (ogs_pfcp_handle_remove_urr(&sess->pfcp, &remove_urr_arr[i],
-//                 cause_value, offending_ie_value) == false)
-//             break;
-//     }
-// }
-
 void sgwu_sxa_handle_session_establishment_request(
         sgwu_sess_t *sess, ogs_pfcp_xact_t *xact, 
         ogs_pfcp_session_establishment_request_t *req)
@@ -211,6 +197,33 @@ void sgwu_sxa_handle_session_modification_request(
         return;
     }
 
+    /* Copy all the latest info on the usage of the URRs before removing them */
+    report.type.usage_report = 1;
+    for (i = 0; i < OGS_MAX_NUM_OF_URR; i++) {
+        if (req->remove_urr[i].presence) {
+            if (req->remove_urr[i].urr_id.presence) {
+                ogs_pfcp_urr_t *urr = ogs_pfcp_urr_find(&sess->pfcp, req->remove_urr->urr_id.u32);
+
+                if (NULL != urr) {
+                    sgwu_sess_urr_acc_fill_usage_report(sess, urr, &report, report.num_of_usage_report);
+                    report.usage_report[report.num_of_usage_report].rep_trigger.termination_report = 1;
+                    report.num_of_usage_report++;
+                    sgwu_sess_urr_acc_snapshot(sess, urr);
+                } else {
+                    ogs_error("Could not remove URR with id %d as it could not be found", req->remove_urr->urr_id.u32);
+                }
+
+            } else {
+                ogs_error("Cannot remove a URR if no id was provided");
+            }
+        }
+
+        if (report.num_of_usage_report == 8) {
+            ogs_error("Cant make enough final usage reports for all these URRs");
+            break;
+        }
+    }
+
     for (i = 0; i < OGS_MAX_NUM_OF_PDR; i++) {
         created_pdr[i] = ogs_pfcp_handle_create_pdr(&sess->pfcp,
                 &req->create_pdr[i], NULL, &cause_value, &offending_ie_value);
@@ -249,45 +262,6 @@ void sgwu_sxa_handle_session_modification_request(
     if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
         ogs_error("Failed to handle create URR!");
         goto cleanup;
-    }
-
-    /* Copy all the latest info on the usage of the URRs before removing them */
-    report.type.usage_report = 1;
-    for (i = 0; i < OGS_MAX_NUM_OF_URR; i++) {
-        if (req->remove_urr[i].presence) {
-            if (req->remove_urr[i].urr_id.presence) {
-                ogs_pfcp_urr_t *urr = ogs_pfcp_urr_find(&sess->pfcp, req->remove_urr->urr_id.u32);
-
-                if (NULL != urr) {
-                    sgwu_sess_urr_acc_fill_usage_report(sess, urr, &report, report.num_of_usage_report);
-                    report.usage_report[report.num_of_usage_report].rep_trigger.termination_report = 1;
-                    report.num_of_usage_report++;
-                    sgwu_sess_urr_acc_snapshot(sess, urr);
-                } else {
-                    ogs_error("Could not remove URR with id %d as it could not be found", req->remove_urr->urr_id.u32);
-                }
-
-            } else {
-                ogs_error("Cannot remove a URR if no id was provided");
-            }
-        }
-
-        if (report.num_of_usage_report == 8) {
-            ogs_error("Cant make enough final usage reports for all these URRs");
-            break;
-        }
-    }
-
-    /* Noe we can remove the URRs */
-    for (i = 0; i < OGS_MAX_NUM_OF_URR; i++) {
-        if (ogs_pfcp_handle_remove_urr(&sess->pfcp, &req->remove_urr[i],
-                &cause_value, &offending_ie_value) == false)
-            break;
-    }
-    if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
-        ogs_fatal("Something went wrong with removing a urr");
-        cause_value = OGS_PFCP_CAUSE_REQUEST_ACCEPTED; // temp
-        // goto cleanup;
     }
 
     /* Send End Marker to gNB */
