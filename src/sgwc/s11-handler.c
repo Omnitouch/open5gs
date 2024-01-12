@@ -846,6 +846,12 @@ void sgwc_s11_handle_create_bearer_response(
     /* Set EBI */
     bearer->ebi = rsp->bearer_contexts.eps_bearer_id.u8;
 
+    /* Set UE Timezone */
+    if (rsp->ue_time_zone.presence) {
+        sgwc_ue->timezone_raw_len = rsp->ue_time_zone.len;
+        memcpy(sgwc_ue->timezone_raw, rsp->ue_time_zone.data, sgwc_ue->timezone_raw_len);
+    }
+
     /* Data Plane(DL) : eNB-S1U */
     enb_s1u_teid = rsp->bearer_contexts.s1_u_enodeb_f_teid.data;
     dl_tunnel->remote_teid = be32toh(enb_s1u_teid->teid);
