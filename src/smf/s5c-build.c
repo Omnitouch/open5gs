@@ -467,6 +467,10 @@ ogs_pkbuf_t *smf_s5c_build_create_bearer_request(
     ogs_gtp2_build_bearer_qos(&req->bearer_contexts.bearer_level_qos,
             &bearer_qos, bearer_qos_buf, GTP2_BEARER_QOS_LEN);
 
+    /* Charging ID */
+    req->bearer_contexts.charging_id.presence = 1;
+    req->bearer_contexts.charging_id.u32 = sess->charging.id;    
+
     /* Bearer TFT */
     if (tft && tft->num_of_packet_filter) {
         req->bearer_contexts.tft.presence = 1;
