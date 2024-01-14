@@ -549,11 +549,13 @@ void sgwc_s5c_handle_create_bearer_request(
 {
     int rv;
     uint8_t cause_value = 0;
+    uint16_t decoded;
 
     sgwc_ue_t *sgwc_ue = NULL;
     sgwc_bearer_t *bearer = NULL;
     sgwc_tunnel_t *ul_tunnel = NULL;
     ogs_pfcp_far_t *far = NULL;
+    ogs_gtp2_bearer_qos_t bearer_qos = {};
 
     ogs_gtp2_create_bearer_request_t *req = NULL;
     ogs_gtp2_f_teid_t *pgw_s5u_teid = NULL;
@@ -647,9 +649,23 @@ void sgwc_s5c_handle_create_bearer_request(
         return;
     }
 
-    /* Set the charging ID for new bearer */
+    /* Get the charging ID for new bearer */
     if (req->bearer_contexts.charging_id.presence) {
         bearer->charging_id = req->bearer_contexts.charging_id.u32;
+    } else {
+        ogs_error("No chargind id was present in S5C Create Bearer Request");
+    }
+
+    /* Get the Bearer QCI */
+    if (req->bearer_contexts.bearer_level_qos.presence) {
+        decoded = ogs_gtp2_parse_bearer_qos(&bearer_qos,
+            &req->bearer_contexts.bearer_level_qos);
+        ogs_assert(decoded ==
+            req->bearer_contexts.bearer_level_qos.len);
+
+        bearer->qci = bearer_qos.qci;
+    } else {
+        ogs_error("No bearer level qos was present in S5C Create Bearer Request");
     }
 
     far = ul_tunnel->far;
