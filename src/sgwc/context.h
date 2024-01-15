@@ -137,6 +137,7 @@ typedef struct sgwc_bearer_s {
 
     uint32_t charging_id;
     uint8_t qci;
+    bool dedicated;
 } sgwc_bearer_t;
 
 typedef struct sgwc_tunnel_s {

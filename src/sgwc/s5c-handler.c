@@ -626,6 +626,7 @@ void sgwc_s5c_handle_create_bearer_request(
 
     bearer = sgwc_bearer_add(sess);
     ogs_assert(bearer);
+    bearer->dedicated = 1;
     ul_tunnel = sgwc_ul_tunnel_in_bearer(bearer);
     ogs_assert(ul_tunnel);
 

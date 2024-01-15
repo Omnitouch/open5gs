@@ -330,6 +330,7 @@ void sgwc_s11_handle_create_session_request(
 
         bearer = sgwc_bearer_add(sess);
         ogs_assert(bearer);
+        bearer->dedicated = 0;
 
         /* Set Bearer EBI */
         bearer->ebi = req->bearer_contexts_to_be_created[i].eps_bearer_id.u8;

@@ -40,7 +40,7 @@ bool log_usage_data(UsageLoggerState *state, time_t current_epoch_sec, UsageLogg
                 fptr,
                 "%li,"   /* epoch */
                 "%s,"    /* imsi */
-                "%s,"    /* event */
+                "%s%s,"  /* dedicated_bearer / event */
                 "%u,"    /* charging_id */
                 "%s,"    /* msisdn */
                 "%s,"    /* ue_imei */
@@ -57,6 +57,7 @@ bool log_usage_data(UsageLoggerState *state, time_t current_epoch_sec, UsageLogg
                 "%lu\n", /* octets_out */
                 current_epoch_sec,
                 data.imsi,
+                data.dedicated_bearer ? "dedicated_bearer_" : "bearer_",
                 data.event,
                 data.charging_id,
                 data.msisdn_bcd,
@@ -134,7 +135,7 @@ static bool create_new_file(UsageLoggerState const *state)
     {
         int fprint_result = fprintf(
             fptr,
-            "# SWG CDR File:\n"
+            "# SGW CDR File:\n"
             "# File Start Time: %s (%li)\n"
             "# File End Time: %s (%li)\n"
             "# SGW Name: %s\n"

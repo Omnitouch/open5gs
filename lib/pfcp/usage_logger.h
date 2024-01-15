@@ -61,6 +61,7 @@ typedef struct
     char sgw_ip[IP_STR_MAX_LEN];
     char ue_ip[IP_STR_MAX_LEN];
     char pgw_ip[IP_STR_MAX_LEN];
+    bool dedicated_bearer;
 } UsageLoggerData;
 
 typedef struct

@@ -1557,7 +1557,7 @@ void sgwc_sxa_handle_session_report_request(
 }
 
 static void log_start_usage_reports(sgwc_bearer_t *bearer) {
-    UsageLoggerData usageLoggerData = build_usage_logger_data(bearer, "session_start", 0, 0);
+    UsageLoggerData usageLoggerData = build_usage_logger_data(bearer, "start", 0, 0);
     log_usage_logger_data(usageLoggerData);
 }
 
@@ -1640,7 +1640,7 @@ static void handle_usage_reports(sgwc_sess_t *sess, ogs_pfcp_session_report_requ
             }
         }
 
-        usageLoggerData = build_usage_logger_data(bearer, "session_update", volume.uplink_volume, volume.downlink_volume);
+        usageLoggerData = build_usage_logger_data(bearer, "update", volume.uplink_volume, volume.downlink_volume);
         log_usage_logger_data(usageLoggerData);
     }
 }
@@ -1695,7 +1695,7 @@ static void log_deletion_usage_reports_session_deletion_response(sgwc_sess_t *se
             continue;
         }
 
-        usageLoggerData = build_usage_logger_data(bearer, "session_end", volume.uplink_volume, volume.downlink_volume);
+        usageLoggerData = build_usage_logger_data(bearer, "end", volume.uplink_volume, volume.downlink_volume);
         log_usage_logger_data(usageLoggerData);
     }
 }
@@ -1773,6 +1773,7 @@ static UsageLoggerData build_usage_logger_data(sgwc_bearer_t *bearer, char const
     usageLoggerData.qci = bearer->qci;
     usageLoggerData.octets_in = octets_in;
     usageLoggerData.octets_out = octets_out;
+    usageLoggerData.dedicated_bearer = bearer->dedicated;
 
     strncpy(usageLoggerData.msisdn_bcd, sgwc_ue->msisdn_bcd, MSISDN_BCD_STR_MAX_LEN);
     strncpy(usageLoggerData.imeisv_bcd, sgwc_ue->imeisv_bcd, IMEISV_BCD_STR_MAX_LEN);
