@@ -1468,7 +1468,12 @@ void mme_s11_handle_downlink_data_notification(
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     } else {
         sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
-        ogs_assert(sgw_ue);
+
+        if (!sgw_ue) {
+            ogs_error("No UE Context but has MME Context");
+            cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+        }
+
 
         if (noti->eps_bearer_id.presence == 0) {
             ogs_error("No Bearer ID");
