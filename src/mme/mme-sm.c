@@ -223,8 +223,16 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         break;
 
     case MME_EVENT_S1AP_TIMER:
-        enb_ue = e->enb_ue;
-        ogs_assert(enb_ue);
+        enb_ue = enb_ue_cycle(e->enb_ue);
+        if (NULL == enb_ue) {
+            ogs_error("Received an event with an invalid enb_ue!");
+            if (NULL != e->pkbuf) {
+                ogs_error("\tFreeing the event data");
+                ogs_pkbuf_free(pkbuf);
+            }
+
+            break;
+        }
 
         switch (e->timer_id) {
         case MME_TIMER_S1_DELAYED_SEND:
@@ -370,9 +378,14 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
 
     case MME_EVENT_EMM_MESSAGE:
         enb_ue = enb_ue_cycle(e->enb_ue);
-        ogs_assert(enb_ue);
         pkbuf = e->pkbuf;
         ogs_assert(pkbuf);
+
+        if (NULL == enb_ue) {
+            ogs_error("Received an event with an invalid enb_ue!");
+            ogs_pkbuf_free(pkbuf);
+            break;
+        }
 
         if (ogs_nas_emm_decode(&nas_message, pkbuf) != OGS_OK) {
             ogs_error("ogs_nas_emm_decode() failed");
@@ -458,8 +471,13 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         ogs_pkbuf_free(pkbuf);
         break;
     case MME_EVENT_EMM_TIMER:
-        mme_ue = e->mme_ue;
-        ogs_assert(mme_ue);
+        mme_ue = mme_ue_cycle(e->mme_ue);
+
+        if (NULL == mme_ue) {
+            ogs_error("Received an event with an invalid mme_ue!");
+            break;
+        }
+
         ogs_assert(OGS_FSM_STATE(&mme_ue->sm));
 
         ogs_fsm_dispatch(&mme_ue->sm, e);
@@ -467,13 +485,15 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
 
     case MME_EVENT_ESM_MESSAGE:
         mme_ue = mme_ue_cycle(e->mme_ue);
+        pkbuf = e->pkbuf;
+        ogs_assert(pkbuf);
+
         if (NULL == mme_ue) {
-            ogs_error("Got MME_EVENT_ESM_MESSAGE for a mme_ue that doesn't exist!");
+            ogs_error("Received an event with an invalid mme_ue!");
+            ogs_pkbuf_free(pkbuf);
             break;
         }
 
-        pkbuf = e->pkbuf;
-        ogs_assert(pkbuf);
         if (ogs_nas_esm_decode(&nas_message, pkbuf) != OGS_OK) {
             ogs_error("ogs_nas_esm_decode() failed");
             ogs_pkbuf_free(pkbuf);
@@ -528,18 +548,30 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         break;
 
     case MME_EVENT_ESM_TIMER:
-        bearer = e->bearer;
-        ogs_assert(bearer);
+        bearer = mme_bearer_cycle(e->bearer);
+
+        if (NULL == bearer) {
+            ogs_error("Received an event with an invalid bearer!");
+            break;
+        }
+
         ogs_assert(OGS_FSM_STATE(&bearer->sm));
 
         ogs_fsm_dispatch(&bearer->sm, e);
         break;
 
     case MME_EVENT_S6A_MESSAGE:
-        mme_ue = e->mme_ue;
-        ogs_assert(mme_ue);
+        mme_ue = mme_ue_cycle(e->mme_ue);
         s6a_message = e->s6a_message;
         ogs_assert(s6a_message);
+
+        if (NULL == mme_ue) {
+            ogs_error("Received an event with an invalid mme_ue!");
+            ogs_subscription_data_free(&s6a_message->idr_message.subscription_data);
+            ogs_subscription_data_free(&s6a_message->ula_message.subscription_data);
+            ogs_free(s6a_message);
+            break;
+        }
 
         switch (s6a_message->cmd_code) {
         case OGS_DIAM_S6A_CMD_CODE_AUTHENTICATION_INFORMATION:
@@ -607,10 +639,15 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         ogs_free(s6a_message);
         break;
     case MME_EVENT_S13_MESSAGE:
-        mme_ue = e->mme_ue;
-        ogs_assert(mme_ue);
+        mme_ue = mme_ue_cycle(e->mme_ue);
         s13_message = e->s13_message;
         ogs_assert(s13_message);
+
+        if (NULL == mme_ue) {
+            ogs_error("Received an event with an invalid mme_ue!");
+            ogs_free(s13_message);
+            break;
+        }
 
         switch(s13_message->cmd_code) {
             case OGS_DIAM_S13_CMD_CODE_ME_IDENTITY_CHECK:
@@ -775,10 +812,18 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         break;
 
     case MME_EVENT_S11_TIMER:
-        sgw_ue = e->sgw_ue;
-        ogs_assert(sgw_ue);
-        mme_ue = sgw_ue->mme_ue;
-        ogs_assert(mme_ue);
+        sgw_ue = sgw_ue_cycle(e->sgw_ue);
+
+        if (NULL == sgw_ue) {
+            ogs_error("Received an event with an invalid sgw_ue!");
+            break;
+        }
+
+        mme_ue = mme_ue_cycle(sgw_ue->mme_ue);
+        if (NULL == mme_ue) {
+            ogs_error("Received an event with an invalid mme_ue!");
+            break;
+        }
 
         switch (e->timer_id) {
         case MME_TIMER_S11_HOLDING:
@@ -892,9 +937,15 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         break;
 
     case MME_EVENT_S6A_PCSCF_RESTORATION:
-        mme_ue = e->mme_ue;
-        ogs_assert(mme_ue);
+        mme_ue = mme_ue_cycle(e->mme_ue);
+
+        if (NULL == mme_ue) {
+            ogs_error("Received an event with an invalid mme_ue!");
+            break;
+        }
+
         sess = mme_sess_find_by_apn(mme_ue, (char*)"ims");
+        sess = mme_sess_cycle(sess);
 
         if (!sess) {
             ogs_warn("P-CSCF Restoration failed, could not find matching IMS session for given UE");
