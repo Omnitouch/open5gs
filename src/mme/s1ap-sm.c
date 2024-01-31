@@ -59,8 +59,11 @@ void s1ap_state_operational(ogs_fsm_t *s, mme_event_t *e)
 
     mme_sm_debug(e);
 
-    enb = e->enb;
-    ogs_assert(enb);
+    enb = mme_enb_cycle(e->enb);
+    if (NULL == enb) {
+        ogs_error("Received an event with an invalid enb!");
+        return;
+    }
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:

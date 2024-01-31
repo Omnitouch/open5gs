@@ -83,12 +83,23 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
 
     mme_sm_debug(e);
 
-    bearer = e->bearer;
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
+    bearer = mme_bearer_cycle(e->bearer);
+    if (NULL == bearer) {
+        ogs_error("Received an event with an invalid bearer!");
+        return;
+    }
+
+    sess = mme_sess_cycle(bearer->sess);
+    if (NULL == sess) {
+        ogs_error("Received an event with an invalid sess!");
+        return;
+    }
+
+    mme_ue = mme_ue_cycle(sess->mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("Received an event with an invalid mme_ue!");
+        return;
+    }
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
@@ -277,12 +288,23 @@ void esm_state_active(ogs_fsm_t *s, mme_event_t *e)
 
     mme_sm_debug(e);
 
-    bearer = e->bearer;
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
+    bearer = mme_bearer_cycle(e->bearer);
+    if (NULL == bearer) {
+        ogs_error("Received an event with an invalid bearer!");
+        return;
+    }
+
+    sess = mme_sess_cycle(bearer->sess);
+    if (NULL == sess) {
+        ogs_error("Received an event with an invalid sess!");
+        return;
+    }
+
+    mme_ue = mme_ue_cycle(sess->mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("Received an event with an invalid mme_ue!");
+        return;
+    }
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
@@ -384,12 +406,23 @@ void esm_state_pdn_will_disconnect(ogs_fsm_t *s, mme_event_t *e)
 
     mme_sm_debug(e);
 
-    bearer = e->bearer;
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
+    bearer = mme_bearer_cycle(e->bearer);
+    if (NULL == bearer) {
+        ogs_error("Received an event with an invalid bearer!");
+        return;
+    }
+
+    sess = mme_sess_cycle(bearer->sess);
+    if (NULL == sess) {
+        ogs_error("Received an event with an invalid sess!");
+        return;
+    }
+
+    mme_ue = mme_ue_cycle(sess->mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("Received an event with an invalid mme_ue!");
+        return;
+    }
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
@@ -473,7 +506,11 @@ void esm_state_exception(ogs_fsm_t *s, mme_event_t *e)
     ogs_assert(e);
     mme_sm_debug(e);
 
-    bearer = e->bearer;
+    bearer = mme_bearer_cycle(e->bearer);
+    if (NULL == bearer) {
+        ogs_error("Received an event with an invalid bearer!");
+        return;
+    }
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:

@@ -71,8 +71,11 @@ void emm_state_de_registered(ogs_fsm_t *s, mme_event_t *e)
 
     mme_sm_debug(e);
 
-    mme_ue = e->mme_ue;
-    ogs_assert(mme_ue);
+    mme_ue = mme_ue_cycle(e->mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("Received an event with an invalid mme_ue!");
+        return;
+    }
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
@@ -122,8 +125,11 @@ void emm_state_registered(ogs_fsm_t *s, mme_event_t *e)
 
     mme_sm_debug(e);
 
-    mme_ue = e->mme_ue;
-    ogs_assert(mme_ue);
+    mme_ue = mme_ue_cycle(e->mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("Received an event with an invalid mme_ue!");
+        return;
+    }
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
@@ -838,8 +844,11 @@ void emm_state_authentication(ogs_fsm_t *s, mme_event_t *e)
     
     mme_sm_debug(e);
 
-    mme_ue = e->mme_ue;
-    ogs_assert(mme_ue);
+    mme_ue = mme_ue_cycle(e->mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("Received an event with an invalid mme_ue!");
+        return;
+    }
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
@@ -1029,8 +1038,11 @@ void emm_state_security_mode(ogs_fsm_t *s, mme_event_t *e)
 
     mme_sm_debug(e);
 
-    mme_ue = e->mme_ue;
-    ogs_assert(mme_ue);
+    mme_ue = mme_ue_cycle(e->mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("Received an event with an invalid mme_ue!");
+        return;
+    }
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
@@ -1239,8 +1251,11 @@ void emm_state_initial_context_setup(ogs_fsm_t *s, mme_event_t *e)
 
     mme_sm_debug(e);
 
-    mme_ue = e->mme_ue;
-    ogs_assert(mme_ue);
+    mme_ue = mme_ue_cycle(e->mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("Received an event with an invalid mme_ue!");
+        return;
+    }
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
@@ -1488,8 +1503,11 @@ void emm_state_exception(ogs_fsm_t *s, mme_event_t *e)
     ogs_assert(e);
     mme_sm_debug(e);
 
-    mme_ue = e->mme_ue;
-    ogs_assert(mme_ue);
+    mme_ue = mme_ue_cycle(e->mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("Received an event with an invalid mme_ue!");
+        return;
+    }
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:

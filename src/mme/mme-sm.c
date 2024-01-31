@@ -236,10 +236,14 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
 
         switch (e->timer_id) {
         case MME_TIMER_S1_DELAYED_SEND:
-            enb = e->enb;
-            ogs_assert(enb);
+            enb = mme_enb_cycle(e->enb);
             pkbuf = e->pkbuf;
             ogs_assert(pkbuf);
+            if (NULL == enb) {
+                ogs_error("Received an event with an invalid enb!");
+                ogs_pkbuf_free(pkbuf);
+                break;
+            }
 
             r = s1ap_send_to_enb_ue(enb_ue, pkbuf);
             ogs_expect(r == OGS_OK);
