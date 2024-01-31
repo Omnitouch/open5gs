@@ -3054,7 +3054,7 @@ void sgw_ue_remove(sgw_ue_t *sgw_ue)
 
     if (NULL == sgw_ue) {
         /* If the sgw_ue was never set we don't need to do anything */
-        ogs_fatal("Trying to remove sgw_ue that doesn't exist!");
+        ogs_warn("Trying to remove sgw_ue that doesn't exist!");
         return;
     }
 
@@ -4693,6 +4693,7 @@ mme_m_tmsi_t *mme_m_tmsi_alloc(void)
 
     ogs_pool_alloc(&m_tmsi_pool, &m_tmsi);
     ogs_assert(m_tmsi);
+    ogs_debug("Created M-TMSI: 0x%x", *m_tmsi);
 
     /* TS23.003
      * 2.8.2.1.2 Mapping in the UE
@@ -4710,7 +4711,9 @@ mme_m_tmsi_t *mme_m_tmsi_alloc(void)
      * of 3GPP TS.33.401 [89] , as appropriate, for RAU/Attach procedures
      */
 
-    ogs_assert(*m_tmsi <= 0x003fffff);
+    if (*m_tmsi > 0x003fffff) {
+        ogs_error("m_tmsi value exceeds 0x003fffff");
+    }
 
     *m_tmsi = ((*m_tmsi & 0xffff) | ((*m_tmsi & 0x003f0000) << 8));
     *m_tmsi |= 0xc0000000;
@@ -4720,6 +4723,7 @@ mme_m_tmsi_t *mme_m_tmsi_alloc(void)
 
 int mme_m_tmsi_free(mme_m_tmsi_t *m_tmsi)
 {
+    ogs_debug("Freeing M-TMSI: 0x%x", *m_tmsi); // Log the value of m_tmsi being freed
     ogs_assert(m_tmsi);
     ogs_pool_free(&m_tmsi_pool, m_tmsi);
 
