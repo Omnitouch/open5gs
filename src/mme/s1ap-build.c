@@ -405,7 +405,9 @@ ogs_pkbuf_t *s1ap_build_initial_context_setup_request(
                         mme_ue->imsi_bcd, mme_ue->nas_eps.type,
                         enb_ue->enb_ue_s1ap_id, enb_ue->mme_ue_s1ap_id);
                 continue;
-            } else if (false == bearer_has_sgw_s1u_ip(bearer)) {
+            }
+            
+            if (false == bearer_has_sgw_s1u_ip(bearer)) {
                 /* There are 2 places sgw_s1u_ip is set:
                  *   1. mme_s11_handle_create_session_response
                  *   2. mme_s11_handle_create_bearer_request
