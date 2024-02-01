@@ -28,6 +28,9 @@
 #undef OGS_LOG_DOMAIN
 #define OGS_LOG_DOMAIN __esm_log_domain
 
+static bool has_valid_bearer(mme_ue_t *mme_ue);
+static bool bearer_has_sgw_s1u_ip(mme_bearer_t *bearer);
+
 int esm_handle_pdn_connectivity_request(mme_bearer_t *bearer, 
         ogs_nas_eps_pdn_connectivity_request_t *req, int create_action)
 {
@@ -193,6 +196,8 @@ int esm_handle_information_response(mme_sess_t *sess,
 
     ogs_assert(rsp);
 
+    ogs_debug("esm_handle_information_response");
+
     if (rsp->presencemask &
             OGS_NAS_EPS_ESM_INFORMATION_RESPONSE_ACCESS_POINT_NAME_PRESENT) {
         sess->session = mme_session_find_by_apn(
@@ -240,7 +245,8 @@ int esm_handle_information_response(mme_sess_t *sess,
         }
 
         if (SESSION_CONTEXT_IS_AVAILABLE(mme_ue) &&
-            OGS_PDU_SESSION_TYPE_IS_VALID(sess->session->paa.session_type))
+            OGS_PDU_SESSION_TYPE_IS_VALID(sess->session->paa.session_type) &&
+            has_valid_bearer(mme_ue))
         {
             mme_csmap_t *csmap = mme_csmap_find_by_tai(&mme_ue->tai);
             mme_ue->csmap = csmap;
@@ -313,4 +319,38 @@ int esm_handle_bearer_resource_modification_request(
         mme_gtp_send_bearer_resource_command(bearer, message));
 
     return OGS_OK;
+}
+
+static bool has_valid_bearer(mme_ue_t *mme_ue)
+{
+    mme_sess_t *sess = NULL;
+    mme_bearer_t *bearer = NULL;
+
+    int valid_bearers = 0;
+
+    ogs_list_for_each(&mme_ue->sess_list, sess) {
+        ogs_list_for_each(&sess->bearer_list, bearer) {
+            if (bearer_has_sgw_s1u_ip(bearer)) {
+                ++valid_bearers;
+            }
+        }
+    }
+
+    return 0 < valid_bearers;
+}
+
+static bool bearer_has_sgw_s1u_ip(mme_bearer_t *bearer)
+{
+    if (NULL == bearer) {
+        ogs_error("NULL bearer provided");
+        return false;
+    }
+
+    if ((0 == bearer->sgw_s1u_ip.ipv4) &&
+        (0 == bearer->sgw_s1u_ip.ipv6)) 
+    {
+        return false;
+    }
+
+    return true;
 }
