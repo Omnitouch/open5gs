@@ -3960,22 +3960,28 @@ void enb_ue_source_deassociate_target(enb_ue_t *enb_ue)
     enb_ue_t *target_ue = NULL;
     ogs_assert(enb_ue);
 
-    if (enb_ue->target_ue) {
+    if (enb_ue_cycle(enb_ue->target_ue)) {
         source_ue = enb_ue;
         target_ue = enb_ue->target_ue;
 
-        ogs_assert(source_ue->target_ue);
-        ogs_assert(target_ue->source_ue);
-        source_ue->target_ue = NULL;
-        target_ue->source_ue = NULL;
-    } else if (enb_ue->source_ue) {
+        if (source_ue->target_ue) {
+            source_ue->target_ue = NULL;
+        }
+
+        if (target_ue->source_ue) {
+            target_ue->source_ue = NULL; 
+        }
+    } else if (enb_ue_cycle(enb_ue->source_ue)) {
         target_ue = enb_ue;
         source_ue = enb_ue->source_ue;
 
-        ogs_assert(source_ue->target_ue);
-        ogs_assert(target_ue->source_ue);
-        source_ue->target_ue = NULL;
-        target_ue->source_ue = NULL;
+        if (source_ue->target_ue) {
+            source_ue->target_ue = NULL;
+        }
+
+        if (target_ue->source_ue) {
+            target_ue->source_ue = NULL; 
+        }
     }
 }
 
