@@ -552,8 +552,11 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 END
 
                 if (sess) {
-                    smf_ue = sess->smf_ue;
-                    ogs_assert(smf_ue);
+                    smf_ue = smf_ue_cycle(sess->smf_ue);
+                    if (NULL == smf_ue) {
+                        ogs_error("Just got an event with a NULL smf_ue");
+                        break;
+                    }
                     ogs_assert(OGS_FSM_STATE(&sess->sm));
 
                     e->sess = sess;
@@ -798,10 +801,11 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 ogs_error("Session has already been removed");
                 break;
             }
-            smf_ue = sess->smf_ue;
-            ogs_assert(smf_ue);
-            smf_ue = smf_ue_cycle(smf_ue);
-            ogs_assert(smf_ue);
+            smf_ue = smf_ue_cycle(sess->smf_ue);
+            if (NULL == smf_ue) {
+                ogs_error("Just got an event with a NULL smf_ue");
+                break;
+            }
             ogs_assert(OGS_FSM_STATE(&sess->sm));
 
             e->sess = sess;
