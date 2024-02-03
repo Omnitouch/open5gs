@@ -288,8 +288,11 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         gx_message = e->gx_message;
         ogs_assert(gx_message);
 
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
 
         switch(gx_message->cmd_code) {
         case OGS_DIAM_GX_CMD_CODE_CREDIT_CONTROL:
@@ -323,8 +326,11 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         gy_message = e->gy_message;
         ogs_assert(gy_message);
 
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
 
         switch(gy_message->cmd_code) {
         case OGS_DIAM_GY_CMD_CODE_CREDIT_CONTROL:
@@ -361,8 +367,11 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         ogs_assert(e);
         s6b_message = e->s6b_message;
         ogs_assert(s6b_message);
-        sess = e->sess;
-        ogs_assert(sess);
+
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+        }
 
         switch(s6b_message->cmd_code) {
         case OGS_DIAM_S6B_CMD_SESSION_TERMINATION:
@@ -914,8 +923,12 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         break;
 
     case SMF_EVT_5GSM_MESSAGE:
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
+
         stream = e->h.sbi.data;
         ogs_assert(stream);
         pkbuf = e->pkbuf;
@@ -942,8 +955,11 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         break;
 
     case SMF_EVT_NGAP_MESSAGE:
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
         stream = e->h.sbi.data;
         ogs_assert(stream);
         pkbuf = e->pkbuf;

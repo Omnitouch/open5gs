@@ -1137,17 +1137,27 @@ static int ogs_gtp_xact_delete(ogs_gtp_xact_t *xact)
             OGS_ADDR(&xact->gnode->addr, buf),
             OGS_PORT(&xact->gnode->addr));
 
-    if (xact->seq[0].pkbuf)
+    if (xact->seq[0].pkbuf) {
         ogs_pkbuf_free(xact->seq[0].pkbuf);
-    if (xact->seq[1].pkbuf)
+        xact->seq[0].pkbuf = NULL;
+    }
+    if (xact->seq[1].pkbuf) {
         ogs_pkbuf_free(xact->seq[1].pkbuf);
-    if (xact->seq[2].pkbuf)
+        xact->seq[1].pkbuf = NULL;
+    }
+    if (xact->seq[2].pkbuf) {
         ogs_pkbuf_free(xact->seq[2].pkbuf);
+        xact->seq[2].pkbuf = NULL;
+    }
 
-    if (xact->tm_response)
+    if (xact->tm_response) {
         ogs_timer_delete(xact->tm_response);
-    if (xact->tm_holding)
+        xact->tm_response = NULL;
+    }
+    if (xact->tm_holding) {
         ogs_timer_delete(xact->tm_holding);
+        xact->tm_holding = NULL;
+    }
 
     if (xact->assoc_xact)
         ogs_gtp_xact_deassociate(xact, xact->assoc_xact);

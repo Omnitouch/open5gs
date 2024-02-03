@@ -232,8 +232,11 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
 
     smf_sm_debug(e);
 
-    sess = e->sess;
-    ogs_assert(sess);
+    sess = smf_sess_cycle(e->sess);
+    if (NULL == sess) {
+        ogs_error("Just got an event with a NULL sess");
+        return;
+    }
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
@@ -340,8 +343,11 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
     case SMF_EVT_5GSM_MESSAGE:
         nas_message = e->nas.message;
         ogs_assert(nas_message);
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
         stream = e->h.sbi.data;
         ogs_assert(stream);
         smf_ue = sess->smf_ue;
@@ -394,8 +400,11 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
 
     smf_sm_debug(e);
 
-    sess = e->sess;
-    ogs_assert(sess);
+    sess = smf_sess_cycle(e->sess);
+    if (NULL == sess) {
+        ogs_error("Just got an event with a NULL sess");
+        return;
+    }
 
     switch (e->h.id) {
     case SMF_EVT_GX_MESSAGE:
@@ -479,8 +488,11 @@ void smf_gsm_state_wait_5gc_sm_policy_association(ogs_fsm_t *s, smf_event_t *e)
 
     smf_sm_debug(e);
 
-    sess = e->sess;
-    ogs_assert(sess);
+    sess = smf_sess_cycle(e->sess);
+    if (NULL == sess) {
+        ogs_error("Just got an event with a NULL sess");
+        return;
+    }
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
@@ -492,8 +504,11 @@ void smf_gsm_state_wait_5gc_sm_policy_association(ogs_fsm_t *s, smf_event_t *e)
         sbi_message = e->h.sbi.message;
         ogs_assert(sbi_message);
 
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
         smf_ue = sess->smf_ue;
         ogs_assert(smf_ue);
 
@@ -645,8 +660,11 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
 
     smf_sm_debug(e);
 
-    sess = e->sess;
-    ogs_assert(sess);
+    sess = smf_sess_cycle(e->sess);
+    if (NULL == sess) {
+        ogs_error("Just got an event with a NULL sess");
+        return;
+    }
 
     switch (e->h.id) {
     case SMF_EVT_N4_MESSAGE:
@@ -774,8 +792,11 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
     smf_sm_debug(e);
 
-    sess = e->sess;
-    ogs_assert(sess);
+    sess = smf_sess_cycle(e->sess);
+    if (NULL == sess) {
+        ogs_error("Just got an event with a NULL sess");
+        return;
+    }
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
@@ -935,8 +956,11 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
         sbi_message = e->h.sbi.message;
         ogs_assert(sbi_message);
 
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
         smf_ue = sess->smf_ue;
         ogs_assert(smf_ue);
 
@@ -1067,8 +1091,11 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
     case SMF_EVT_5GSM_MESSAGE:
         nas_message = e->nas.message;
         ogs_assert(nas_message);
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
         stream = e->h.sbi.data;
         ogs_assert(stream);
         smf_ue = sess->smf_ue;
@@ -1129,8 +1156,11 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
         break;
 
     case SMF_EVT_NGAP_MESSAGE:
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
         stream = e->h.sbi.data;
         ogs_assert(stream);
         smf_ue = sess->smf_ue;
@@ -1265,8 +1295,11 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
 
     smf_sm_debug(e);
 
-    sess = e->sess;
-    ogs_assert(sess);
+    sess = smf_sess_cycle(e->sess);
+    if (NULL == sess) {
+        ogs_error("Just got an event with a NULL sess");
+        return;
+    }
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
@@ -1392,8 +1425,11 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
 
     smf_sm_debug(e);
 
-    sess = e->sess;
-    ogs_assert(sess);
+    sess = smf_sess_cycle(e->sess);
+    if (NULL == sess) {
+        ogs_error("Just got an event with a NULL sess");
+        return;
+    }
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
@@ -1521,8 +1557,11 @@ void smf_gsm_state_wait_5gc_n1_n2_release(ogs_fsm_t *s, smf_event_t *e)
 
     smf_sm_debug(e);
 
-    sess = e->sess;
-    ogs_assert(sess);
+    sess = smf_sess_cycle(e->sess);
+    if (NULL == sess) {
+        ogs_error("Just got an event with a NULL sess");
+        return;
+    }
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
@@ -1568,8 +1607,11 @@ void smf_gsm_state_wait_5gc_n1_n2_release(ogs_fsm_t *s, smf_event_t *e)
         sbi_message = e->h.sbi.message;
         ogs_assert(sbi_message);
 
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
         smf_ue = sess->smf_ue;
         ogs_assert(smf_ue);
 
@@ -1597,8 +1639,11 @@ void smf_gsm_state_wait_5gc_n1_n2_release(ogs_fsm_t *s, smf_event_t *e)
         break;
 
     case SMF_EVT_NGAP_MESSAGE:
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
         stream = e->h.sbi.data;
         ogs_assert(stream);
         smf_ue = sess->smf_ue;
@@ -1650,8 +1695,11 @@ void smf_gsm_state_wait_5gc_n1_n2_release(ogs_fsm_t *s, smf_event_t *e)
     case SMF_EVT_5GSM_MESSAGE:
         nas_message = e->nas.message;
         ogs_assert(nas_message);
-        sess = e->sess;
-        ogs_assert(sess);
+        sess = smf_sess_cycle(e->sess);
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+            break;
+        }
         stream = e->h.sbi.data;
         ogs_assert(stream);
         smf_ue = sess->smf_ue;
@@ -1691,8 +1739,11 @@ void smf_gsm_state_session_will_release(ogs_fsm_t *s, smf_event_t *e)
 
     smf_sm_debug(e);
 
-    sess = e->sess;
-    ogs_assert(sess);
+    sess = smf_sess_cycle(e->sess);
+    if (NULL == sess) {
+        ogs_error("Just got an event with a NULL sess");
+        return;
+    }
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
@@ -1720,8 +1771,11 @@ void smf_gsm_state_exception(ogs_fsm_t *s, smf_event_t *e)
 
     smf_sm_debug(e);
 
-    sess = e->sess;
-    ogs_assert(sess);
+    sess = smf_sess_cycle(e->sess);
+    if (NULL == sess) {
+        ogs_error("Just got an event with a NULL sess");
+        return;
+    }
     smf_ue = sess->smf_ue;
     ogs_assert(smf_ue);
 
