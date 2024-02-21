@@ -218,7 +218,10 @@ ssize_t ogs_sendto(ogs_socket_t fd,
 {
     socklen_t addrlen;
 
-    ogs_assert(fd != INVALID_SOCKET);
+    if (INVALID_SOCKET == fd) {
+        ogs_fatal("Trying to send to an invalid socket!");
+        return 0;
+    }
     ogs_assert(to);
 
     addrlen = ogs_sockaddr_len(to);
