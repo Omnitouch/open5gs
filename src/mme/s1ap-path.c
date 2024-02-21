@@ -661,6 +661,11 @@ int s1ap_send_handover_request(
         return OGS_NOTFOUND;
     }
 
+    if (NULL != enb_ue_cycle(source_ue->target_ue)) {
+        ogs_error("source_ue already has associated target_ue... diassociating...");
+        enb_ue_source_deassociate_target(source_ue);
+    }
+
     ogs_assert(source_ue->target_ue == NULL);
 
     target_ue = enb_ue_add(target_enb, INVALID_UE_S1AP_ID);
