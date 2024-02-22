@@ -217,6 +217,11 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
             sess = sgwc_sess_find_by_seid(xact->local_seid);
         }
 
+        sess = sgwc_sess_cycle(sess);
+        if (NULL == sess) {
+            ogs_error("Received a SGWC_EVT_SXA_MESSAGE event for an invalid sess");
+        }
+
         switch (message->h.type) {
         case OGS_PFCP_HEARTBEAT_REQUEST_TYPE:
             ogs_expect(true ==

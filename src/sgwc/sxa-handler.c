@@ -502,30 +502,37 @@ void sgwc_sxa_handle_session_modification_response(
         if (!sess) {
             ogs_error("No Context");
 
-            sess = pfcp_xact->data;
-            ogs_assert(sess);
+            sess = sgwc_sess_cycle(pfcp_xact->data);
+            ogs_expect(sess);
 
             cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
         }
 
-        sgwc_ue = sess->sgwc_ue;
-        ogs_assert(sgwc_ue);
-
+        if (sess) {
+            sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
+            if (NULL == sgwc_ue) {
+                cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+            }
+        }
     } else {
-        bearer = pfcp_xact->data;
-        ogs_assert(bearer);
+        bearer = sgwc_bearer_cycle(pfcp_xact->data);
+        ogs_expect(bearer);
 
         if (!sess) {
             ogs_error("No Context");
 
-            sess = bearer->sess;
-            ogs_assert(sess);
+            sess = sgwc_sess_cycle(bearer->sess);
+            ogs_expect(sess);
 
             cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
         }
 
-        sgwc_ue = bearer->sgwc_ue;
-        ogs_assert(sgwc_ue);
+        if (bearer) {
+            sgwc_ue = sgwc_ue_cycle(bearer->sgwc_ue);
+            if (NULL == sgwc_ue) {
+                cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+            }
+        }
     }
 
     if (pfcp_rsp->cause.presence) {
