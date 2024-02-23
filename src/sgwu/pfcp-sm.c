@@ -162,7 +162,7 @@ void sgwu_pfcp_state_associated(ogs_fsm_t *s, sgwu_event_t *e)
     ogs_pfcp_message_t *message = NULL;
 
     ogs_sockaddr_t *addr = NULL;
-    sgwu_sess_t *sess = NULL;
+    sgwu_sess_t *sess = NULL; 
 
     ogs_assert(s);
     ogs_assert(e);
@@ -204,6 +204,7 @@ void sgwu_pfcp_state_associated(ogs_fsm_t *s, sgwu_event_t *e)
 
         if (message->h.seid_presence && message->h.seid != 0)
             sess = sgwu_sess_find_by_sgwu_sxa_seid(message->h.seid);
+        sess = sgwu_sess_cycle(sess);
 
         switch (message->h.type) {
         case OGS_PFCP_HEARTBEAT_REQUEST_TYPE:
@@ -278,6 +279,7 @@ void sgwu_pfcp_state_associated(ogs_fsm_t *s, sgwu_event_t *e)
             break;
         case OGS_PFCP_SESSION_ESTABLISHMENT_REQUEST_TYPE:
             sess = sgwu_sess_add_by_message(message);
+            sess = sgwu_sess_cycle(sess);
             if (sess)
                 OGS_SETUP_PFCP_NODE(sess, node);
             sgwu_sxa_handle_session_establishment_request(

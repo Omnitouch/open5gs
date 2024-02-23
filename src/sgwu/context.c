@@ -220,6 +220,11 @@ void sgwu_sess_remove_all(void)
     }
 }
 
+sgwu_sess_t *sgwu_sess_cycle(sgwu_sess_t *sess)
+{
+    return ogs_pool_cycle(&sgwu_sess_pool, sess);
+}
+
 sgwu_sess_t *sgwu_sess_find_by_sgwc_sxa_seid(uint64_t seid)
 {
     return ogs_hash_get(self.sgwc_sxa_seid_hash, &seid, sizeof(seid));

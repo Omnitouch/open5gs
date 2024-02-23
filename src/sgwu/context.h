@@ -103,6 +103,7 @@ sgwu_sess_t *sgwu_sess_add_by_message(ogs_pfcp_message_t *message);
 sgwu_sess_t *sgwu_sess_add(ogs_pfcp_f_seid_t *f_seid);
 int sgwu_sess_remove(sgwu_sess_t *sess);
 void sgwu_sess_remove_all(void);
+sgwu_sess_t *sgwu_sess_cycle(sgwu_sess_t *sess);
 sgwu_sess_t *sgwu_sess_find_by_sgwc_sxa_seid(uint64_t seid);
 sgwu_sess_t *sgwu_sess_find_by_sgwc_sxa_f_seid(ogs_pfcp_f_seid_t *f_seid);
 sgwu_sess_t *sgwu_sess_find_by_sgwu_sxa_seid(uint64_t seid);
