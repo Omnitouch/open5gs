@@ -518,7 +518,10 @@ void sgwc_sxa_handle_session_modification_response(
         bearer = sgwc_bearer_cycle(pfcp_xact->data);
         ogs_expect(bearer);
 
-        if (!sess) {
+        if (!bearer) {
+            ogs_error("No Context");
+            cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+        } else if (!sess) {
             ogs_error("No Context");
 
             sess = sgwc_sess_cycle(bearer->sess);
@@ -628,7 +631,9 @@ void sgwc_sxa_handle_session_modification_response(
                         OGS_GTP2_DELETE_BEARER_RESPONSE_TYPE, cause_value);
             }
 
-            sgwc_bearer_remove(bearer);
+            if (bearer) {
+                sgwc_bearer_remove(bearer);
+            }
         } else if (flags & OGS_PFCP_MODIFY_CREATE) {
             s5c_xact = pfcp_xact->assoc_xact;
             ogs_assert(s5c_xact);
