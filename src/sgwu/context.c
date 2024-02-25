@@ -145,7 +145,7 @@ sgwu_sess_t *sgwu_sess_add(ogs_pfcp_f_seid_t *cp_f_seid)
 
     ogs_pool_alloc(&sgwu_sess_pool, &sess);
     ogs_assert(sess);
-    memset(sess, 0, sizeof *sess);
+    memset(sess, 0, sizeof(*sess));
 
     ogs_pfcp_pool_init(&sess->pfcp);
 
@@ -202,6 +202,7 @@ int sgwu_sess_remove(sgwu_sess_t *sess)
     ogs_pfcp_pool_final(&sess->pfcp);
 
     ogs_pool_free(&sgwu_sxa_seid_pool, sess->sgwu_sxa_seid_node);
+    memset(sess, 0, sizeof(*sess));
     ogs_pool_free(&sgwu_sess_pool, sess);
     sgwu_metrics_inst_global_inc(SGWU_METR_GLOB_GAUGE_SGWU_SESSIONNBR);
 
