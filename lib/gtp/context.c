@@ -694,10 +694,20 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_f_teid(
         if (memcmp(&node->ip, &ip, sizeof(ip)) == 0)
             break;
 
-        /* Return node if both IPv4 and IPv6 but we only have one */
-        if ((node->ip.addr == ip.addr) || 
-            (0 == memcmp(node->ip.addr6, ip.addr6, sizeof(node->ip.addr6)))) {
-            break;
+        if ((1 == ip.ipv4) && (1 == ip.ipv6)) {
+            /* Return node if both IPv4 and IPv6 but we only have one */
+            if ((node->ip.addr == ip.addr) || 
+                (0 == memcmp(node->ip.addr6, ip.addr6, sizeof(node->ip.addr6)))) {
+                break;
+            }
+        } else if (1 == ip.ipv4) {
+            if (node->ip.addr == ip.addr) {
+                break;
+            }
+        } else if (1 == ip.ipv6) {
+            if (0 == memcmp(node->ip.addr6, ip.addr6, sizeof(node->ip.addr6))) {
+                break;
+            }
         }
     }
 

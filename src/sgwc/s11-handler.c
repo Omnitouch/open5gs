@@ -264,6 +264,7 @@ void sgwc_s11_handle_create_session_request(
             ogs_min(req->access_point_name.len, OGS_MAX_APN_LEN)));
     sess = sgwc_sess_find_by_ebi(sgwc_ue,
             req->bearer_contexts_to_be_created[0].eps_bearer_id.u8);
+    sess = sgwc_sess_cycle(sess);
     if (sess) {
         ogs_info("OLD Session Release [IMSI:%s,APN:%s]",
                 sgwc_ue->imsi_bcd, sess->session.name);
@@ -432,6 +433,9 @@ void sgwc_s11_handle_create_session_request(
     pgw_s5c_teid = req->pgw_s5_s8_address_for_control_plane_or_pmip.data;
     ogs_assert(pgw_s5c_teid);
     sess->pgw_s5c_teid = be32toh(pgw_s5c_teid->teid);
+    char buf[100] = "";
+    ogs_info("[From MME] pgw_s5c_teid->addr: %s", ogs_ipv4_to_string_stack(pgw_s5c_teid->addr, buf));
+    ogs_info("[From MME] pgw_s5c_teid->teid: %i", pgw_s5c_teid->teid);
 
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
         sgwc_ue->mme_s11_teid, sgwc_ue->sgw_s11_teid);
