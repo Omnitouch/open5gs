@@ -395,6 +395,11 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
         ogs_assert(sgw_ue);
     }
 
+    if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi)) {
+        /* We don't want to use the same UE IP if we're roaming */
+        memset(&session->paa, 0, sizeof(session->paa));
+    }
+
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_CREATE_SESSION_REQUEST_TYPE;
     h.teid = sgw_ue->sgw_s11_teid;
