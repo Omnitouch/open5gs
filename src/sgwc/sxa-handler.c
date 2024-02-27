@@ -338,10 +338,6 @@ void sgwc_sxa_handle_session_establishment_response(
         pgw_s5_s8_address_for_control_plane_or_pmip.data;
     ogs_assert(pgw_s5c_teid);
 
-    char buf[100] = "";
-    ogs_info("[To PGW] pgw_s5c_teid->addr: '%s'", ogs_ipv4_to_string_stack(pgw_s5c_teid->addr, buf));
-    ogs_info("[To PGW] pgw_s5c_teid->teid: '%i'", pgw_s5c_teid->teid);
-
     pgw = ogs_gtp_node_find_by_f_teid(&sgwc_self()->pgw_s5c_list, pgw_s5c_teid);
     if (!pgw) {
         pgw = ogs_gtp_node_add_by_f_teid(
@@ -356,8 +352,6 @@ void sgwc_sxa_handle_session_establishment_response(
     /* Setup GTP Node */
     OGS_SETUP_GTP_NODE(sess, pgw);
 
-    ogs_info("[To PGW] pgw->addr         : '%s'", OGS_ADDR(&pgw->addr, buf));
-    
     /* Check Indication */
     if (create_session_request->indication_flags.presence &&
         create_session_request->indication_flags.data &&
