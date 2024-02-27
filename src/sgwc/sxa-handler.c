@@ -81,17 +81,17 @@ static void sess_timeout(ogs_gtp_xact_t *xact, void *data)
         ogs_error("Just got a sess timeout for a sess that doesnt exist!");
         return;
     }
-    sgwc_ue = sess->sgwc_ue;
-    ogs_assert(sgwc_ue);
+    sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
+    ogs_expect(sgwc_ue);
 
     type = xact->seq[0].type;
 
     switch (type) {
     case OGS_GTP2_CREATE_SESSION_REQUEST_TYPE:
-        ogs_error("[%s] No Create Session Response", sgwc_ue->imsi_bcd);
+        ogs_error("[%s] No Create Session Response", sgwc_ue ? sgwc_ue->imsi_bcd : "(NULL)sgwc_ue->imsi_bcd");
         if (!sgwc_sess_cycle(sess)) {
             ogs_warn("[%s] Session has already been removed",
-                    sgwc_ue->imsi_bcd);
+                    sgwc_ue ? sgwc_ue->imsi_bcd : "(NULL)sgwc_ue->imsi_bcd");
             break;
         }
         ogs_assert(OGS_OK ==
@@ -99,31 +99,38 @@ static void sess_timeout(ogs_gtp_xact_t *xact, void *data)
         break;
     default:
         ogs_error("GTP Timeout : IMSI[%s] Message-Type[%d]",
-                sgwc_ue->imsi_bcd, type);
+                sgwc_ue ? sgwc_ue->imsi_bcd : "(NULL)sgwc_ue->imsi_bcd", type);
     }
 }
 
 static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
 {
-    sgwc_bearer_t *bearer = data;
+    sgwc_bearer_t *bearer = sgwc_bearer_cycle(data);
     sgwc_sess_t *sess = NULL;
     sgwc_ue_t *sgwc_ue = NULL;
     uint8_t type = 0;
 
     ogs_assert(xact);
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    sgwc_ue = sess->sgwc_ue;
-    ogs_assert(sgwc_ue);
+    if (NULL == bearer) {
+        ogs_error("Just got a bearer timeout for a bearer that doesnt exist!");
+        return;
+    }
+
+    sess = sgwc_sess_cycle(bearer->sess);
+    if (NULL == sess) {
+        ogs_error("Just got a bearer timeout for a sess that doesnt exist!");
+        return;
+    }
+    sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
+    ogs_expect(sgwc_ue);
 
     type = xact->seq[0].type;
 
     switch (type) {
     case OGS_GTP2_CREATE_BEARER_REQUEST_TYPE:
-        ogs_error("[%s] No Create Bearer Response", sgwc_ue->imsi_bcd);
+        ogs_error("[%s] No Create Bearer Response", sgwc_ue ? sgwc_ue->imsi_bcd : "(NULL)sgwc_ue->imsi_bcd");
         if (!sgwc_bearer_cycle(bearer)) {
-            ogs_warn("[%s] Bearer has already been removed", sgwc_ue->imsi_bcd);
+            ogs_warn("[%s] Bearer has already been removed", sgwc_ue ? sgwc_ue->imsi_bcd : "(NULL)sgwc_ue->imsi_bcd");
             break;
         }
         ogs_assert(OGS_OK ==
@@ -133,7 +140,7 @@ static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
         break;
     default:
         ogs_error("GTP Timeout : IMSI[%s] Message-Type[%d]",
-                sgwc_ue->imsi_bcd, type);
+                sgwc_ue ? sgwc_ue->imsi_bcd : "(NULL)sgwc_ue->imsi_bcd", type);
     }
 }
 
@@ -257,7 +264,7 @@ void sgwc_sxa_handle_session_establishment_response(
     }
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
-        if (sess) sgwc_ue = sess->sgwc_ue;
+        if (sess) sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
         ogs_gtp_send_error_message(
                 s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                 OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
@@ -1362,7 +1369,7 @@ void sgwc_sxa_handle_session_deletion_response(
          * 1. MME sends Delete Session Request to SGW/SMF.
          * 2. SMF sends Delete Session Response to SGW/MME.
          */
-        if (sess) sgwc_ue = sess->sgwc_ue;
+        if (sess) sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
         teid = sgwc_ue ? sgwc_ue->mme_s11_teid : 0;
         break;
     case OGS_GTP2_DELETE_BEARER_RESPONSE_TYPE:
@@ -1398,8 +1405,8 @@ void sgwc_sxa_handle_session_deletion_response(
     }
 
     ogs_assert(sess);
-    sgwc_ue = sess->sgwc_ue;
-    ogs_assert(sgwc_ue);
+    sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
+    ogs_expect(sgwc_ue);
 
     if (ogs_pfcp_self()->usageLoggerState.enabled) {
         log_deletion_usage_reports_session_deletion_response(sess, pfcp_rsp);
@@ -1481,9 +1488,9 @@ void sgwc_sxa_handle_session_report_request(
     }
 
     ogs_assert(sess);
-    sgwc_ue = sess->sgwc_ue;
+    sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
     ogs_assert(sgwc_ue);
-
+    
     if (!sgwc_ue->gnode) {
         ogs_error("No SGWC-UE GTP Node");
         ogs_pfcp_send_error_message(pfcp_xact, sess ? sess->sgwu_sxa_seid : 0,
@@ -1587,7 +1594,10 @@ static void handle_usage_reports(sgwc_sess_t *sess, ogs_pfcp_session_report_requ
     sess = sgwc_sess_cycle(sess);
     ogs_assert(sess);
     sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
-    ogs_assert(sgwc_ue);
+    if (NULL == sgwc_ue) {
+        ogs_error("Failed to handle_usage_reports as sgwc_ue does not exist!");
+        return;
+    }
 
     for (i = 0; i < OGS_ARRAY_SIZE(pfcp_req->usage_report); i++) {
         ogs_pfcp_tlv_usage_report_session_report_request_t *usage_report =
@@ -1671,7 +1681,11 @@ static void log_deletion_usage_reports_session_deletion_response(sgwc_sess_t *se
     sess = sgwc_sess_cycle(sess);
     ogs_assert(sess);
     sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
-    ogs_assert(sgwc_ue);
+    if (NULL == sgwc_ue) {
+        ogs_error("Failed to log_deletion_usage_reports_session_deletion_response as sgwc_ue does not exist!");
+        return;
+    }
+
 
     for (i = 0; i < OGS_ARRAY_SIZE(pfcp_rsp->usage_report); i++) {
         ogs_pfcp_tlv_usage_report_session_deletion_response_t *usage_report =
@@ -1726,7 +1740,10 @@ static void log_deletion_usage_reports_session_modification_response(sgwc_sess_t
     sess = sgwc_sess_cycle(sess);
     ogs_assert(sess);
     sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
-    ogs_assert(sgwc_ue);
+    if (NULL == sgwc_ue) {
+        ogs_error("Failed to log_deletion_usage_reports_session_modification_response as sgwc_ue does not exist!");
+        return;
+    }
 
     for (i = 0; i < OGS_ARRAY_SIZE(pfcp_rsp->usage_report); i++) {
         ogs_pfcp_tlv_usage_report_session_modification_response_t *usage_report =
@@ -1780,9 +1797,16 @@ static UsageLoggerData build_usage_logger_data(sgwc_bearer_t *bearer, char const
     
     ogs_assert(bearer);
     sess = sgwc_sess_cycle(bearer->sess);
-    ogs_assert(sess);
+    if (NULL == sess) {
+        ogs_error("Failed to build_usage_logger_data as sess does not exist");
+        return usageLoggerData;
+    }
+    
     sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
-    ogs_assert(sgwc_ue);
+    if (NULL == sgwc_ue) {
+        ogs_error("Failed to build_usage_logger_data as sgwc_ue does not exist");
+        return usageLoggerData;
+    }
 
     usageLoggerData.charging_id = bearer->charging_id;
     strncpy(usageLoggerData.event, event, EVENT_STR_MAX_LEN);

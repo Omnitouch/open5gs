@@ -175,6 +175,8 @@ void sgwc_state_operational(ogs_fsm_t *s, sgwc_event_t *e)
             sgwc_ue = sgwc_ue_find_by_teid(gtp_xact->local_teid);
         }
 
+        sgwc_ue = sgwc_ue_cycle(sgwc_ue);
+
         switch(gtp_message.h.type) {
         case OGS_GTP2_ECHO_REQUEST_TYPE:
             sgwc_handle_echo_request(gtp_xact, &gtp_message.echo_request);
@@ -272,6 +274,8 @@ void sgwc_state_operational(ogs_fsm_t *s, sgwc_event_t *e)
              * locally stored in xact when sending the original request: */
             sess = sgwc_sess_find_by_teid(gtp_xact->local_teid);
         }
+
+        sess = sgwc_sess_cycle(sess);
 
         switch(gtp_message.h.type) {
         case OGS_GTP2_ECHO_REQUEST_TYPE:

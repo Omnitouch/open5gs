@@ -24,17 +24,28 @@
 
 static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
 {
-    sgwc_bearer_t *bearer = data;
+    sgwc_bearer_t *bearer = sgwc_bearer_cycle(data);
     sgwc_sess_t *sess = NULL;
     sgwc_ue_t *sgwc_ue = NULL;
     uint8_t type = 0;
 
     ogs_assert(xact);
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    sgwc_ue = sess->sgwc_ue;
-    ogs_assert(sgwc_ue);
+    if (NULL == bearer) {
+        ogs_error("Got bearer timeout for a bearer that doesn't exist!");
+        return;
+    }
+
+    sess = sgwc_sess_cycle(bearer->sess);
+    if (NULL == sess) {
+        ogs_error("Got bearer timeout for a sess that doesn't exist!");
+        return;
+    }
+
+    sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
+    if (NULL == sgwc_ue) {
+        ogs_error("Got bearer timeout for a sgwc_ue that doesn't exist!");
+        return;
+    }
 
     type = xact->seq[0].type;
 
