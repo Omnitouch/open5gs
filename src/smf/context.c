@@ -1157,14 +1157,14 @@ void smf_ue_remove_all(void)
 smf_ue_t *smf_ue_find_by_supi(char *supi)
 {
     ogs_assert(supi);
-    return (smf_ue_t *)ogs_hash_get(self.supi_hash, supi, strlen(supi));
+    return smf_ue_cycle((smf_ue_t *)ogs_hash_get(self.supi_hash, supi, strlen(supi)));
 }
 
 smf_ue_t *smf_ue_find_by_imsi(uint8_t *imsi, int imsi_len)
 {
     ogs_assert(imsi);
     ogs_assert(imsi_len);
-    return (smf_ue_t *)ogs_hash_get(self.imsi_hash, imsi, imsi_len);
+    return smf_ue_cycle((smf_ue_t *)ogs_hash_get(self.imsi_hash, imsi, imsi_len));
 }
 
 static bool compare_ue_info(ogs_pfcp_node_t *node, smf_sess_t *sess)
@@ -1895,12 +1895,12 @@ void smf_sess_remove_all(smf_ue_t *smf_ue)
 
 smf_sess_t *smf_sess_find_by_teid(uint32_t teid)
 {
-    return smf_sess_find_by_seid(teid);
+    return smf_sess_cycle(smf_sess_find_by_seid(teid));
 }
 
 smf_sess_t *smf_sess_find_by_seid(uint64_t seid)
 {
-    return ogs_hash_get(self.smf_n4_seid_hash, &seid, sizeof(seid));
+    return smf_sess_cycle(ogs_hash_get(self.smf_n4_seid_hash, &seid, sizeof(seid)));
 }
 
 smf_sess_t *smf_sess_find_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type)
@@ -1911,6 +1911,11 @@ smf_sess_t *smf_sess_find_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type)
     ogs_assert(apn);
 
     ogs_list_reverse_for_each(&smf_ue->sess_list, sess) {
+        if (NULL == smf_sess_cycle(sess)) {
+            ogs_error("smf_ue has an invalid sess in its sess_list");
+            continue;
+        }
+
         if (ogs_strcasecmp(sess->session.name, apn) == 0 &&
             sess->gtp_rat_type == rat_type)
             return sess;
@@ -1927,6 +1932,11 @@ smf_sess_t *smf_sess_find_by_psi(smf_ue_t *smf_ue, uint8_t psi)
     ogs_assert(psi != OGS_NAS_PDU_SESSION_IDENTITY_UNASSIGNED);
 
     ogs_list_reverse_for_each(&smf_ue->sess_list, sess) {
+        if (NULL == smf_sess_cycle(sess)) {
+            ogs_error("smf_ue has an invalid sess in its sess_list");
+            continue;
+        }
+
         if (sess->psi == psi)
             return sess;
     }
@@ -1936,33 +1946,34 @@ smf_sess_t *smf_sess_find_by_psi(smf_ue_t *smf_ue, uint8_t psi)
 
 smf_sess_t *smf_sess_find(uint32_t index)
 {
-    return ogs_pool_find(&smf_sess_pool, index);
+    return smf_sess_cycle(ogs_pool_find(&smf_sess_pool, index));
 }
 
 smf_sess_t *smf_sess_find_by_charging_id(uint32_t charging_id)
 {
     ogs_assert(charging_id);
-    return smf_sess_find(charging_id);
+    return smf_sess_cycle(smf_sess_find(charging_id));
 }
 
 smf_sess_t *smf_sess_find_by_sm_context_ref(char *sm_context_ref)
 {
     ogs_assert(sm_context_ref);
-    return smf_sess_find(atoll(sm_context_ref));
+    return smf_sess_cycle(smf_sess_find(atoll(sm_context_ref)));
 }
 
 smf_sess_t *smf_sess_find_by_ipv4(uint32_t addr)
 {
     ogs_assert(self.ipv4_hash);
-    return (smf_sess_t *)ogs_hash_get(self.ipv4_hash, &addr, OGS_IPV4_LEN);
+    return smf_sess_cycle((smf_sess_t *)ogs_hash_get(self.ipv4_hash, &addr, OGS_IPV4_LEN));
 }
 
 smf_sess_t *smf_sess_find_by_ipv6(uint32_t *addr6)
 {
     ogs_assert(self.ipv6_hash);
     ogs_assert(addr6);
-    return (smf_sess_t *)ogs_hash_get(
-            self.ipv6_hash, addr6, OGS_IPV6_DEFAULT_PREFIX_LEN >> 3);
+    return smf_sess_cycle(
+        (smf_sess_t *)ogs_hash_get(
+            self.ipv6_hash, addr6, OGS_IPV6_DEFAULT_PREFIX_LEN >> 3));
 }
 
 smf_sess_t *smf_sess_find_by_paging_n1n2message_location(
@@ -1970,8 +1981,9 @@ smf_sess_t *smf_sess_find_by_paging_n1n2message_location(
 {
     ogs_assert(self.n1n2message_hash);
     ogs_assert(n1n2message_location);
-    return (smf_sess_t *)ogs_hash_get(self.n1n2message_hash,
-            n1n2message_location, strlen(n1n2message_location));
+    return smf_sess_cycle(
+        (smf_sess_t *)ogs_hash_get(self.n1n2message_hash,
+            n1n2message_location, strlen(n1n2message_location)));
 }
 
 ogs_pcc_rule_t *smf_pcc_rule_find_by_id(smf_sess_t *sess, char *pcc_rule_id)

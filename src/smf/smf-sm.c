@@ -126,6 +126,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             sess = smf_sess_find_by_teid(gtp_xact->local_teid);
         }
 
+        if (NULL == sess) {
+            ogs_error("Just got an event with a NULL sess");
+        }
+
         switch(gtp2_message.h.type) {
         case OGS_GTP2_ECHO_REQUEST_TYPE:
             smf_s5c_handle_echo_request(gtp_xact, &gtp2_message.echo_request);
