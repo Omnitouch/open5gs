@@ -1489,7 +1489,14 @@ void sgwc_sxa_handle_session_report_request(
 
     ogs_assert(sess);
     sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
-    ogs_assert(sgwc_ue);
+    if (!sgwc_ue) {
+        ogs_fatal("sess was valid but the sgwc_ue was not?");
+        cause_value = OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND;
+        ogs_pfcp_send_error_message(pfcp_xact, 0,
+                OGS_PFCP_SESSION_REPORT_RESPONSE_TYPE,
+                cause_value, 0);
+        return;
+    }
     
     if (!sgwc_ue->gnode) {
         ogs_error("No SGWC-UE GTP Node");

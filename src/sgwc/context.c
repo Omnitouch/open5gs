@@ -501,12 +501,12 @@ void sgwc_sess_remove_all_sync(sgwc_ue_t *sgwc_ue)
 
 sgwc_sess_t* sgwc_sess_find_by_teid(uint32_t teid)
 {
-    return sgwc_sess_find_by_seid(teid);
+    return sgwc_sess_cycle(sgwc_sess_find_by_seid(teid));
 }
 
 sgwc_sess_t *sgwc_sess_find_by_seid(uint64_t seid)
 {
-    return ogs_hash_get(self.sgwc_sxa_seid_hash, &seid, sizeof(seid));
+    return sgwc_sess_cycle(ogs_hash_get(self.sgwc_sxa_seid_hash, &seid, sizeof(seid)));
 }
 
 sgwc_sess_t* sgwc_sess_find_by_apn(sgwc_ue_t *sgwc_ue, char *apn)
@@ -517,6 +517,11 @@ sgwc_sess_t* sgwc_sess_find_by_apn(sgwc_ue_t *sgwc_ue, char *apn)
     ogs_assert(apn);
 
     ogs_list_for_each(&sgwc_ue->sess_list, sess) {
+        if (NULL == sgwc_sess_cycle(sess)) {
+            ogs_error("sgwc_ue has a NULL sess in its sess_list");
+            continue;
+        }
+
         if (!ogs_strcasecmp(sess->session.name, apn))
             return sess;
     }
@@ -531,7 +536,7 @@ sgwc_sess_t *sgwc_sess_find_by_ebi(sgwc_ue_t *sgwc_ue, uint8_t ebi)
 
     bearer = sgwc_bearer_find_by_ue_ebi(sgwc_ue, ebi);
     if (bearer)
-        return bearer->sess;
+        return sgwc_sess_cycle(bearer->sess);
 
     return NULL;
 }
@@ -685,8 +690,14 @@ sgwc_bearer_t *sgwc_bearer_find_by_sess_ebi(sgwc_sess_t *sess, uint8_t ebi)
     sgwc_bearer_t *bearer = NULL;
 
     ogs_assert(sess);
-    ogs_list_for_each(&sess->bearer_list, bearer)
+    ogs_list_for_each(&sess->bearer_list, bearer) {
+        if (NULL == sgwc_bearer_cycle(bearer)) {
+            ogs_error("sess has a NULL bearer in its bearer_list");
+            continue;
+        }
+
         if (ebi == bearer->ebi) return bearer;
+    }
 
     return NULL;
 }
@@ -698,7 +709,17 @@ sgwc_bearer_t *sgwc_bearer_find_by_ue_ebi(sgwc_ue_t *sgwc_ue, uint8_t ebi)
 
     ogs_assert(sgwc_ue);
     ogs_list_for_each(&sgwc_ue->sess_list, sess) {
+        if (NULL == sgwc_sess_cycle(sess)) {
+            ogs_error("sess has a NULL sess in its sess_list");
+            continue;
+        }
+
         ogs_list_for_each(&sess->bearer_list, bearer) {
+            if (NULL == sgwc_bearer_cycle(bearer)) {
+                ogs_error("sess has a NULL bearer in its bearer_list");
+                continue;
+            }
+
             if (ebi == bearer->ebi) return bearer;
         }
     }
@@ -713,6 +734,11 @@ sgwc_bearer_t *sgwc_bearer_find_by_sess_urr_id(sgwc_sess_t *sess, uint32_t urr_i
 
     ogs_assert(sess);
     ogs_list_for_each(&sess->bearer_list, bearer) {
+        if (NULL == sgwc_bearer_cycle(bearer)) {
+            ogs_error("sess has a NULL bearer in its bearer_list");
+            continue;
+        }
+
         ogs_list_for_each(&bearer->tunnel_list, tunnel) {
             ogs_assert(tunnel->pdr);
             for (int i = 0; i < tunnel->pdr->num_of_urr; ++i) {
@@ -731,7 +757,7 @@ sgwc_bearer_t *sgwc_bearer_find_by_sess_urr_id(sgwc_sess_t *sess, uint32_t urr_i
 sgwc_bearer_t *sgwc_default_bearer_in_sess(sgwc_sess_t *sess)
 {
     ogs_assert(sess);
-    return ogs_list_first(&sess->bearer_list);
+    return sgwc_bearer_cycle(ogs_list_first(&sess->bearer_list));
 }
 
 sgwc_bearer_t *sgwc_bearer_cycle(sgwc_bearer_t *bearer)
