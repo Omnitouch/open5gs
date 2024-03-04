@@ -381,6 +381,7 @@ static int mme_s6a_subscription_data_from_avp(struct avp *avp,
                         ogs_assert(ret == 0);
 
                         if (addr.ogs_sa_family == AF_INET) {
+                            session->served_party_ip_address = true;
                             if (session->session_type ==
                                     OGS_PDU_SESSION_TYPE_IPV4) {
                                 session->paa.addr =
@@ -395,6 +396,7 @@ static int mme_s6a_subscription_data_from_avp(struct avp *avp,
                                     "IPv4. Ignoring...");
                             }
                         } else if (addr.ogs_sa_family == AF_INET6) {
+                            session->served_party_ip_address = true;
                             if (session->session_type ==
                                     OGS_PDU_SESSION_TYPE_IPV6) {
                                 memcpy(session->paa.addr6,

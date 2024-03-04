@@ -395,8 +395,8 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
         ogs_assert(sgw_ue);
     }
 
-    if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi)) {
-        /* We don't want to use the same UE IP if we're roaming */
+    if (imsi_is_roaming(&mme_ue->nas_mobile_identity_imsi) && (false == session->served_party_ip_address)) {
+        /* We don't want to use the same UE IP if we're roaming and IP isn't static */
         memset(&session->paa, 0, sizeof(session->paa));
     }
 
