@@ -109,9 +109,9 @@ void mme_s11_handle_create_session_response(
      ********************/
     ogs_assert(xact);
     create_action = xact->create_action;
-    sess = xact->data;
-    ogs_assert(sess);
-    mme_ue = mme_ue_cycle(sess->mme_ue);
+    sess = mme_sess_cycle(xact->data);
+    ogs_expect(sess);
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
 
     rv = ogs_gtp_xact_commit(xact);
     if (rv != OGS_OK) {
@@ -585,9 +585,9 @@ void mme_s11_handle_delete_session_response(
     ogs_assert(xact);
     action = xact->delete_action;
     ogs_assert(action);
-    sess = xact->data;
-    ogs_assert(sess);
-    mme_ue = mme_ue_cycle(sess->mme_ue);
+    sess = mme_sess_cycle(xact->data);
+    ogs_expect(sess);
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
 
     rv = ogs_gtp_xact_commit(xact);
     if (rv != OGS_OK) {
@@ -1871,11 +1871,16 @@ void mme_s11_handle_bearer_resource_failure_indication(
      * Check Transaction
      ********************/
     ogs_assert(xact);
-    bearer = xact->data;
+    
+    bearer = mme_bearer_cycle(xact->data);
+    ogs_expect(bearer);
+    
     ogs_assert(ind);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    mme_ue = mme_ue_cycle(sess->mme_ue);
+    
+    sess = bearer ? mme_sess_cycle(bearer->sess) : NULL;
+    ogs_expect(sess);
+
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
 
     rv = ogs_gtp_xact_commit(xact);
     if (rv != OGS_OK) {
