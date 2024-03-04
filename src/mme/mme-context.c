@@ -3483,27 +3483,29 @@ mme_ue_t *mme_ue_find_by_imsi_bcd(char *imsi_bcd)
 
     ogs_bcd_to_buffer(imsi_bcd, imsi, &imsi_len);
 
-    return mme_ue_find_by_imsi(imsi, imsi_len);
+    return mme_ue_cycle(mme_ue_find_by_imsi(imsi, imsi_len));
 }
 
 mme_ue_t *mme_ue_find_by_imsi(uint8_t *imsi, int imsi_len)
 {
     ogs_assert(imsi && imsi_len);
 
-    return (mme_ue_t *)ogs_hash_get(self.imsi_ue_hash, imsi, imsi_len);
+    return mme_ue_cycle(
+        (mme_ue_t *)ogs_hash_get(self.imsi_ue_hash, imsi, imsi_len));
 }
 
 mme_ue_t *mme_ue_find_by_guti(ogs_nas_eps_guti_t *guti)
 {
     ogs_assert(guti);
 
-    return (mme_ue_t *)ogs_hash_get(
-            self.guti_ue_hash, guti, sizeof(ogs_nas_eps_guti_t));
+    return mme_ue_cycle(
+        (mme_ue_t *)ogs_hash_get(
+            self.guti_ue_hash, guti, sizeof(ogs_nas_eps_guti_t)));
 }
 
 mme_ue_t *mme_ue_find_by_teid(uint32_t teid)
 {
-    return ogs_hash_get(self.mme_s11_teid_hash, &teid, sizeof(teid));
+    return mme_ue_cycle(ogs_hash_get(self.mme_s11_teid_hash, &teid, sizeof(teid)));
 }
 
 mme_ue_t *mme_ue_find_by_message(ogs_nas_eps_message_t *message)
@@ -3670,7 +3672,7 @@ mme_ue_t *mme_ue_find_by_message(ogs_nas_eps_message_t *message)
         break;
     }
 
-    return mme_ue;
+    return mme_ue_cycle(mme_ue);
 }
 
 int mme_ue_set_imsi(mme_ue_t *mme_ue, char *imsi_bcd)
@@ -4137,7 +4139,7 @@ mme_sess_t *mme_sess_find_by_pti(mme_ue_t *mme_ue, uint8_t pti)
     mme_sess_t *sess = NULL;
 
     sess = mme_sess_first(mme_ue);
-    while(sess) {
+    while(mme_sess_cycle(sess)) {
         if (pti == sess->pti)
             return sess;
 
@@ -4153,7 +4155,7 @@ mme_sess_t *mme_sess_find_by_ebi(mme_ue_t *mme_ue, uint8_t ebi)
 
     bearer = mme_bearer_find_by_ue_ebi(mme_ue, ebi);
     if (bearer)
-        return bearer->sess;
+        return mme_sess_cycle(bearer->sess);
 
     return NULL;
 }
@@ -4163,7 +4165,7 @@ mme_sess_t *mme_sess_find_by_apn(mme_ue_t *mme_ue, char *apn)
     mme_sess_t *sess = NULL;
 
     sess = mme_sess_first(mme_ue);
-    while (sess) {
+    while (mme_sess_cycle(sess)) {
         ogs_assert(sess->session->name);
         if (sess->session && ogs_strcasecmp(sess->session->name, apn) == 0)
             return sess;
@@ -4291,7 +4293,7 @@ mme_bearer_t *mme_bearer_find_by_sess_ebi(mme_sess_t *sess, uint8_t ebi)
     ogs_assert(sess);
 
     bearer = mme_bearer_first(sess);
-    while (bearer) {
+    while (mme_bearer_cycle(bearer)) {
         if (ebi == bearer->ebi)
             return bearer;
 
@@ -4309,7 +4311,7 @@ mme_bearer_t *mme_bearer_find_by_ue_ebi(mme_ue_t *mme_ue, uint8_t ebi)
     ogs_assert(mme_ue);
 
     sess = mme_sess_first(mme_ue);
-    while (sess) {
+    while (mme_sess_cycle(sess)) {
         bearer = mme_bearer_find_by_sess_ebi(sess, ebi);
         if (bearer) {
             return bearer;
