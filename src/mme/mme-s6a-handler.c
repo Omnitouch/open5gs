@@ -385,6 +385,7 @@ static uint8_t mme_ue_session_from_slice_data(mme_ue_t *mme_ue,
                 ogs_free(mme_ue->session[i].name);
             break;
         }
+        mme_ue->session[i].served_party_ip_address = slice_data->session[i].served_party_ip_address;
         memcpy(&mme_ue->session[i].paa, &slice_data->session[i].paa,
                 sizeof(mme_ue->session[i].paa));
 
