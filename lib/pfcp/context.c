@@ -1569,7 +1569,11 @@ void ogs_pfcp_far_remove(ogs_pfcp_far_t *far)
     int i;
     ogs_pfcp_sess_t *sess = NULL;
 
-    ogs_assert(far);
+    if (NULL == pfcp_far_cycle(far)) {
+        ogs_error("Trying to remove a FAR that has already been removed!");
+        return;
+    }
+
     sess = far->sess;
     ogs_assert(sess);
 
@@ -1677,7 +1681,11 @@ void ogs_pfcp_urr_remove(ogs_pfcp_urr_t *urr)
 {
     ogs_pfcp_sess_t *sess = NULL;
 
-    ogs_assert(urr);
+    if (NULL == pfcp_urr_cycle(urr)) {
+        ogs_error("Trying to remove a URR that has already been removed!");
+        return;
+    }
+
     sess = urr->sess;
     ogs_assert(sess);
 
@@ -1771,7 +1779,11 @@ void ogs_pfcp_qer_remove(ogs_pfcp_qer_t *qer)
 {
     ogs_pfcp_sess_t *sess = NULL;
 
-    ogs_assert(qer);
+    if (NULL == pfcp_qer_cycle(qer)) {
+        ogs_error("Trying to remove a QER that has already been removed!");
+        return;
+    }
+
     sess = qer->sess;
     ogs_assert(sess);
 
@@ -1886,8 +1898,12 @@ void ogs_pfcp_rule_remove(ogs_pfcp_rule_t *rule)
 {
     ogs_pfcp_pdr_t *pdr = NULL;
 
-    ogs_assert(rule);
-    pdr = rule->pdr;
+    if (NULL == pfcp_rule_cycle(rule)) {
+        ogs_error("Trying to remove a rule that has already been removed!");
+        return;
+    }
+
+    pdr = pfcp_pdr_cycle(rule->pdr);
     ogs_assert(pdr);
 
     ogs_list_remove(&pdr->rule_list, rule);
