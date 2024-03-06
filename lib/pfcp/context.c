@@ -41,6 +41,9 @@ static OGS_POOL(ogs_pfcp_rule_pool, ogs_pfcp_rule_t);
 static OGS_POOL(ogs_pfcp_dev_pool, ogs_pfcp_dev_t);
 static OGS_POOL(ogs_pfcp_subnet_pool, ogs_pfcp_subnet_t);
 
+static ogs_pfcp_sess_t *pfcp_sess_cycle(ogs_pfcp_sess_t *sess);
+static ogs_pfcp_pdr_t *pfcp_pdr_cycle(ogs_pfcp_pdr_t *pdr);
+
 void ogs_pfcp_context_init(void)
 {
     int i;
@@ -942,6 +945,13 @@ int ogs_pfcp_setup_pdr_gtpu_node(ogs_pfcp_pdr_t *pdr)
 
 void ogs_pfcp_sess_clear(ogs_pfcp_sess_t *sess)
 {
+    sess = pfcp_sess_cycle(sess);
+
+    if (NULL == sess) {
+        ogs_error("Trying to delete a PFCP session that doesn't exist!");
+        return;
+    }
+
     ogs_pfcp_pdr_remove_all(sess);
     ogs_pfcp_far_remove_all(sess);
     ogs_pfcp_urr_remove_all(sess);
@@ -1216,8 +1226,11 @@ void ogs_pfcp_pdr_remove(ogs_pfcp_pdr_t *pdr)
 {
     int i;
 
-    ogs_assert(pdr);
-    ogs_assert(pdr->sess);
+    if (NULL == pfcp_pdr_cycle(pdr)) {
+        ogs_error("Trying to remove a PDR that has already been removed!");
+        return;
+    }
+    ogs_assert(pfcp_sess_cycle(pdr->sess));
 
     ogs_list_remove(&pdr->sess->pdr_list, pdr);
 
@@ -1270,6 +1283,7 @@ void ogs_pfcp_pdr_remove(ogs_pfcp_pdr_t *pdr)
     }
 
     ogs_pool_free(&ogs_pfcp_pdr_teid_pool, pdr->teid_node);
+    memset(pdr, 0, sizeof(*pdr));
     ogs_pool_free(&ogs_pfcp_pdr_pool, pdr);
 }
 
@@ -1278,8 +1292,14 @@ void ogs_pfcp_pdr_remove_all(ogs_pfcp_sess_t *sess)
     ogs_pfcp_pdr_t *pdr = NULL, *next_pdr = NULL;
 
     ogs_assert(sess);
-    ogs_list_for_each_safe(&sess->pdr_list, next_pdr, pdr)
+    ogs_list_for_each_safe(&sess->pdr_list, next_pdr, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_error("Tring to remove a PDR that doesn't exist anymore!");
+            continue;
+        }
+
         ogs_pfcp_pdr_remove(pdr);
+    }
 }
 
 ogs_pfcp_far_t *ogs_pfcp_far_add(ogs_pfcp_sess_t *sess)
@@ -2172,4 +2192,14 @@ void ogs_pfcp_pool_final(ogs_pfcp_sess_t *sess)
     ogs_pool_final(&sess->urr_id_pool);
     ogs_pool_final(&sess->qer_id_pool);
     ogs_pool_final(&sess->bar_id_pool);
+}
+
+static ogs_pfcp_sess_t *pfcp_sess_cycle(ogs_pfcp_sess_t *sess)
+{
+    return ogs_pool_cycle(&ogs_pfcp_sess_pool, sess);
+}
+
+static ogs_pfcp_pdr_t *pfcp_pdr_cycle(ogs_pfcp_pdr_t *pdr)
+{
+    return ogs_pool_cycle(&ogs_pfcp_pdr_pool, pdr);
 }
