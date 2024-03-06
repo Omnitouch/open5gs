@@ -1053,12 +1053,16 @@ void sgwc_s11_handle_delete_bearer_response(
     sgwc_bearer_t *bearer = NULL;
     ogs_gtp2_delete_bearer_response_t *rsp = NULL;
 
-    ogs_assert(sgwc_ue);
+    ogs_debug("Delete Bearer Response");
+
+    if (!sgwc_ue) {
+        ogs_error("No Context");
+        return;
+    }
+
     ogs_assert(message);
     rsp = &message->delete_bearer_response;
     ogs_assert(rsp);
-
-    ogs_debug("Delete Bearer Response");
 
     /********************
      * Check Transaction
@@ -1068,13 +1072,20 @@ void sgwc_s11_handle_delete_bearer_response(
 
     if ((s11_xact->xid & OGS_GTP_CMD_XACT_ID))
         /* MME received Bearer Resource Modification Request */
-        bearer = s5c_xact->data;
+        bearer = sgwc_bearer_cycle(s5c_xact->data);
     else
-        bearer = s11_xact->data;
+        bearer = sgwc_bearer_cycle(s11_xact->data);
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    if (NULL == bearer) {
+        ogs_error("Bearer doesn't exist anymore!");
+        return;
+    }
+
+    sess = sgwc_sess_cycle(bearer->sess);
+    if (NULL == sess) {
+        ogs_error("sess doesn't exist anymore!");
+        return;
+    }
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
