@@ -521,7 +521,7 @@ void sgwc_s11_handle_modify_bearer_request(
             break;
         }
 
-        sess = bearer->sess;
+        sess = sgwc_sess_cycle(bearer->sess);
         ogs_assert(sess);
 
         ogs_list_for_each_entry(&pfcp_xact_list, pfcp_xact, tmpnode) {
@@ -779,9 +779,18 @@ void sgwc_s11_handle_create_bearer_response(
     else
         bearer = s11_xact->data;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    bearer = sgwc_bearer_cycle(bearer);
+    if (NULL == bearer) {
+        ogs_error("bearer doesn't exist!");
+    }
+
+    sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
+    if (NULL == sess) {
+        ogs_error("sess doesn't exist!");
+        ogs_gtp_send_error_message(s5c_xact, sess ? sess->pgw_s5c_teid : 0,
+            OGS_GTP2_CREATE_BEARER_RESPONSE_TYPE, OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND);
+        return;
+    }
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
@@ -950,9 +959,18 @@ void sgwc_s11_handle_update_bearer_response(
     else
         bearer = s11_xact->data;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    bearer = sgwc_bearer_cycle(bearer);
+    if (NULL == bearer) {
+        ogs_error("bearer doesn't exist!");
+    }
+
+    sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
+    if (NULL == sess) {
+        ogs_error("sess doesn't exist!");
+        ogs_gtp_send_error_message(s5c_xact, sess ? sess->pgw_s5c_teid : 0,
+            OGS_GTP2_UPDATE_BEARER_RESPONSE_TYPE, OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND);
+        return;
+    }
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
@@ -1072,18 +1090,20 @@ void sgwc_s11_handle_delete_bearer_response(
 
     if ((s11_xact->xid & OGS_GTP_CMD_XACT_ID))
         /* MME received Bearer Resource Modification Request */
-        bearer = sgwc_bearer_cycle(s5c_xact->data);
+        bearer = s5c_xact->data;
     else
-        bearer = sgwc_bearer_cycle(s11_xact->data);
+        bearer = s11_xact->data;
 
+    bearer = sgwc_bearer_cycle(bearer);
     if (NULL == bearer) {
-        ogs_error("Bearer doesn't exist anymore!");
-        return;
+        ogs_error("bearer doesn't exist!");
     }
 
-    sess = sgwc_sess_cycle(bearer->sess);
+    sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
     if (NULL == sess) {
-        ogs_error("sess doesn't exist anymore!");
+        ogs_error("sess doesn't exist!");
+        ogs_gtp_send_error_message(s5c_xact, sess ? sess->pgw_s5c_teid : 0,
+            OGS_GTP2_DELETE_BEARER_RESPONSE_TYPE, OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND);
         return;
     }
 
@@ -1219,6 +1239,10 @@ void sgwc_s11_handle_release_access_bearers_request(
         sgwc_ue->mme_s11_teid, sgwc_ue->sgw_s11_teid);
 
     ogs_list_for_each(&sgwc_ue->sess_list, sess) {
+        if (NULL == sgwc_sess_cycle(sess)) {
+            ogs_error("sess_list contained a sess that doesn't exist anymore!");
+            continue;
+        }
 
         ogs_expect(OGS_OK ==
             sgwc_pfcp_send_session_modification_request(
@@ -1247,10 +1271,10 @@ void sgwc_s11_handle_downlink_data_notification_ack(
      * Check Transaction
      ********************/
     ogs_assert(s11_xact);
-    bearer = s11_xact->data;
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    bearer = sgwc_bearer_cycle(s11_xact->data);
+    ogs_expect(bearer);
+    sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
+    ogs_expect(sess);
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
@@ -1412,6 +1436,10 @@ void sgwc_s11_handle_create_indirect_data_forwarding_tunnel_request(
     }
 
     ogs_list_for_each(&sgwc_ue->sess_list, sess) {
+        if (NULL == sgwc_sess_cycle(sess)) {
+            ogs_error("sess_list contained a sess that doesn't exist anymore!");
+            continue;
+        }
 
         ogs_assert(OGS_OK ==
             sgwc_pfcp_send_session_modification_request(
@@ -1458,6 +1486,10 @@ void sgwc_s11_handle_delete_indirect_data_forwarding_tunnel_request(
         sgwc_ue->mme_s11_teid, sgwc_ue->sgw_s11_teid);
 
     ogs_list_for_each(&sgwc_ue->sess_list, sess) {
+        if (NULL == sgwc_sess_cycle(sess)) {
+            ogs_error("sess_list contained a sess that doesn't exist anymore!");
+            continue;
+        }
 
         ogs_assert(OGS_OK ==
             sgwc_pfcp_send_session_modification_request(
@@ -1508,7 +1540,8 @@ void sgwc_s11_handle_bearer_resource_command(
                 ebi = cmd->eps_bearer_id.u8;
 
             bearer = sgwc_bearer_find_by_ue_ebi(sgwc_ue, ebi);
-            if (!bearer) {
+            sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
+            if (!bearer || !sess) {
                 ogs_error("No Context for Linked EPS Bearer ID[%d:%d]",
                         cmd->linked_eps_bearer_id.u8, ebi);
                 cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
@@ -1548,7 +1581,6 @@ void sgwc_s11_handle_bearer_resource_command(
      * Check ALL Context
      ********************/
     ogs_assert(bearer);
-    sess = bearer->sess;
     ogs_assert(sess);
     ogs_assert(sess->gnode);
     ogs_assert(sgwc_ue);

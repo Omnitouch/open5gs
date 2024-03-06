@@ -363,9 +363,16 @@ int sgwc_pfcp_send_bearer_modification_request(
     ogs_pfcp_xact_t *xact = NULL;
     sgwc_sess_t *sess = NULL;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    bearer = sgwc_bearer_cycle(bearer);
+    if (NULL == bearer) {
+        ogs_error("bearer doesn't exist!");
+    }
+
+    sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
+    if (NULL == sess) {
+        ogs_error("sess doesn't exist!");
+        return OGS_ERROR;
+    }
 
     xact = ogs_pfcp_xact_local_create(sess->pfcp_node, bearer_timeout, bearer);
     if (!xact) {
