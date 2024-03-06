@@ -818,7 +818,7 @@ void sgwc_s11_handle_create_bearer_response(
     }
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
-        ogs_assert(OGS_OK ==
+        ogs_expect(OGS_OK ==
             sgwc_pfcp_send_bearer_modification_request(
                 bearer, NULL, NULL,
                 OGS_PFCP_MODIFY_UL_ONLY|OGS_PFCP_MODIFY_REMOVE));
