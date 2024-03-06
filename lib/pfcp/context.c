@@ -41,8 +41,11 @@ static OGS_POOL(ogs_pfcp_rule_pool, ogs_pfcp_rule_t);
 static OGS_POOL(ogs_pfcp_dev_pool, ogs_pfcp_dev_t);
 static OGS_POOL(ogs_pfcp_subnet_pool, ogs_pfcp_subnet_t);
 
-static ogs_pfcp_sess_t *pfcp_sess_cycle(ogs_pfcp_sess_t *sess);
 static ogs_pfcp_pdr_t *pfcp_pdr_cycle(ogs_pfcp_pdr_t *pdr);
+static ogs_pfcp_far_t *pfcp_far_cycle(ogs_pfcp_far_t *far);
+static ogs_pfcp_urr_t *pfcp_urr_cycle(ogs_pfcp_urr_t *urr);
+static ogs_pfcp_qer_t *pfcp_qer_cycle(ogs_pfcp_qer_t *qer);
+static ogs_pfcp_rule_t *pfcp_rule_cycle(ogs_pfcp_rule_t *rule);
 
 void ogs_pfcp_context_init(void)
 {
@@ -781,6 +784,7 @@ void ogs_pfcp_node_free(ogs_pfcp_node_t *node)
     ogs_pfcp_xact_delete_all(node);
 
     ogs_freeaddrinfo(node->sa_list);
+    memset(node, 0, sizeof(*node));
     ogs_pool_free(&ogs_pfcp_node_pool, node);
 }
 
@@ -945,13 +949,6 @@ int ogs_pfcp_setup_pdr_gtpu_node(ogs_pfcp_pdr_t *pdr)
 
 void ogs_pfcp_sess_clear(ogs_pfcp_sess_t *sess)
 {
-    sess = pfcp_sess_cycle(sess);
-
-    if (NULL == sess) {
-        ogs_error("Trying to delete a PFCP session that doesn't exist!");
-        return;
-    }
-
     ogs_pfcp_pdr_remove_all(sess);
     ogs_pfcp_far_remove_all(sess);
     ogs_pfcp_urr_remove_all(sess);
@@ -1015,8 +1012,14 @@ ogs_pfcp_pdr_t *ogs_pfcp_pdr_find(
 
     ogs_assert(sess);
 
-    ogs_list_for_each(&sess->pdr_list, pdr)
+    ogs_list_for_each(&sess->pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_error("Found a PDR that doesn't exist anymore!");
+            continue;
+        }
+        
         if (pdr->id == id) return pdr;
+    }
 
     return NULL;
 }
@@ -1170,9 +1173,15 @@ ogs_pfcp_pdr_t *ogs_pfcp_pdr_find_by_choose_id(
 
     ogs_assert(sess);
 
-    ogs_list_for_each(&sess->pdr_list, pdr)
+    ogs_list_for_each(&sess->pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_error("Found a PDR that doesn't exist anymore!");
+            continue;
+        }
+
         if (pdr->chid == true && pdr->choose_id == choose_id)
             return pdr;
+    }
 
     return NULL;
 }
@@ -1230,7 +1239,7 @@ void ogs_pfcp_pdr_remove(ogs_pfcp_pdr_t *pdr)
         ogs_error("Trying to remove a PDR that has already been removed!");
         return;
     }
-    ogs_assert(pfcp_sess_cycle(pdr->sess));
+    ogs_assert(pdr->sess);
 
     ogs_list_remove(&pdr->sess->pdr_list, pdr);
 
@@ -1255,8 +1264,10 @@ void ogs_pfcp_pdr_remove(ogs_pfcp_pdr_t *pdr)
     if (pdr->dnn)
         ogs_free(pdr->dnn);
 
-    if (pdr->id_node)
+    if (pdr->id_node) {
+        memset(pdr->id_node, 0, sizeof(*pdr->id_node));
         ogs_pool_free(&pdr->sess->pdr_id_pool, pdr->id_node);
+    }
 
     if (pdr->ipv4_framed_routes) {
         for (i = 0; i < OGS_MAX_NUM_OF_FRAMED_ROUTES_IN_PDI; i++) {
@@ -1281,7 +1292,7 @@ void ogs_pfcp_pdr_remove(ogs_pfcp_pdr_t *pdr)
             ogs_pfcp_urr_remove(pdr->urr[i]);
         }
     }
-
+    memset(pdr->teid_node, 0, sizeof(*pdr->teid_node));
     ogs_pool_free(&ogs_pfcp_pdr_teid_pool, pdr->teid_node);
     memset(pdr, 0, sizeof(*pdr));
     ogs_pool_free(&ogs_pfcp_pdr_pool, pdr);
@@ -1340,8 +1351,14 @@ ogs_pfcp_far_t *ogs_pfcp_far_find(
 
     ogs_assert(sess);
 
-    ogs_list_for_each(&sess->far_list, far)
+    ogs_list_for_each(&sess->far_list, far) {
+        if (NULL == pfcp_far_cycle(far)) {
+            ogs_error("Found a FAR that doesn't exist anymore!");
+            continue;
+        }
+
         if (far->id == id) return far;
+    }
 
     return NULL;
 }
@@ -1508,6 +1525,11 @@ ogs_pfcp_far_t *ogs_pfcp_far_find_by_pfcp_session_report(
     }
 
     ogs_list_for_each(&sess->far_list, far) {
+        if (NULL == pfcp_far_cycle(far)) {
+            ogs_error("Found a FAR that doesn't exist anymore!");
+            continue;
+        }
+
         if (teid == far->outer_header_creation.teid)
             return far;
     }
@@ -1537,8 +1559,9 @@ void ogs_pfcp_far_teid_hash_set(ogs_pfcp_far_t *far)
 
 ogs_pfcp_far_t *ogs_pfcp_far_find_by_teid(uint32_t teid)
 {
-    return (ogs_pfcp_far_t *)ogs_hash_get(
-            self.far_teid_hash, &teid, sizeof(teid));
+    return pfcp_far_cycle(
+        (ogs_pfcp_far_t *)ogs_hash_get(
+            self.far_teid_hash, &teid, sizeof(teid)));
 }
 
 void ogs_pfcp_far_remove(ogs_pfcp_far_t *far)
@@ -1566,9 +1589,12 @@ void ogs_pfcp_far_remove(ogs_pfcp_far_t *far)
     for (i = 0; i < far->num_of_buffered_packet; i++)
         ogs_pkbuf_free(far->buffered_packet[i]);
 
-    if (far->id_node)
+    if (far->id_node) {
+        memset(far->id_node, 0, sizeof(*far->id_node));
         ogs_pool_free(&far->sess->far_id_pool, far->id_node);
+    }
 
+    memset(far, 0, sizeof(*far));
     ogs_pool_free(&ogs_pfcp_far_pool, far);
 }
 
@@ -1618,8 +1644,14 @@ ogs_pfcp_urr_t *ogs_pfcp_urr_find(
 
     ogs_assert(sess);
 
-    ogs_list_for_each(&sess->urr_list, urr)
+    ogs_list_for_each(&sess->urr_list, urr) {
+        if (NULL == pfcp_urr_cycle(urr)) {
+            ogs_error("Found a URR that doesn't exist anymore!");
+            continue;
+        }
+
         if (urr->id == id) return urr;
+    }
 
     return NULL;
 }
@@ -1651,9 +1683,12 @@ void ogs_pfcp_urr_remove(ogs_pfcp_urr_t *urr)
 
     ogs_list_remove(&sess->urr_list, urr);
 
-    if (urr->id_node)
+    if (urr->id_node) {
+        memset(urr->id_node, 0, sizeof(*urr->id_node));
         ogs_pool_free(&urr->sess->urr_id_pool, urr->id_node);
+    }
 
+    memset(urr, 0, sizeof(*urr));
     ogs_pool_free(&ogs_pfcp_urr_pool, urr);
 }
 
@@ -1703,8 +1738,14 @@ ogs_pfcp_qer_t *ogs_pfcp_qer_find(
 
     ogs_assert(sess);
 
-    ogs_list_for_each(&sess->qer_list, qer)
+    ogs_list_for_each(&sess->qer_list, qer) {
+        if (NULL == pfcp_qer_cycle(qer)) {
+            ogs_error("Found a QER that doesn't exist anymore!");
+            continue;
+        }
+
         if (qer->id == id) return qer;
+    }
 
     return NULL;
 }
@@ -1736,9 +1777,12 @@ void ogs_pfcp_qer_remove(ogs_pfcp_qer_t *qer)
 
     ogs_list_remove(&sess->qer_list, qer);
 
-    if (qer->id_node)
+    if (qer->id_node) {
+        memset(qer->id_node, 0, sizeof(*qer->id_node));
         ogs_pool_free(&qer->sess->qer_id_pool, qer->id_node);
+    }
 
+    memset(qer, 0, sizeof(*qer));
     ogs_pool_free(&ogs_pfcp_qer_pool, qer);
 }
 
@@ -1783,12 +1827,14 @@ void ogs_pfcp_bar_delete(ogs_pfcp_bar_t *bar)
     sess = bar->sess;
     ogs_assert(sess);
 
-    if (bar->id_node)
+    if (bar->id_node) {
+        memset(bar->id_node, 0, sizeof(*bar->id_node));
         ogs_pool_free(&bar->sess->bar_id_pool, bar->id_node);
+    }
 
+    memset(bar, 0, sizeof(*bar));
     ogs_pool_free(&ogs_pfcp_bar_pool, bar);
 
-    bar->sess = NULL;
     sess->bar = NULL;
 }
 
@@ -1817,7 +1863,17 @@ ogs_pfcp_rule_t *ogs_pfcp_rule_find_by_sdf_filter_id(
     ogs_assert(sess);
 
     ogs_list_for_each(&sess->pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_error("Found a PDR that doesn't exist anymore!");
+            continue;
+        }
+
         ogs_list_for_each(&pdr->rule_list, rule) {
+            if (NULL == pfcp_rule_cycle(rule)) {
+                ogs_error("Found a rule that doesn't exist anymore!");
+                continue;
+            }
+
             if (rule->bid && rule->sdf_filter_id == sdf_filter_id)
                 return rule;
         }
@@ -1835,6 +1891,7 @@ void ogs_pfcp_rule_remove(ogs_pfcp_rule_t *rule)
     ogs_assert(pdr);
 
     ogs_list_remove(&pdr->rule_list, rule);
+    memset(rule, 0, sizeof(*rule));
     ogs_pool_free(&ogs_pfcp_rule_pool, rule);
 }
 
@@ -2020,6 +2077,7 @@ void ogs_pfcp_ue_ip_free(ogs_pfcp_ue_ip_t *ue_ip)
     if (ue_ip->static_ip) {
         ogs_free(ue_ip);
     } else {
+        memset(ue_ip, 0, sizeof(*ue_ip));
         ogs_pool_free(&subnet->pool, ue_ip);
     }
 }
@@ -2046,6 +2104,7 @@ void ogs_pfcp_dev_remove(ogs_pfcp_dev_t *dev)
     ogs_assert(dev);
 
     ogs_list_remove(&self.dev_list, dev);
+    memset(dev, 0, sizeof(*dev));
     ogs_pool_free(&ogs_pfcp_dev_pool, dev);
 }
 
@@ -2122,6 +2181,7 @@ void ogs_pfcp_subnet_remove(ogs_pfcp_subnet_t *subnet)
 
     ogs_pool_final(&subnet->pool);
 
+    memset(subnet, 0, sizeof(*subnet));
     ogs_pool_free(&ogs_pfcp_subnet_pool, subnet);
 }
 
@@ -2194,12 +2254,27 @@ void ogs_pfcp_pool_final(ogs_pfcp_sess_t *sess)
     ogs_pool_final(&sess->bar_id_pool);
 }
 
-static ogs_pfcp_sess_t *pfcp_sess_cycle(ogs_pfcp_sess_t *sess)
-{
-    return ogs_pool_cycle(&ogs_pfcp_sess_pool, sess);
-}
-
 static ogs_pfcp_pdr_t *pfcp_pdr_cycle(ogs_pfcp_pdr_t *pdr)
 {
     return ogs_pool_cycle(&ogs_pfcp_pdr_pool, pdr);
+}
+
+static ogs_pfcp_far_t *pfcp_far_cycle(ogs_pfcp_far_t *far)
+{
+    return ogs_pool_cycle(&ogs_pfcp_far_pool, far);
+}
+
+static ogs_pfcp_urr_t *pfcp_urr_cycle(ogs_pfcp_urr_t *urr)
+{
+    return ogs_pool_cycle(&ogs_pfcp_urr_pool, urr);
+}
+
+static ogs_pfcp_qer_t *pfcp_qer_cycle(ogs_pfcp_qer_t *qer)
+{
+    return ogs_pool_cycle(&ogs_pfcp_qer_pool, qer);
+}
+
+static ogs_pfcp_rule_t *pfcp_rule_cycle(ogs_pfcp_rule_t *rule)
+{
+    return ogs_pool_cycle(&ogs_pfcp_rule_pool, rule);
 }
