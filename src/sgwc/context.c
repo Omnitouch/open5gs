@@ -740,7 +740,7 @@ sgwc_bearer_t *sgwc_bearer_find_by_sess_urr_id(sgwc_sess_t *sess, uint32_t urr_i
         }
 
         ogs_list_for_each(&bearer->tunnel_list, tunnel) {
-            if (pfcp_pdr_cycle(tunnel->pdr)) {
+            if (NULL == pfcp_pdr_cycle(tunnel->pdr)) {
                 ogs_error("PDR does not exist");
                 continue;
             }
