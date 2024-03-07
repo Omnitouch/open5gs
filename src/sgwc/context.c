@@ -740,9 +740,18 @@ sgwc_bearer_t *sgwc_bearer_find_by_sess_urr_id(sgwc_sess_t *sess, uint32_t urr_i
         }
 
         ogs_list_for_each(&bearer->tunnel_list, tunnel) {
-            ogs_assert(tunnel->pdr);
+            if (pfcp_pdr_cycle(tunnel->pdr)) {
+                ogs_error("PDR does not exist");
+                continue;
+            }
+
             for (int i = 0; i < tunnel->pdr->num_of_urr; ++i) {
-                ogs_pfcp_urr_t *urr = tunnel->pdr->urr[i];
+                ogs_pfcp_urr_t *urr = pfcp_urr_cycle(tunnel->pdr->urr[i]);
+
+                if (NULL == urr) {
+                    ogs_error("URR does not exist");
+                    continue;
+                }
 
                 if (urr->id == urr_id) {
                     return bearer;
@@ -972,8 +981,11 @@ sgwc_tunnel_t *sgwc_tunnel_find_by_pdr_id(
 
     ogs_list_for_each(&sess->bearer_list, bearer) {
         ogs_list_for_each(&bearer->tunnel_list, tunnel) {
-            pdr = tunnel->pdr;
-            ogs_assert(pdr);
+            pdr = pfcp_pdr_cycle(tunnel->pdr);
+            if (NULL == pdr) {
+                ogs_error("PDR does not exist");
+                continue;
+            }
 
             if (pdr->id == pdr_id) return tunnel;
         }
@@ -994,8 +1006,11 @@ sgwc_tunnel_t *sgwc_tunnel_find_by_far_id(
 
     ogs_list_for_each(&sess->bearer_list, bearer) {
         ogs_list_for_each(&bearer->tunnel_list, tunnel) {
-            far = tunnel->far;
-            ogs_assert(far);
+            far = pfcp_far_cycle(tunnel->far);
+            if (NULL == far) {
+                ogs_error("FAR does not exist");
+                continue;
+            }
 
             if (far->id == far_id) return tunnel;
         }

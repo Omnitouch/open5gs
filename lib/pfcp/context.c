@@ -41,12 +41,6 @@ static OGS_POOL(ogs_pfcp_rule_pool, ogs_pfcp_rule_t);
 static OGS_POOL(ogs_pfcp_dev_pool, ogs_pfcp_dev_t);
 static OGS_POOL(ogs_pfcp_subnet_pool, ogs_pfcp_subnet_t);
 
-static ogs_pfcp_pdr_t *pfcp_pdr_cycle(ogs_pfcp_pdr_t *pdr);
-static ogs_pfcp_far_t *pfcp_far_cycle(ogs_pfcp_far_t *far);
-static ogs_pfcp_urr_t *pfcp_urr_cycle(ogs_pfcp_urr_t *urr);
-static ogs_pfcp_qer_t *pfcp_qer_cycle(ogs_pfcp_qer_t *qer);
-static ogs_pfcp_rule_t *pfcp_rule_cycle(ogs_pfcp_rule_t *rule);
-
 void ogs_pfcp_context_init(void)
 {
     int i;
@@ -2270,27 +2264,27 @@ void ogs_pfcp_pool_final(ogs_pfcp_sess_t *sess)
     ogs_pool_final(&sess->bar_id_pool);
 }
 
-static ogs_pfcp_pdr_t *pfcp_pdr_cycle(ogs_pfcp_pdr_t *pdr)
+ogs_pfcp_pdr_t *pfcp_pdr_cycle(ogs_pfcp_pdr_t *pdr)
 {
     return ogs_pool_cycle(&ogs_pfcp_pdr_pool, pdr);
 }
 
-static ogs_pfcp_far_t *pfcp_far_cycle(ogs_pfcp_far_t *far)
+ogs_pfcp_far_t *pfcp_far_cycle(ogs_pfcp_far_t *far)
 {
     return ogs_pool_cycle(&ogs_pfcp_far_pool, far);
 }
 
-static ogs_pfcp_urr_t *pfcp_urr_cycle(ogs_pfcp_urr_t *urr)
+ogs_pfcp_urr_t *pfcp_urr_cycle(ogs_pfcp_urr_t *urr)
 {
     return ogs_pool_cycle(&ogs_pfcp_urr_pool, urr);
 }
 
-static ogs_pfcp_qer_t *pfcp_qer_cycle(ogs_pfcp_qer_t *qer)
+ogs_pfcp_qer_t *pfcp_qer_cycle(ogs_pfcp_qer_t *qer)
 {
     return ogs_pool_cycle(&ogs_pfcp_qer_pool, qer);
 }
 
-static ogs_pfcp_rule_t *pfcp_rule_cycle(ogs_pfcp_rule_t *rule)
+ogs_pfcp_rule_t *pfcp_rule_cycle(ogs_pfcp_rule_t *rule)
 {
     return ogs_pool_cycle(&ogs_pfcp_rule_pool, rule);
 }

@@ -392,7 +392,13 @@ void sgwu_sess_urr_acc_snapshot(sgwu_sess_t *sess, ogs_pfcp_urr_t *urr)
 
 static void sgwu_sess_urr_acc_timers_cb(void *data)
 {
-    ogs_pfcp_urr_t *urr = (ogs_pfcp_urr_t *)data;
+    ogs_pfcp_urr_t *urr = pfcp_urr_cycle((ogs_pfcp_urr_t *)data);
+
+    if (NULL == urr) {
+        ogs_error("URR doesn't exist");
+        return;
+    }
+
     ogs_pfcp_user_plane_report_t report;
     ogs_pfcp_sess_t *pfcp_sess = urr->sess;
     sgwu_sess_t *sess = SGWU_SESS(pfcp_sess);

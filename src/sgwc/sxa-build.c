@@ -77,6 +77,10 @@ ogs_pkbuf_t *sgwc_sxa_build_session_establishment_request(
     /* Create PDR */
     i = 0;
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_error("PDR does not exist");
+            continue;
+        }
         ogs_pfcp_build_create_pdr(&req->create_pdr[i], i, pdr);
         i++;
     }
@@ -84,6 +88,10 @@ ogs_pkbuf_t *sgwc_sxa_build_session_establishment_request(
     /* Create FAR */
     i = 0;
     ogs_list_for_each(&sess->pfcp.far_list, far) {
+        if (NULL == pfcp_far_cycle(far)) {
+            ogs_error("FAR does not exist");
+            continue;
+        }
         ogs_pfcp_build_create_far(&req->create_far[i], i, far);
         i++;
     }
@@ -91,6 +99,10 @@ ogs_pkbuf_t *sgwc_sxa_build_session_establishment_request(
     /* Create URR */
     i = 0;
     ogs_list_for_each(&sess->pfcp.urr_list, urr) {
+        if (NULL == pfcp_urr_cycle(urr)) {
+            ogs_error("URR does not exist");
+            continue;
+        }
         ogs_pfcp_build_create_urr(&req->create_urr[i], i, urr);
         i++;
     }
@@ -98,6 +110,10 @@ ogs_pkbuf_t *sgwc_sxa_build_session_establishment_request(
     /* Create QER */
     i = 0;
     ogs_list_for_each(&sess->pfcp.qer_list, qer) {
+        if (NULL == pfcp_qer_cycle(qer)) {
+            ogs_error("QER does not exist");
+            continue;
+        }
         ogs_pfcp_build_create_qer(&req->create_qer[i], i, qer);
         i++;
     }
@@ -180,7 +196,7 @@ ogs_pkbuf_t *sgwc_sxa_build_bearer_to_modify_list(
 
                 if (modify_flags & OGS_PFCP_MODIFY_REMOVE) {
 
-                    pdr = tunnel->pdr;
+                    pdr = pfcp_pdr_cycle(tunnel->pdr);
                     if (pdr) {
                         ogs_pfcp_tlv_remove_pdr_t *message =
                             &req->remove_pdr[num_of_remove_pdr];
@@ -206,7 +222,7 @@ ogs_pkbuf_t *sgwc_sxa_build_bearer_to_modify_list(
                     } else
                         ogs_assert_if_reached();
 
-                    far = tunnel->far;
+                    far = pfcp_far_cycle(tunnel->far);
                     if (far) {
                         ogs_pfcp_tlv_remove_far_t *message =
                             &req->remove_far[num_of_remove_far];
@@ -221,7 +237,7 @@ ogs_pkbuf_t *sgwc_sxa_build_bearer_to_modify_list(
 
                 } else if (modify_flags & OGS_PFCP_MODIFY_CREATE) {
 
-                    pdr = tunnel->pdr;
+                    pdr = pfcp_pdr_cycle(tunnel->pdr);
                     if (pdr) {
                         ogs_pfcp_build_create_pdr(
                                 &req->create_pdr[num_of_create_pdr],
@@ -241,7 +257,7 @@ ogs_pkbuf_t *sgwc_sxa_build_bearer_to_modify_list(
                     } else
                         ogs_assert_if_reached();
 
-                    far = tunnel->far;
+                    far = pfcp_far_cycle(tunnel->far);
                     if (far) {
                         ogs_pfcp_build_create_far(
                                 &req->create_far[num_of_create_far],
@@ -254,7 +270,7 @@ ogs_pkbuf_t *sgwc_sxa_build_bearer_to_modify_list(
 
                 if (modify_flags & OGS_PFCP_MODIFY_DEACTIVATE) {
 
-                    far = tunnel->far;
+                    far = pfcp_far_cycle(tunnel->far);
                     if (far) {
                         ogs_pfcp_build_update_far_deactivate(
                                 &req->update_far[num_of_update_far],
@@ -266,7 +282,7 @@ ogs_pkbuf_t *sgwc_sxa_build_bearer_to_modify_list(
 
                 } else if (modify_flags & OGS_PFCP_MODIFY_ACTIVATE) {
 
-                    far = tunnel->far;
+                    far = pfcp_far_cycle(tunnel->far);
                     if (far) {
                         if (modify_flags & OGS_PFCP_MODIFY_END_MARKER) {
                             far->smreq_flags.send_end_marker_packets = 1;

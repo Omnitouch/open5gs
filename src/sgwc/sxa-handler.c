@@ -1527,7 +1527,11 @@ void sgwc_sxa_handle_session_report_request(
 
         ogs_list_for_each(&sess->bearer_list, bearer) {
             ogs_list_for_each(&bearer->tunnel_list, tunnel) {
-                ogs_assert(tunnel->pdr);
+                if (NULL == pfcp_pdr_cycle(tunnel->pdr)) {
+                    ogs_error("PDR does not exist");
+                    continue;
+                }
+
                 if (tunnel->pdr->id == pdr_id) {
                     ogs_assert(OGS_OK ==
                         sgwc_gtp_send_downlink_data_notification(

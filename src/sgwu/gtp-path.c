@@ -178,7 +178,13 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
 
         switch(pfcp_object->type) {
         case OGS_PFCP_OBJ_PDR_TYPE:
-            pdr = (ogs_pfcp_pdr_t *)pfcp_object;
+            pdr = pfcp_pdr_cycle((ogs_pfcp_pdr_t *)pfcp_object);
+
+            if (NULL == pdr) {
+                ogs_error("PDR does not exist any more");
+                goto cleanup;
+            }
+
             bool is_uplink = false;
             ogs_pfcp_far_t *far = NULL;
 
@@ -275,7 +281,13 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
 
         switch(pfcp_object->type) {
         case OGS_PFCP_OBJ_PDR_TYPE:
-            pdr = (ogs_pfcp_pdr_t *)pfcp_object;
+            pdr = pfcp_pdr_cycle((ogs_pfcp_pdr_t *)pfcp_object);
+
+            if (NULL == pdr) {
+                ogs_error("PDR does not exist any more");
+                goto cleanup;
+            }
+
             bool is_uplink = false;
             ogs_pfcp_far_t *far = NULL;
             
