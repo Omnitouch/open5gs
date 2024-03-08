@@ -73,6 +73,10 @@ static __inline__ struct sess_state *new_state(os0_t sid)
 
 static void state_cleanup(struct sess_state *sess_data, os0_t sid, void *opaque)
 {
+    if (NULL == sess_data) {
+        return;
+    }
+
     if (sess_data->gx_sid)
         ogs_free(sess_data->gx_sid);
 
