@@ -983,6 +983,7 @@ ogs_pfcp_pdr_t *ogs_pfcp_pdr_add(ogs_pfcp_sess_t *sess)
     pdr->teid = *(pdr->teid_node);
 
     /* Set PDR-ID */
+    ogs_pool_sequence_id_generate(&sess->pdr_id_pool);
     ogs_pool_alloc(&sess->pdr_id_pool, &pdr->id_node);
     if (pdr->id_node == NULL) {
         ogs_error("pdr_id_pool() failed");
