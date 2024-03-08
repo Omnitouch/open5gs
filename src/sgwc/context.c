@@ -260,7 +260,12 @@ sgwc_ue_t *sgwc_ue_cycle(sgwc_ue_t *sgwc_ue)
 
 int sgwc_ue_remove(sgwc_ue_t *sgwc_ue)
 {
-    ogs_assert(sgwc_ue);
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
+
+    if (NULL == sgwc_ue) {
+        ogs_error("Trying to remove sgwc_ue that doesn't exist");
+        return OGS_OK;
+    }
 
     ogs_list_remove(&self.sgw_ue_list, sgwc_ue);
 
@@ -448,11 +453,16 @@ int sgwc_sess_remove(sgwc_sess_t *sess)
 {
     sgwc_ue_t *sgwc_ue = NULL;
 
-    ogs_assert(sess);
-    sgwc_ue = sess->sgwc_ue;
-    ogs_assert(sgwc_ue);
+    sess = sgwc_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("Trying to remove sess that doesn't exist");
+        return OGS_OK;
+    }
 
-    ogs_list_remove(&sgwc_ue->sess_list, sess);
+    sgwc_ue = sgwc_ue_cycle(sess->sgwc_ue);
+    if (sgwc_ue) {
+        ogs_list_remove(&sgwc_ue->sess_list, sess);
+    }
 
     ogs_hash_set(self.sgwc_sxa_seid_hash, &sess->sgwc_sxa_seid,
             sizeof(sess->sgwc_sxa_seid), NULL);
@@ -482,18 +492,38 @@ void sgwc_sess_remove_all(sgwc_ue_t *sgwc_ue)
 {
     sgwc_sess_t *sess = NULL, *next_sess = NULL;
 
+    if (NULL == sgwc_ue_cycle(sgwc_ue)) {
+        ogs_error("Cannot remove sess from a sgwc_ue that doesn't exist!");
+        return;
+    }
+
     ogs_assert(sgwc_ue);
-    ogs_list_for_each_safe(&sgwc_ue->sess_list, next_sess, sess)
+    ogs_list_for_each_safe(&sgwc_ue->sess_list, next_sess, sess) {
+        if (NULL == sgwc_sess_cycle(sess)) {
+            ogs_error("Found invalid sess in sess_list");
+            continue;
+        }
+
         sgwc_sess_remove(sess);
+    }
 }
 
 void sgwc_sess_remove_all_sync(sgwc_ue_t *sgwc_ue)
 {
     sgwc_sess_t *sess = NULL, *next_sess = NULL;
 
+    if (NULL == sgwc_ue_cycle(sgwc_ue)) {
+        ogs_error("Cannot remove sess from a sgwc_ue that doesn't exist!");
+        return;
+    }
+
     /* Due to CP and U{ separation we need to remove the sessions via the  */
-    ogs_assert(sgwc_ue);
     ogs_list_for_each_safe(&sgwc_ue->sess_list, next_sess, sess) {
+        if (NULL == sgwc_sess_cycle(sess)) {
+            ogs_error("Found invalid sess in sess_list");
+            continue;
+        }
+
         ogs_expect(OGS_OK ==
             sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
     }
@@ -660,10 +690,18 @@ sgwc_bearer_t *sgwc_bearer_add(sgwc_sess_t *sess)
 
 int sgwc_bearer_remove(sgwc_bearer_t *bearer)
 {
-    ogs_assert(bearer);
-    ogs_assert(bearer->sess);
+    sgwc_sess_t *sess = NULL;
 
-    ogs_list_remove(&bearer->sess->bearer_list, bearer);
+    bearer = sgwc_bearer_cycle(bearer);
+    if (NULL == bearer) {
+        ogs_error("Trying to remove bearer that doesn't exist");
+        return OGS_OK;
+    }
+
+    sess = sgwc_sess_cycle(bearer->sess);
+    if (sess) {
+        ogs_list_remove(&sess->bearer_list, bearer);
+    }
 
     sgwc_tunnel_remove_all(bearer);
 
@@ -671,6 +709,7 @@ int sgwc_bearer_remove(sgwc_bearer_t *bearer)
     ogs_timer_stop(bearer->timer_bearer_deactivation);
     ogs_timer_delete(bearer->timer_bearer_deactivation);
 
+    memset(bearer, 0, sizeof(*bearer));
     ogs_pool_free(&sgwc_bearer_pool, bearer);
 
     return OGS_OK;
@@ -680,9 +719,19 @@ void sgwc_bearer_remove_all(sgwc_sess_t *sess)
 {
     sgwc_bearer_t *bearer = NULL, *next_bearer = NULL;
 
-    ogs_assert(sess);
-    ogs_list_for_each_safe(&sess->bearer_list, next_bearer, bearer)
+    if (NULL == sgwc_sess_cycle(sess)) {
+        ogs_error("Cannot remove bearer from a sess that doesn't exist!");
+        return;
+    }
+
+    ogs_list_for_each_safe(&sess->bearer_list, next_bearer, bearer) {
+        if (NULL == sgwc_bearer_cycle(bearer)) {
+            ogs_error("Found invalid bearer in bearer_list");
+            continue;
+        }
+
         sgwc_bearer_remove(bearer);
+    }
 }
 
 sgwc_bearer_t *sgwc_bearer_find_by_sess_ebi(sgwc_sess_t *sess, uint8_t ebi)

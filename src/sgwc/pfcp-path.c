@@ -179,6 +179,10 @@ static void sess_timeout(ogs_pfcp_xact_t *xact, void *data)
         break;
     case OGS_PFCP_SESSION_DELETION_REQUEST_TYPE:
         ogs_error("No PFCP session deletion response");
+        sgwc_sess_t *sess = (sgwc_sess_t *)data;
+        if (sess) {
+            sgwc_sess_remove(sess);
+        }
         break;
     default:
         ogs_error("Not implemented [type:%d]", type);
