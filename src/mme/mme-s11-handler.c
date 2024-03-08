@@ -422,7 +422,10 @@ void mme_s11_handle_create_session_response(
                         session->paa.session_type));
             r = nas_eps_send_attach_accept(mme_ue);
             ogs_expect(r == OGS_OK);
-            ogs_assert(r != OGS_ERROR);
+            if (r != OGS_OK) {
+                ogs_error("Failed to send EPS Attach Accept");
+                return;
+            }
         }
 
     } else if (create_action == OGS_GTP_CREATE_IN_UPLINK_NAS_TRANSPORT) {
