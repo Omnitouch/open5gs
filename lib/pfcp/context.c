@@ -1321,6 +1321,7 @@ ogs_pfcp_far_t *ogs_pfcp_far_add(ogs_pfcp_sess_t *sess)
     }
     memset(far, 0, sizeof *far);
 
+    ogs_pool_sequence_id_generate(&sess->far_id_pool);
     ogs_pool_alloc(&sess->far_id_pool, &far->id_node);
     if (far->id_node == NULL) {
         ogs_error("far_id_pool() failed");
@@ -1620,6 +1621,7 @@ ogs_pfcp_urr_t *ogs_pfcp_urr_add(ogs_pfcp_sess_t *sess)
     }
     memset(urr, 0, sizeof *urr);
 
+    ogs_pool_sequence_id_generate(&sess->urr_id_pool);
     ogs_pool_alloc(&sess->urr_id_pool, &urr->id_node);
     if (urr->id_node == NULL) {
         ogs_error("urr_id_pool() failed");
