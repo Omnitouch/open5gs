@@ -1153,13 +1153,11 @@ void mme_s11_handle_delete_bearer_request(
      ***********************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!mme_ue) {
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
+    if (!mme_ue || !sgw_ue) {
         ogs_error("No Context in TEID");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     } else {
-        sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
-        ogs_assert(sgw_ue);
-
         if (req->linked_eps_bearer_id.presence == 1) {
            /*
             * << Linked EPS Bearer ID >>
