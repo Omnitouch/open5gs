@@ -987,6 +987,7 @@ ogs_pfcp_pdr_t *ogs_pfcp_pdr_add(ogs_pfcp_sess_t *sess)
     ogs_pool_alloc(&sess->pdr_id_pool, &pdr->id_node);
     if (pdr->id_node == NULL) {
         ogs_error("pdr_id_pool() failed");
+        ogs_pool_free(&ogs_pfcp_pdr_teid_pool, pdr->teid_node);
         ogs_pool_free(&ogs_pfcp_pdr_pool, pdr);
         return NULL;
     }
@@ -1260,7 +1261,6 @@ void ogs_pfcp_pdr_remove(ogs_pfcp_pdr_t *pdr)
         ogs_free(pdr->dnn);
 
     if (pdr->id_node) {
-        memset(pdr->id_node, 0, sizeof(*pdr->id_node));
         ogs_pool_free(&pdr->sess->pdr_id_pool, pdr->id_node);
     }
 
@@ -1287,7 +1287,6 @@ void ogs_pfcp_pdr_remove(ogs_pfcp_pdr_t *pdr)
             ogs_pfcp_urr_remove(pdr->urr[i]);
         }
     }
-    memset(pdr->teid_node, 0, sizeof(*pdr->teid_node));
     ogs_pool_free(&ogs_pfcp_pdr_teid_pool, pdr->teid_node);
     memset(pdr, 0, sizeof(*pdr));
     ogs_pool_free(&ogs_pfcp_pdr_pool, pdr);
@@ -1590,7 +1589,6 @@ void ogs_pfcp_far_remove(ogs_pfcp_far_t *far)
         ogs_pkbuf_free(far->buffered_packet[i]);
 
     if (far->id_node) {
-        memset(far->id_node, 0, sizeof(*far->id_node));
         ogs_pool_free(&far->sess->far_id_pool, far->id_node);
     }
 
@@ -1689,7 +1687,6 @@ void ogs_pfcp_urr_remove(ogs_pfcp_urr_t *urr)
     ogs_list_remove(&sess->urr_list, urr);
 
     if (urr->id_node) {
-        memset(urr->id_node, 0, sizeof(*urr->id_node));
         ogs_pool_free(&urr->sess->urr_id_pool, urr->id_node);
     }
 
@@ -1787,7 +1784,6 @@ void ogs_pfcp_qer_remove(ogs_pfcp_qer_t *qer)
     ogs_list_remove(&sess->qer_list, qer);
 
     if (qer->id_node) {
-        memset(qer->id_node, 0, sizeof(*qer->id_node));
         ogs_pool_free(&qer->sess->qer_id_pool, qer->id_node);
     }
 
@@ -1837,7 +1833,6 @@ void ogs_pfcp_bar_delete(ogs_pfcp_bar_t *bar)
     ogs_assert(sess);
 
     if (bar->id_node) {
-        memset(bar->id_node, 0, sizeof(*bar->id_node));
         ogs_pool_free(&bar->sess->bar_id_pool, bar->id_node);
     }
 
@@ -2024,7 +2019,7 @@ ogs_pfcp_ue_ip_t *ogs_pfcp_ue_ip_alloc(
     uint8_t zero[16];
     size_t maxbytes = 0;
 
-    memset(zero, 0, sizeof zero);
+    memset(zero, 0, sizeof(zero));
     if (family == AF_INET) {
         maxbytes = 4;
     } else if (family == AF_INET6) {
