@@ -306,8 +306,9 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
         if ((NULL == session->pgw_addr) && (NULL == session->pgw_addr6)) {
             session->pgw_addr = mme_pgw_addr_select_random(
                 &mme_self()->pgw_list, AF_INET);
-            session->pgw_addr6 = mme_pgw_addr_select_random(
-                &mme_self()->pgw_list, AF_INET6);            
+            // Currently only support ipv4 on pgw connection
+            // session->pgw_addr6 = mme_pgw_addr_select_random(
+            //     &mme_self()->pgw_list, AF_INET6);            
         }
     } else if ((NULL == session->pgw_addr) && (NULL == session->pgw_addr6)) {
         /* Pick PGW if one has not been chosen */
@@ -379,15 +380,16 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
         } else {
             session->pgw_addr = mme_pgw_addr_select_random(
                 &mme_self()->pgw_list, AF_INET);
-            session->pgw_addr6 = mme_pgw_addr_select_random(
-                &mme_self()->pgw_list, AF_INET6);
+            // Currently only support ipv4 on pgw connection
+            // session->pgw_addr6 = mme_pgw_addr_select_random(
+            //     &mme_self()->pgw_list, AF_INET6);
         }
+    }
 
-        if ((NULL == session->pgw_addr) && (NULL == session->pgw_addr6)) {
-            /* If we failed to assign an address return error */
-            ogs_error("Failed to assign a PGW address");
-            return OGS_ERROR;
-        }
+    if ((NULL == session->pgw_addr) && (NULL == session->pgw_addr6)) {
+        /* If we failed to assign an address return error */
+        ogs_error("Failed to assign a PGW address");
+        return OGS_ERROR;
     }
 
     if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST) {
