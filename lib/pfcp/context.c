@@ -75,7 +75,7 @@ void ogs_pfcp_context_init(void)
             sizeof(ogs_pool_id_t), ogs_pfcp_pdr_pool.size);
     ogs_assert(pdr_random_to_index);
     for (i = 0; i < ogs_pfcp_pdr_pool.size; i++)
-        pdr_random_to_index[ogs_pfcp_pdr_teid_pool.array[i]] = i;
+        pdr_random_to_index[ogs_pfcp_pdr_teid_pool.array[i] - 1] = i;
 
     ogs_pool_init(&ogs_pfcp_rule_pool,
             ogs_app()->pool.sess *
@@ -1282,11 +1282,6 @@ void ogs_pfcp_pdr_remove(ogs_pfcp_pdr_t *pdr)
         ogs_free(pdr->ipv6_framed_routes);
     }
 
-    if (0 < pdr->num_of_urr) {
-        for (i = 0; i < pdr->num_of_urr; ++i) {
-            ogs_pfcp_urr_remove(pdr->urr[i]);
-        }
-    }
     ogs_pool_free(&ogs_pfcp_pdr_teid_pool, pdr->teid_node);
     memset(pdr, 0, sizeof(*pdr));
     ogs_pool_free(&ogs_pfcp_pdr_pool, pdr);
@@ -1473,8 +1468,8 @@ ogs_pfcp_far_t *ogs_pfcp_far_find_by_gtpu_error_indication(ogs_pkbuf_t *pkbuf)
     memcpy(hashkey.addr, p, len);
     hashkey_len = 4 + len;
 
-    return (ogs_pfcp_far_t *)ogs_hash_get(
-            self.far_f_teid_hash, &hashkey, hashkey_len);
+    return pfcp_far_cycle((ogs_pfcp_far_t *)ogs_hash_get(
+            self.far_f_teid_hash, &hashkey, hashkey_len));
 }
 
 ogs_pfcp_far_t *ogs_pfcp_far_find_by_pfcp_session_report(
