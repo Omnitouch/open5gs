@@ -149,6 +149,11 @@ sgwu_sess_t *sgwu_sess_add(ogs_pfcp_f_seid_t *cp_f_seid)
 
     ogs_pfcp_pool_init(&sess->pfcp);
 
+    ogs_list_init(&sess->pfcp.pdr_list);
+    ogs_list_init(&sess->pfcp.far_list);
+    ogs_list_init(&sess->pfcp.urr_list);
+    ogs_list_init(&sess->pfcp.qer_list);
+
     /* Set SEID */
     ogs_pool_alloc(&sgwu_sxa_seid_pool, &sess->sgwu_sxa_seid_node);
     ogs_assert(sess->sgwu_sxa_seid_node);

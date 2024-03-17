@@ -948,6 +948,11 @@ void ogs_pfcp_sess_clear(ogs_pfcp_sess_t *sess)
     ogs_pfcp_urr_remove_all(sess);
     ogs_pfcp_qer_remove_all(sess);
     if (sess->bar) ogs_pfcp_bar_delete(sess->bar);
+
+    ogs_list_init(&sess->pdr_list);
+    ogs_list_init(&sess->far_list);
+    ogs_list_init(&sess->urr_list);
+    ogs_list_init(&sess->qer_list);
 }
 
 static int precedence_compare(ogs_pfcp_pdr_t *pdr1, ogs_pfcp_pdr_t *pdr2)
@@ -1299,12 +1304,15 @@ void ogs_pfcp_pdr_remove_all(ogs_pfcp_sess_t *sess)
 
     ogs_assert(sess);
     ogs_list_for_each_safe(&sess->pdr_list, next_pdr, pdr) {
-        if (NULL == pfcp_pdr_cycle(pdr)) {
-            ogs_error("Tring to remove a PDR that doesn't exist anymore!");
-            continue;
-        }
-
         ogs_pfcp_pdr_remove(pdr);
+
+        if ((NULL != next_pdr) && 
+            (NULL == pfcp_pdr_cycle(next_pdr)))
+        {
+            /* We need to check the NEXT pdr so it doesn't try to dereference an invalid pdr to obtain the next_pdr value */
+            ogs_fatal("Something has gone really wrong and there are invalid PDRs in this sess' pdr_list! This may result in a possible memory leak");
+            return;
+        }
     }
 }
 
@@ -1603,8 +1611,17 @@ void ogs_pfcp_far_remove_all(ogs_pfcp_sess_t *sess)
 
     ogs_assert(sess);
 
-    ogs_list_for_each_safe(&sess->far_list, next_far, far)
+    ogs_list_for_each_safe(&sess->far_list, next_far, far) {
         ogs_pfcp_far_remove(far);
+
+        if ((NULL != next_far) && 
+            (NULL == pfcp_far_cycle(next_far)))
+        {
+            /* We need to check the NEXT far so it doesn't try to dereference an invalid far to obtain the next_far value */
+            ogs_fatal("Something has gone really wrong and there are invalid FARs in this sess' far_list! This may result in a possible memory leak");
+            return;
+        }
+    }
 }
 
 ogs_pfcp_urr_t *ogs_pfcp_urr_add(ogs_pfcp_sess_t *sess)
@@ -1701,8 +1718,17 @@ void ogs_pfcp_urr_remove_all(ogs_pfcp_sess_t *sess)
 
     ogs_assert(sess);
 
-    ogs_list_for_each_safe(&sess->urr_list, next_urr, urr)
+    ogs_list_for_each_safe(&sess->urr_list, next_urr, urr) {
         ogs_pfcp_urr_remove(urr);
+
+        if ((NULL != next_urr) && 
+            (NULL == pfcp_urr_cycle(next_urr)))
+        {
+            /* We need to check the NEXT urr so it doesn't try to dereference an invalid urr to obtain the next_urr value */
+            ogs_fatal("Something has gone really wrong and there are invalid URRs in this sess' urr_list! This may result in a possible memory leak");
+            return; 
+        }
+    }
 }
 
 ogs_pfcp_qer_t *ogs_pfcp_qer_add(ogs_pfcp_sess_t *sess)
@@ -1798,8 +1824,17 @@ void ogs_pfcp_qer_remove_all(ogs_pfcp_sess_t *sess)
 
     ogs_assert(sess);
 
-    ogs_list_for_each_safe(&sess->qer_list, next_qer, qer)
+    ogs_list_for_each_safe(&sess->qer_list, next_qer, qer) {
         ogs_pfcp_qer_remove(qer);
+
+        if ((NULL != next_qer) && 
+            (NULL == pfcp_qer_cycle(next_qer)))
+        {
+            /* We need to check the NEXT qer so it doesn't try to dereference an invalid qer to obtain the next_qer value */
+            ogs_fatal("Something has gone really wrong and there are invalid QERs in this sess' qer_list! This may result in a possible memory leak");
+            return; 
+        }
+    }
 }
 
 ogs_pfcp_bar_t *ogs_pfcp_bar_new(ogs_pfcp_sess_t *sess)
