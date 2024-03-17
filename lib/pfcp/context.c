@@ -1310,7 +1310,9 @@ void ogs_pfcp_pdr_remove_all(ogs_pfcp_sess_t *sess)
             (NULL == pfcp_pdr_cycle(next_pdr)))
         {
             /* We need to check the NEXT pdr so it doesn't try to dereference an invalid pdr to obtain the next_pdr value */
-            ogs_fatal("Something has gone really wrong and there are invalid PDRs in this sess' pdr_list! This may result in a possible memory leak");
+            ogs_fatal("Something has gone really wrong and there are invalid PDRs in this sess' pdr_list! "
+                      "This may result in a possible memory leak. "
+                      "Invalid address is '%p'", next_pdr);
             return;
         }
     }
@@ -1618,7 +1620,9 @@ void ogs_pfcp_far_remove_all(ogs_pfcp_sess_t *sess)
             (NULL == pfcp_far_cycle(next_far)))
         {
             /* We need to check the NEXT far so it doesn't try to dereference an invalid far to obtain the next_far value */
-            ogs_fatal("Something has gone really wrong and there are invalid FARs in this sess' far_list! This may result in a possible memory leak");
+            ogs_fatal("Something has gone really wrong and there are invalid FARs in this sess' far_list! "
+                      "This may result in a possible memory leak. "
+                      "Invalid address is '%p'", next_far);
             return;
         }
     }
@@ -1725,8 +1729,10 @@ void ogs_pfcp_urr_remove_all(ogs_pfcp_sess_t *sess)
             (NULL == pfcp_urr_cycle(next_urr)))
         {
             /* We need to check the NEXT urr so it doesn't try to dereference an invalid urr to obtain the next_urr value */
-            ogs_fatal("Something has gone really wrong and there are invalid URRs in this sess' urr_list! This may result in a possible memory leak");
-            return; 
+            ogs_fatal("Something has gone really wrong and there are invalid URRs in this sess' urr_list! "
+                      "This may result in a possible memory leak. "
+                      "Invalid address is '%p'", next_urr);
+            return;
         }
     }
 }
@@ -1831,8 +1837,10 @@ void ogs_pfcp_qer_remove_all(ogs_pfcp_sess_t *sess)
             (NULL == pfcp_qer_cycle(next_qer)))
         {
             /* We need to check the NEXT qer so it doesn't try to dereference an invalid qer to obtain the next_qer value */
-            ogs_fatal("Something has gone really wrong and there are invalid QERs in this sess' qer_list! This may result in a possible memory leak");
-            return; 
+            ogs_fatal("Something has gone really wrong and there are invalid QERs in this sess' qer_list! "
+                      "This may result in a possible memory leak. "
+                      "Invalid address is '%p'", next_qer);
+            return;
         }
     }
 }
