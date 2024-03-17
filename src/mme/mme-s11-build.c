@@ -167,10 +167,16 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
 
         session->pgw_addr = mme_pgw_addr_find_by_apn(
                 &mme_self()->pgw_list, AF_INET, session->name);
-        session->pgw_addr6 = mme_pgw_addr_find_by_apn(
-                &mme_self()->pgw_list, AF_INET6, session->name);
+        // Currently only support ipv4 on pgw connection
+        // session->pgw_addr6 = mme_pgw_addr_find_by_apn(
+        //         &mme_self()->pgw_list, AF_INET6, session->name);
 
-        ogs_assert(session->pgw_addr || session->pgw_addr6);
+        if ((0 == session->pgw_addr) && 
+            (0 == session->pgw_addr6))
+        {
+            ogs_error("We couldn't find an PGW address for this session");
+            return NULL;
+        }
 
         rv = ogs_gtp2_sockaddr_to_f_teid(
                 pgw_addr, pgw_addr6, &pgw_s5c_teid, &len);

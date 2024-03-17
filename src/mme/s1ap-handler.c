@@ -2142,14 +2142,13 @@ void s1ap_handle_path_switch_request(
             GTP_COUNTER_INCREMENT(
                 mme_ue, GTP_COUNTER_CREATE_SESSION_BY_PATH_SWITCH);
 
-            ogs_assert(OGS_OK ==
+            ogs_expect(OGS_OK ==
                 mme_gtp_send_create_session_request(
                     sess, OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST));
         }
     } else if (relocation == SGW_HAS_ALREADY_BEEN_RELOCATED) {
         ogs_error("SGW has already been relocated");
     }
-
 }
 
 void s1ap_handle_enb_configuration_transfer(
