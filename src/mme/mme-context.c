@@ -4496,7 +4496,7 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
     bearer = mme_default_bearer_in_sess(sess);
     ogs_assert(bearer);
 
-    return bearer;
+    return mme_bearer_cycle(bearer);
 }
 
 mme_bearer_t *mme_default_bearer_in_sess(mme_sess_t *sess)

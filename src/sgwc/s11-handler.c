@@ -668,6 +668,11 @@ void sgwc_s11_handle_delete_session_request(
         }
     }
 
+    if ((NULL != sess) && (NULL == sess->gnode)) {
+        ogs_error("sess does not have gnode!");
+        cause_value = OGS_GTP2_CAUSE_NETWORK_FAILURE;
+    }
+
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
         ogs_gtp_send_error_message(
                 s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,

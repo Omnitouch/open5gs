@@ -357,6 +357,11 @@ static void pfcp_restoration(ogs_pfcp_node_t *node)
     sgwu_sess_t *sess = NULL, *next = NULL;
 
     ogs_list_for_each_safe(&sgwu_self()->sess_list, next, sess) {
+        if (NULL == sgwu_sess_cycle(sess)) {
+            ogs_error("Found a sess that doesn't exist");
+            continue;
+        }
+
         if (node == sess->pfcp_node) {
             ogs_info("DELETION: F-SEID[UP:0x%lx CP:0x%lx]",
                 (long)sess->sgwu_sxa_seid, (long)sess->sgwc_sxa_f_seid.seid);
