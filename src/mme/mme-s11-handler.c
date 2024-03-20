@@ -841,10 +841,6 @@ void mme_s11_handle_create_bearer_request(
         ogs_error("No TFT");
         cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
     }
-    if (req->procedure_transaction_id.presence == 0) {
-        ogs_error("No PTI");
-        cause_value = OGS_GTP2_CAUSE_CONDITIONAL_IE_MISSING;
-    }
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
         ogs_gtp2_send_error_message(xact, sgw_ue ? sgw_ue->sgw_s11_teid : 0,
@@ -1017,11 +1013,6 @@ void mme_s11_handle_update_bearer_request(
                 cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
             }
         }
-    }
-
-    if (req->procedure_transaction_id.presence == 0) {
-        ogs_error("No PTI");
-        cause_value = OGS_GTP2_CAUSE_CONDITIONAL_IE_MISSING;
     }
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
@@ -1208,10 +1199,6 @@ void mme_s11_handle_delete_bearer_request(
             ogs_error("No Linked EBI or EPS Bearer ID");
             cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
         }
-    }
-    if (req->procedure_transaction_id.presence == 0) {
-        ogs_error("No PTI");
-        cause_value = OGS_GTP2_CAUSE_CONDITIONAL_IE_MISSING;
     }
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
