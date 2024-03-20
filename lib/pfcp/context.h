@@ -495,6 +495,7 @@ ogs_pfcp_far_t *pfcp_far_cycle(ogs_pfcp_far_t *far);
 ogs_pfcp_urr_t *pfcp_urr_cycle(ogs_pfcp_urr_t *urr);
 ogs_pfcp_qer_t *pfcp_qer_cycle(ogs_pfcp_qer_t *qer);
 ogs_pfcp_rule_t *pfcp_rule_cycle(ogs_pfcp_rule_t *rule);
+ogs_pfcp_subnet_t *pfcp_subnet_cycle(ogs_pfcp_subnet_t *subnet);
 
 #ifdef __cplusplus
 }

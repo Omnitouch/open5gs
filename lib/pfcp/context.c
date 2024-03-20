@@ -2122,15 +2122,15 @@ void ogs_pfcp_ue_ip_free(ogs_pfcp_ue_ip_t *ue_ip)
     ogs_pfcp_subnet_t *subnet = NULL;
 
     ogs_assert(ue_ip);
-    subnet = ue_ip->subnet;
-
-    ogs_assert(subnet);
+    subnet = pfcp_subnet_cycle(ue_ip->subnet);
 
     if (ue_ip->static_ip) {
         ogs_free(ue_ip);
-    } else {
+    } else if (NULL != subnet) {
         memset(ue_ip, 0, sizeof(*ue_ip));
         ogs_pool_free(&subnet->pool, ue_ip);
+    } else {
+        ogs_warn("ue ip wasn't static AND it didn't have a valid subnet...");
     }
 }
 
@@ -2329,4 +2329,9 @@ ogs_pfcp_qer_t *pfcp_qer_cycle(ogs_pfcp_qer_t *qer)
 ogs_pfcp_rule_t *pfcp_rule_cycle(ogs_pfcp_rule_t *rule)
 {
     return ogs_pool_cycle(&ogs_pfcp_rule_pool, rule);
+}
+
+ogs_pfcp_subnet_t *pfcp_subnet_cycle(ogs_pfcp_subnet_t *subnet)
+{
+    return ogs_pool_cycle(&ogs_pfcp_subnet_pool, subnet);
 }

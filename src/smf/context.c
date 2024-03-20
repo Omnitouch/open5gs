@@ -1124,7 +1124,10 @@ smf_ue_t *smf_ue_add_by_imsi(uint8_t *imsi, int imsi_len)
 
 void smf_ue_remove(smf_ue_t *smf_ue)
 {
-    ogs_assert(smf_ue);
+    if (NULL == smf_ue_cycle(smf_ue)) {
+        ogs_error("Trying to remove a smf_ue that has already been removed!");
+        return;
+    }
 
     ogs_list_remove(&self.smf_ue_list, smf_ue);
 
@@ -1748,8 +1751,12 @@ void smf_sess_remove(smf_sess_t *sess)
     char buf1[OGS_ADDRSTRLEN];
     char buf2[OGS_ADDRSTRLEN];
 
-    ogs_assert(sess);
-    smf_ue = sess->smf_ue;
+    if (NULL == smf_sess_cycle(sess)) {
+        ogs_error("Trying to remove a sess that doesn't exist!");
+        return;
+    }
+
+    smf_ue = smf_ue_cycle(sess->smf_ue);
     ogs_assert(smf_ue);
 
     ogs_info("Removed Session: UE IMSI:[%s] DNN:[%s:%d] IPv4:[%s] IPv6:[%s]",
@@ -2422,6 +2429,11 @@ smf_bearer_t *smf_qos_flow_find_by_qfi(smf_sess_t *sess, uint8_t qfi)
 
     ogs_assert(sess);
     ogs_list_for_each(&sess->bearer_list, qos_flow) {
+        if (NULL == smf_bearer_cycle(qos_flow)) {
+            ogs_error("Found invalid bearer in sess->bearer_list");
+            break;
+        }
+
         if (qos_flow->qfi == qfi)
             return qos_flow;
     }
@@ -2438,6 +2450,11 @@ smf_bearer_t *smf_qos_flow_find_by_pcc_rule_id(
     ogs_assert(pcc_rule_id);
 
     ogs_list_for_each(&sess->bearer_list, qos_flow) {
+        if (NULL == smf_bearer_cycle(qos_flow)) {
+            ogs_error("Found invalid bearer in sess->bearer_list");
+            break;
+        }
+
         if (qos_flow->pcc_rule.id &&
             strcmp(qos_flow->pcc_rule.id, pcc_rule_id) == 0)
             return qos_flow;
@@ -2580,8 +2597,13 @@ smf_bearer_t *smf_bearer_add(smf_sess_t *sess)
 
 int smf_bearer_remove(smf_bearer_t *bearer)
 {
+    if (NULL == smf_bearer_cycle(bearer)) {
+        ogs_error("Trying to remove a bearer that doesn't exist");
+        return OGS_OK;
+    }
+
     ogs_assert(bearer);
-    ogs_assert(bearer->sess);
+    ogs_assert(smf_sess_cycle(bearer->sess));
 
     ogs_list_remove(&bearer->sess->bearer_list, bearer);
 
@@ -2641,6 +2663,11 @@ smf_bearer_t *smf_bearer_find_by_pgw_s5u_teid(
     ogs_assert(sess);
 
     ogs_list_for_each(&sess->bearer_list, bearer) {
+        if (NULL == smf_bearer_cycle(bearer)) {
+            ogs_error("Found invalid bearer in sess->bearer_list");
+            break;
+        }
+
         if (bearer->pgw_s5u_teid == pgw_s5u_teid)
             return bearer;
     }
@@ -2655,6 +2682,11 @@ smf_bearer_t *smf_bearer_find_by_ebi(smf_sess_t *sess, uint8_t ebi)
     ogs_assert(sess);
 
     ogs_list_for_each(&sess->bearer_list, bearer) {
+        if (NULL == smf_bearer_cycle(bearer)) {
+            ogs_error("Found invalid bearer in sess->bearer_list");
+            break;
+        }
+        
         if (bearer->ebi == ebi)
             return bearer;
     }
@@ -2671,6 +2703,11 @@ smf_bearer_t *smf_bearer_find_by_pcc_rule_name(
     ogs_assert(pcc_rule_name);
 
     ogs_list_for_each(&sess->bearer_list, bearer) {
+        if (NULL == smf_bearer_cycle(bearer)) {
+            ogs_error("Found invalid bearer in sess->bearer_list");
+            break;
+        }
+
         if (bearer->pcc_rule.name &&
             strcmp(bearer->pcc_rule.name, pcc_rule_name) == 0)
             return bearer;
@@ -2687,6 +2724,11 @@ smf_bearer_t *smf_bearer_find_by_pdr_id(
     ogs_assert(sess);
 
     ogs_list_for_each(&sess->bearer_list, bearer) {
+        if (NULL == smf_bearer_cycle(bearer)) {
+            ogs_error("Found invalid bearer in sess->bearer_list");
+            break;
+        }
+
         ogs_pfcp_pdr_t *dl_pdr = NULL;
         ogs_pfcp_pdr_t *ul_pdr = NULL;
 
