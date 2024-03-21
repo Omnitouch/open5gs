@@ -347,7 +347,11 @@ void sgwc_sxa_handle_session_establishment_response(
 
         rv = ogs_gtp_connect(
                 ogs_gtp_self()->gtpc_sock, ogs_gtp_self()->gtpc_sock6, pgw);
-        ogs_assert(rv == OGS_OK);
+
+        if (rv != OGS_OK) {
+            ogs_error("Failed to connect to PGW!");
+            return;
+        }
     }
     /* Setup GTP Node */
     OGS_SETUP_GTP_NODE(sess, pgw);
