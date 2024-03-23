@@ -2335,3 +2335,8 @@ ogs_pfcp_subnet_t *pfcp_subnet_cycle(ogs_pfcp_subnet_t *subnet)
 {
     return ogs_pool_cycle(&ogs_pfcp_subnet_pool, subnet);
 }
+
+ogs_pfcp_node_t *pfcp_node_cycle(ogs_pfcp_node_t *node)
+{
+    return ogs_pool_cycle(&ogs_pfcp_node_pool, node);
+}

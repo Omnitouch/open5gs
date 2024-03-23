@@ -105,7 +105,11 @@ int ogs_pfcp_sendto(ogs_pfcp_node_t *node, ogs_pkbuf_t *pkbuf)
     ogs_sock_t *sock = NULL;
     ogs_sockaddr_t *addr = NULL;
 
-    ogs_assert(node);
+    if (NULL == pfcp_node_cycle(node)) {
+        ogs_error("Node doesn't exist anymore!");
+        return OGS_ERROR;
+    }
+
     ogs_assert(pkbuf);
     sock = node->sock;
     ogs_assert(sock);

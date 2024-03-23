@@ -1446,7 +1446,7 @@ void sgwc_s11_handle_create_indirect_data_forwarding_tunnel_request(
             continue;
         }
 
-        ogs_assert(OGS_OK ==
+        ogs_expect(OGS_OK ==
             sgwc_pfcp_send_session_modification_request(
                 sess, s11_xact, gtpbuf,
                 OGS_PFCP_MODIFY_INDIRECT|OGS_PFCP_MODIFY_CREATE));
