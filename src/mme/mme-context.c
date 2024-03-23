@@ -2961,11 +2961,15 @@ void enb_ue_remove(enb_ue_t *enb_ue)
 {
     mme_enb_t *enb = NULL;
 
-    ogs_assert(enb_ue);
-    enb = enb_ue->enb;
-    ogs_assert(enb);
+    if (NULL == enb_ue_cycle(enb_ue)) {
+        ogs_error("Trying to remove an enb_ue that doesn't exist!");
+        return;
+    }
 
-    ogs_list_remove(&enb->enb_ue_list, enb_ue);
+    enb = mme_enb_cycle(enb_ue->enb);
+    if (NULL != enb) {
+        ogs_list_remove(&enb->enb_ue_list, enb_ue);
+    }
 
     ogs_assert(enb_ue->t_s1_holding);
     ogs_timer_delete(enb_ue->t_s1_holding);

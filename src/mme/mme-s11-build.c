@@ -425,7 +425,7 @@ ogs_pkbuf_t *mme_s11_build_modify_bearer_request(
     ogs_debug("Modifty Bearer Request");
 
     ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
+    sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
     ogs_assert(sgw_ue);
     ogs_assert(ogs_list_count(&mme_ue->bearer_to_modify_list));
 
@@ -439,6 +439,13 @@ ogs_pkbuf_t *mme_s11_build_modify_bearer_request(
     i = 0;
     ogs_list_for_each_entry(
             &mme_ue->bearer_to_modify_list, bearer, to_modify_node) {
+        int rv;
+        bearer = mme_bearer_cycle(bearer);
+        if (NULL == bearer) {
+            ogs_error("There was an invalid bearer in the mme_ue bearer_to_modify_list!");
+            continue;
+        }
+
         ogs_assert(i < OGS_BEARER_PER_UE);
 
         ogs_debug("    ENB_S1U_TEID[%d] SGW_S1U_TEID[%d]",
@@ -453,8 +460,12 @@ ogs_pkbuf_t *mme_s11_build_modify_bearer_request(
         memset(&enb_s1u_teid[i], 0, sizeof(ogs_gtp2_f_teid_t));
         enb_s1u_teid[i].interface_type = OGS_GTP2_F_TEID_S1_U_ENODEB_GTP_U;
         enb_s1u_teid[i].teid = htobe32(bearer->enb_s1u_teid);
-        ogs_assert(OGS_OK == ogs_gtp2_ip_to_f_teid(
-            &bearer->enb_s1u_ip, &enb_s1u_teid[i], &enb_s1u_len[i]));
+        rv = ogs_gtp2_ip_to_f_teid(
+            &bearer->enb_s1u_ip, &enb_s1u_teid[i], &enb_s1u_len[i]);
+        if (OGS_OK != rv) {
+            ogs_error("Failed to get a valid IP from bearer in the mme_ue bearer_to_modify_list!");
+            continue;
+        }
         req->bearer_contexts_to_be_modified[i].s1_u_enodeb_f_teid.presence = 1;
         req->bearer_contexts_to_be_modified[i].s1_u_enodeb_f_teid.data =
             &enb_s1u_teid[i];
@@ -468,8 +479,18 @@ ogs_pkbuf_t *mme_s11_build_modify_bearer_request(
     memset(&indication, 0, sizeof(ogs_gtp2_indication_t));
     ogs_list_for_each_entry(
             &mme_ue->bearer_to_modify_list, bearer, to_modify_node) {
-        mme_sess_t *sess = bearer->sess;
-        ogs_assert(sess);
+
+        bearer = mme_bearer_cycle(bearer);
+        if (NULL == bearer) {
+            ogs_error("There was an invalid bearer in the mme_ue bearer_to_modify_list!");
+            continue;
+        }
+
+        mme_sess_t *sess = mme_sess_cycle(bearer->sess);
+        if (NULL == sess) {
+            ogs_error("The bearer is refering to an invalid sess!");
+            continue;
+        }
 
         if (sess->request_type.value == OGS_NAS_EPS_REQUEST_TYPE_HANDOVER) {
             indication.handover_indication = 1;

@@ -3098,7 +3098,7 @@ void s1ap_handle_handover_notification(
     tAC = &TAI->tAC;
     ogs_assert(tAC && tAC->size == sizeof(uint16_t));
 
-    source_ue = target_ue->source_ue;
+    source_ue = enb_ue_cycle(target_ue->source_ue);
     if (!source_ue) {
         ogs_error("No Source UE");
         r = s1ap_send_error_indication(enb, MME_UE_S1AP_ID, ENB_UE_S1AP_ID,
@@ -3108,7 +3108,7 @@ void s1ap_handle_handover_notification(
         return;
     }
 
-    mme_ue = source_ue->mme_ue;
+    mme_ue = mme_ue_cycle(source_ue->mme_ue);
     if (!mme_ue) {
         ogs_error("No UE(mme-ue) context");
         return;
