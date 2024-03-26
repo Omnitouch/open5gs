@@ -2159,7 +2159,18 @@ ogs_pkbuf_t *s1ap_build_handover_request(
             mme_ue->ambr.downlink);
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found sess that doesn't exist in mme_ue->sess_list!");
+            continue;
+        }
+
         ogs_list_for_each(&sess->bearer_list, bearer) {
+
+            if (NULL == mme_bearer_cycle(bearer)) {
+                ogs_error("Found bearer that doesn't exist in sess->bearer_list!");
+                continue;
+            }
 
             S1AP_E_RABToBeSetupItemHOReqIEs_t *item = NULL;
             S1AP_E_RABToBeSetupItemHOReq_t *e_rab = NULL;
@@ -2210,7 +2221,7 @@ ogs_pkbuf_t *s1ap_build_handover_request(
 
             rv = ogs_asn_ip_to_BIT_STRING(
                     &bearer->sgw_s1u_ip, &e_rab->transportLayerAddress);
-            ogs_assert(rv == OGS_OK);
+            ogs_expect(rv == OGS_OK);
             ogs_asn_uint32_to_OCTET_STRING(
                     bearer->sgw_s1u_teid, &e_rab->gTP_TEID);
             ogs_debug("    SGW-S1U-TEID[%d]", bearer->sgw_s1u_teid);

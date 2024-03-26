@@ -109,7 +109,10 @@ int ogs_gtp_sendto(ogs_gtp_node_t *gnode, ogs_pkbuf_t *pkbuf)
     ogs_assert(gnode);
     ogs_assert(pkbuf);
     sock = gnode->sock;
-    ogs_assert(sock);
+    if (NULL == sock) {
+        ogs_error("GTP socket doesn't exist!");
+        return OGS_ERROR;
+    }
     addr = &gnode->addr;
     ogs_assert(addr);
 

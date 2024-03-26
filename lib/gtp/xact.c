@@ -616,6 +616,7 @@ static int ogs_gtp_xact_update_rx(ogs_gtp_xact_t *xact, uint8_t type)
 
 int ogs_gtp_xact_commit(ogs_gtp_xact_t *xact)
 {
+    int rv;
     char buf[OGS_ADDRSTRLEN];
 
     uint8_t type;
@@ -720,10 +721,10 @@ int ogs_gtp_xact_commit(ogs_gtp_xact_t *xact)
 
     pkbuf = xact->seq[xact->step-1].pkbuf;
     ogs_assert(pkbuf);
+    rv = ogs_gtp_sendto(xact->gnode, pkbuf);
+    ogs_expect(OGS_OK == rv);
 
-    ogs_expect(OGS_OK == ogs_gtp_sendto(xact->gnode, pkbuf));
-
-    return OGS_OK;
+    return rv;
 }
 
 static void response_timeout(void *data)

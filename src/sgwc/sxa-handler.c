@@ -474,7 +474,11 @@ void sgwc_sxa_handle_session_establishment_response(
 
     rv = ogs_gtp_xact_commit(s5c_xact);
     ogs_expect(rv == OGS_OK);
-    sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_ESTABLISHPFCPSESSIONSUCC);
+    if (OGS_OK == rv) {
+        sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_ESTABLISHPFCPSESSIONSUCC);
+    } else {
+        sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_ESTABLISHPFCPSESSIONFAIL);
+    }
 }
 
 void sgwc_sxa_handle_session_modification_response(

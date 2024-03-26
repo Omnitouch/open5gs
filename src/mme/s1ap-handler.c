@@ -2402,7 +2402,7 @@ void s1ap_handle_handover_required(mme_enb_t *enb, ogs_s1ap_message_t *message)
         return;
     }
 
-    mme_ue = source_ue->mme_ue;
+    mme_ue = mme_ue_cycle(source_ue->mme_ue);
     if (!mme_ue) {
         ogs_error("No UE(mme-ue) context");
         return;
