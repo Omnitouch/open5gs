@@ -65,6 +65,7 @@ void sgwu_sxa_handle_session_establishment_request(
 
     cause_value = OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
 
+    sess = sgwu_sess_cycle(sess);
     if (!sess) {
         ogs_error("No Context");
         ogs_pfcp_send_error_message(xact, 0,
@@ -189,6 +190,7 @@ void sgwu_sxa_handle_session_modification_request(
 
     cause_value = OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
 
+    sess = sgwu_sess_cycle(sess);
     if (!sess) {
         ogs_error("No Context");
         ogs_pfcp_send_error_message(xact, 0,

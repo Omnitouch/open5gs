@@ -727,7 +727,7 @@ void sgwc_bearer_remove_all(sgwc_sess_t *sess)
     ogs_list_for_each_safe(&sess->bearer_list, next_bearer, bearer) {
         if (NULL == sgwc_bearer_cycle(bearer)) {
             ogs_error("Found invalid bearer in bearer_list");
-            continue;
+            break;
         }
 
         sgwc_bearer_remove(bearer);
@@ -959,10 +959,16 @@ sgwc_tunnel_t *sgwc_tunnel_add(
 
 int sgwc_tunnel_remove(sgwc_tunnel_t *tunnel)
 {
-    ogs_assert(tunnel);
-    ogs_assert(tunnel->bearer);
+    if (NULL == sgwc_tunnel_cycle(tunnel)) {
+        ogs_error("Cannot remove a tunnel that doesn't exist!");
+        return OGS_OK;
+    }
 
-    ogs_list_remove(&tunnel->bearer->tunnel_list, tunnel);
+    if (NULL == sgwc_bearer_cycle(tunnel->bearer)) {
+        ogs_error("Tunnel refers to a bearer that doesn't exist!");
+    } else {
+        ogs_list_remove(&tunnel->bearer->tunnel_list, tunnel);
+    }
 
     ogs_pfcp_pdr_remove(tunnel->pdr);
     ogs_pfcp_far_remove(tunnel->far);
@@ -979,11 +985,21 @@ int sgwc_tunnel_remove(sgwc_tunnel_t *tunnel)
 
 void sgwc_tunnel_remove_all(sgwc_bearer_t *bearer)
 {
+    if (NULL == sgwc_bearer_cycle(bearer)) {
+        ogs_error("Cannot remove tunnels from a bearer that doesn't exist!");
+        return;
+    }
+
     sgwc_tunnel_t *tunnel = NULL, *next_tunnel = NULL;
 
-    ogs_assert(bearer);
-    ogs_list_for_each_safe(&bearer->tunnel_list, next_tunnel, tunnel)
+    ogs_list_for_each_safe(&bearer->tunnel_list, next_tunnel, tunnel) {
+        if (NULL == sgwc_tunnel_cycle(tunnel)) {
+            ogs_error("Found invalid tunnel in tunnel_list");
+            break;
+        }
+
         sgwc_tunnel_remove(tunnel);
+    }
 }
 
 sgwc_tunnel_t *sgwc_tunnel_find_by_teid(sgwc_ue_t *sgwc_ue, uint32_t teid)
@@ -1079,6 +1095,11 @@ sgwc_tunnel_t *sgwc_ul_tunnel_in_bearer(sgwc_bearer_t *bearer)
     ogs_assert(bearer);
     return sgwc_tunnel_find_by_interface_type(bearer,
             OGS_GTP2_F_TEID_S1_U_SGW_GTP_U);
+}
+
+sgwc_tunnel_t *sgwc_tunnel_cycle(sgwc_tunnel_t *sgwc_tunnel)
+{
+    return ogs_pool_cycle(&sgwc_tunnel_pool, sgwc_tunnel);
 }
 
 static void stats_add_sgwc_session(void)

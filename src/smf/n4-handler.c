@@ -275,6 +275,7 @@ void smf_5gc_n4_handle_session_modification_response(
 
     status = OGS_SBI_HTTP_STATUS_OK;
 
+    sess = smf_sess_cycle(sess);
     if (!sess) {
         ogs_error("No Context");
         status = OGS_SBI_HTTP_STATUS_NOT_FOUND;

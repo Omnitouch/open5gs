@@ -1364,7 +1364,7 @@ ogs_pfcp_far_t *ogs_pfcp_far_find(
     ogs_list_for_each(&sess->far_list, far) {
         if (NULL == pfcp_far_cycle(far)) {
             ogs_error("Found a FAR that doesn't exist anymore!");
-            continue;
+            break;
         }
 
         if (far->id == id) return far;
@@ -1537,7 +1537,7 @@ ogs_pfcp_far_t *ogs_pfcp_far_find_by_pfcp_session_report(
     ogs_list_for_each(&sess->far_list, far) {
         if (NULL == pfcp_far_cycle(far)) {
             ogs_error("Found a FAR that doesn't exist anymore!");
-            continue;
+            break;
         }
 
         if (teid == far->outer_header_creation.teid)

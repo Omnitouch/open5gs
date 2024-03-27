@@ -729,9 +729,25 @@ void sgwc_sxa_handle_session_modification_response(
                     *gtp_rsp = NULL;
 
                 ogs_list_for_each(&sgwc_ue->sess_list, sess) {
+                    if (NULL == sgwc_sess_cycle(sess)) {
+                        ogs_error("Found invalid sess in sess_list");
+                        break;
+                    }
+
                     ogs_list_for_each(&sess->bearer_list, bearer) {
+                        if (NULL == sgwc_bearer_cycle(bearer)) {
+                            ogs_error("Found invalid bearer in bearer_list");
+                            break;
+                        }
+
                         ogs_list_for_each_safe(&bearer->tunnel_list,
                                 next_tunnel, tunnel) {
+
+                            if (NULL == sgwc_tunnel_cycle(tunnel)) {
+                                ogs_error("Found invalid tunnel in tunnel_list");
+                                break;
+                            }
+
                             if (tunnel->interface_type ==
                             OGS_GTP2_F_TEID_SGW_GTP_U_FOR_DL_DATA_FORWARDING ||
                                 tunnel->interface_type ==
