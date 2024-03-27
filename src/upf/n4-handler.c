@@ -134,8 +134,11 @@ void upf_n4_handle_session_establishment_request(
     /* PFCPSEReq-Flags */
     if (sereq_flags.restoration_indication == 1) {
         for (i = 0; i < num_of_created_pdr; i++) {
-            pdr = created_pdr[i];
-            ogs_assert(pdr);
+            pdr = pfcp_pdr_cycle(created_pdr[i]);
+            if (NULL == pdr) {
+                ogs_error("created_pdr[%i] doesn't exist!", i);
+                continue;
+            }
 
             if (pdr->f_teid_len)
                 ogs_pfcp_pdr_swap_teid(pdr);

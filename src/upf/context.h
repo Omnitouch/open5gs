@@ -155,6 +155,8 @@ void upf_sess_urr_acc_fill_usage_report(upf_sess_t *sess, const ogs_pfcp_urr_t *
 void upf_sess_urr_acc_snapshot(upf_sess_t *sess, ogs_pfcp_urr_t *urr);
 void upf_sess_urr_acc_timers_setup(upf_sess_t *sess, ogs_pfcp_urr_t *urr);
 
+upf_sess_t *upf_sess_cycle(upf_sess_t *upf_sess);
+
 #ifdef __cplusplus
 }
 #endif

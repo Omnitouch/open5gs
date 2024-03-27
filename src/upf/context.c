@@ -211,7 +211,10 @@ upf_sess_t *upf_sess_add(ogs_pfcp_f_seid_t *cp_f_seid)
 
 int upf_sess_remove(upf_sess_t *sess)
 {
-    ogs_assert(sess);
+    if (NULL == upf_sess_cycle(sess)) {
+        ogs_error("Trying to remove a UPF sess that doesn't exist!");
+        return OGS_OK;
+    }
 
     upf_sess_urr_acc_remove_all(sess);
 
@@ -264,7 +267,7 @@ void upf_sess_remove_all(void)
 
 upf_sess_t *upf_sess_find_by_smf_n4_seid(uint64_t seid)
 {
-    return ogs_hash_get(self.smf_n4_seid_hash, &seid, sizeof(seid));
+    return upf_sess_cycle(ogs_hash_get(self.smf_n4_seid_hash, &seid, sizeof(seid)));
 }
 
 upf_sess_t *upf_sess_find_by_smf_n4_f_seid(ogs_pfcp_f_seid_t *f_seid)
@@ -278,12 +281,12 @@ upf_sess_t *upf_sess_find_by_smf_n4_f_seid(ogs_pfcp_f_seid_t *f_seid)
     ogs_assert(OGS_OK == ogs_pfcp_f_seid_to_ip(f_seid, &key.ip));
     key.seid = f_seid->seid;
 
-    return ogs_hash_get(self.smf_n4_f_seid_hash, &key, sizeof(key));
+    return upf_sess_cycle(ogs_hash_get(self.smf_n4_f_seid_hash, &key, sizeof(key)));
 }
 
 upf_sess_t *upf_sess_find_by_upf_n4_seid(uint64_t seid)
 {
-    return ogs_hash_get(self.upf_n4_seid_hash, &seid, sizeof(seid));
+    return upf_sess_cycle(ogs_hash_get(self.upf_n4_seid_hash, &seid, sizeof(seid)));
 }
 
 upf_sess_t *upf_sess_find_by_ipv4(uint32_t addr)
@@ -297,7 +300,7 @@ upf_sess_t *upf_sess_find_by_ipv4(uint32_t addr)
 
     ret = ogs_hash_get(self.ipv4_hash, &addr, OGS_IPV4_LEN);
     if (ret)
-        return ret;
+        return upf_sess_cycle(ret);
 
     for (i =  0; i <= nbits; i++) {
         int bit = nbits - i - 1;
@@ -314,7 +317,7 @@ upf_sess_t *upf_sess_find_by_ipv4(uint32_t addr)
         else
             trie = trie->left;
     }
-    return ret;
+    return upf_sess_cycle(ret);
 }
 
 upf_sess_t *upf_sess_find_by_ipv6(uint32_t *addr6)
@@ -329,7 +332,7 @@ upf_sess_t *upf_sess_find_by_ipv6(uint32_t *addr6)
     ret = ogs_hash_get(
             self.ipv6_hash, addr6, OGS_IPV6_DEFAULT_PREFIX_LEN >> 3);
     if (ret)
-        return ret;
+        return upf_sess_cycle(ret);
 
     for (i = 0; i <= OGS_IPV6_128_PREFIX_LEN; i++) {
         int part = i / chunk_size;
@@ -347,7 +350,7 @@ upf_sess_t *upf_sess_find_by_ipv6(uint32_t *addr6)
         else
             trie = trie->left;
     }
-    return ret;
+    return upf_sess_cycle(ret);
 }
 
 upf_sess_t *upf_sess_add_by_message(ogs_pfcp_message_t *message)
@@ -375,7 +378,7 @@ upf_sess_t *upf_sess_add_by_message(ogs_pfcp_message_t *message)
     }
     ogs_assert(sess);
 
-    return sess;
+    return upf_sess_cycle(sess);
 }
 
 uint8_t upf_sess_set_ue_ip(upf_sess_t *sess,
@@ -863,4 +866,9 @@ static void upf_sess_urr_acc_remove_all(upf_sess_t *sess)
             sess->urr_acc[i].t_time_threshold = NULL;
         }
     }
+}
+
+upf_sess_t *upf_sess_cycle(upf_sess_t *upf_sess)
+{
+    return ogs_pool_cycle(&upf_sess_pool, upf_sess);
 }

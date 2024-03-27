@@ -167,11 +167,14 @@ uint8_t smf_s5c_handle_create_session_request(
         cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
     }
 
+    smf_ue = smf_ue_cycle(sess->smf_ue);
+    if (NULL == smf_ue) {
+        ogs_error("No Context");
+        cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+    }
+
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED)
         return cause_value;
-
-    smf_ue = sess->smf_ue;
-    ogs_assert(smf_ue);
 
     /* Set MSISDN: */
     /* TS 29.274 sec 8.11, TS 29.002 ISDN-AddressString  */

@@ -1586,7 +1586,7 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
     uint8_t cause_value = OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
 
     ogs_assert(sess);
-    smf_ue = sess->smf_ue;
+    smf_ue = smf_ue_cycle(sess->smf_ue);
     ogs_assert(smf_ue);
 
     if (sess->session.session_type == OGS_PDU_SESSION_TYPE_IPV4V6) {
