@@ -253,12 +253,14 @@ int sgwc_gtp_send_downlink_data_notification(
     ogs_gtp2_header_t h;
     ogs_pkbuf_t *pkbuf = NULL;
 
-    ogs_assert(bearer);
+    sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
+    sgwc_ue = sess ? sgwc_ue_cycle(bearer->sgwc_ue) : NULL;
 
-    sess = bearer->sess;
-    ogs_assert(sess);
-    sgwc_ue = bearer->sgwc_ue;
-    ogs_assert(sgwc_ue);
+    if (NULL == sgwc_ue) {
+        ogs_error("No context, could not get sess and sgwc_ue from bearer");
+        return OGS_ERROR;
+    }
+
     ogs_assert(sgwc_ue->gnode);
 
     ogs_debug("Downlink Data Notification");

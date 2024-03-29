@@ -977,6 +977,11 @@ void sgwc_sxa_handle_session_modification_response(
                     ogs_assert(bearer);
 
                     ogs_list_for_each(&bearer->tunnel_list, tunnel) {
+                        if (NULL == sgwc_tunnel_cycle(tunnel)) {
+                            ogs_error("Found tunnel in bearer->tunnel_list that doesn't exist");
+                            break;
+                        }
+
                         if (tunnel->interface_type ==
                             OGS_GTP2_F_TEID_SGW_GTP_U_FOR_DL_DATA_FORWARDING) {
 
@@ -1273,19 +1278,21 @@ void sgwc_sxa_handle_session_modification_response(
     } else if (flags & OGS_PFCP_MODIFY_DEACTIVATE) {
         if (flags & OGS_PFCP_MODIFY_ERROR_INDICATION) {
             /* It's faked method for receiving `bearer` context */
-            bearer = pfcp_xact->assoc_xact;
-            ogs_assert(bearer);
+            bearer = sgwc_bearer_cycle(pfcp_xact->assoc_xact);
 
-            ogs_pfcp_xact_commit(pfcp_xact);
+            if (NULL != bearer) {
+                ogs_pfcp_xact_commit(pfcp_xact);
 
-            ogs_assert(flags & OGS_PFCP_MODIFY_SESSION);
-            if (SGWC_SESSION_SYNC_DONE(sgwc_ue,
-                    OGS_PFCP_SESSION_MODIFICATION_REQUEST_TYPE, flags)) {
-                ogs_assert(OGS_OK ==
-                    sgwc_gtp_send_downlink_data_notification(
-                        OGS_GTP2_CAUSE_ERROR_INDICATION_RECEIVED, bearer));
+                ogs_assert(flags & OGS_PFCP_MODIFY_SESSION);
+                if (SGWC_SESSION_SYNC_DONE(sgwc_ue,
+                        OGS_PFCP_SESSION_MODIFICATION_REQUEST_TYPE, flags)) {
+                    ogs_assert(OGS_OK ==
+                        sgwc_gtp_send_downlink_data_notification(
+                            OGS_GTP2_CAUSE_ERROR_INDICATION_RECEIVED, bearer));
+                }
+            } else {
+                ogs_error("Bearer doesn't exist!");
             }
-
         } else {
             s11_xact = pfcp_xact->assoc_xact;
             ogs_assert(s11_xact);
@@ -1550,7 +1557,17 @@ void sgwc_sxa_handle_session_report_request(
         pdr_id = pfcp_req->downlink_data_report.pdr_id.u16;
 
         ogs_list_for_each(&sess->bearer_list, bearer) {
+            if (NULL == sgwc_bearer_cycle(bearer)) {
+                ogs_error("Found an invalid bearer in sess->bearer_list");
+                break;
+            }
+
             ogs_list_for_each(&bearer->tunnel_list, tunnel) {
+                if (NULL == sgwc_tunnel_cycle(tunnel)) {
+                    ogs_error("Found an invalid tunnel in bearer->tunnel_list");
+                    break;
+                }
+
                 if (NULL == pfcp_pdr_cycle(tunnel->pdr)) {
                     ogs_error("PDR does not exist");
                     continue;
