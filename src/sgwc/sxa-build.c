@@ -176,7 +176,19 @@ ogs_pkbuf_t *sgwc_sxa_build_bearer_to_modify_list(
 
     ogs_list_for_each_entry(
             &xact->bearer_to_modify_list, bearer, to_modify_node) {
+
+            if (NULL == sgwc_bearer_cycle(bearer)) {
+                ogs_error("Bearer in xact->bearer_to_modify_list does't exist");
+                break;
+            }
+
         ogs_list_for_each(&bearer->tunnel_list, tunnel) {
+
+            if (NULL == sgwc_tunnel_cycle(tunnel)) {
+                ogs_error("Tunnel in bearer->tunnel_list does't exist");
+                break;
+            }
+
             if (((modify_flags &
                   (OGS_PFCP_MODIFY_DL_ONLY|
                    OGS_PFCP_MODIFY_UL_ONLY|

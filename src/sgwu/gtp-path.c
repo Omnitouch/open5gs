@@ -293,10 +293,10 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
             
             ogs_assert(pdr);
             
-            sess = SGWU_SESS(pdr->sess);
+            sess = sgwu_sess_cycle(SGWU_SESS(pdr->sess));
             ogs_assert(sess);
 
-            far = pdr->far;
+            far = pfcp_far_cycle(pdr->far);
             ogs_assert(far);
 
             /* Check if FAR is Uplink */
@@ -304,8 +304,14 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
                 is_uplink = true;
             }
 
-            for (i = 0; i < pdr->num_of_urr; i++)
-                sgwu_sess_urr_acc_add(sess, pdr->urr[i], gtpu_data_length, is_uplink);
+            for (i = 0; i < pdr->num_of_urr; i++) {
+                ogs_pfcp_urr_t *urr = pdr->urr[i];
+                if (NULL != pfcp_urr_cycle(urr)) {
+                    sgwu_sess_urr_acc_add(sess, urr, gtpu_data_length, is_uplink);
+                } else {
+                    ogs_error("URR does not exist!");
+                }
+            }
 
             break;
         case OGS_PFCP_OBJ_SESS_TYPE:

@@ -164,6 +164,11 @@ ogs_pfcp_xact_t *ogs_pfcp_xact_cycle(ogs_pfcp_xact_t *xact)
 
 void ogs_pfcp_xact_delete_all(ogs_pfcp_node_t *node)
 {
+    if (NULL == pfcp_node_cycle(node)) {
+        ogs_error("Cannot delete from a node that doesn't exist");
+        return;
+    }
+
     ogs_pfcp_xact_t *xact = NULL, *next_xact = NULL;
 
     ogs_list_for_each_safe(&node->local_list, next_xact, xact)

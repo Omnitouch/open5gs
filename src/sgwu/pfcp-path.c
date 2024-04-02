@@ -23,14 +23,17 @@ static void pfcp_node_fsm_init(ogs_pfcp_node_t *node, bool try_to_assoicate)
 {
     sgwu_event_t e;
 
+    node = pfcp_node_cycle(node);
     ogs_assert(node);
 
     memset(&e, 0, sizeof(e));
     e.pfcp_node = node;
 
     if (try_to_assoicate == true) {
-        node->t_association = ogs_timer_add(ogs_app()->timer_mgr,
+        if (NULL == node->t_association) {
+            node->t_association = ogs_timer_add(ogs_app()->timer_mgr,
                 sgwu_timer_association, node);
+        }
         ogs_assert(node->t_association);
     }
 

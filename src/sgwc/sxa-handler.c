@@ -1590,12 +1590,12 @@ void sgwc_sxa_handle_session_report_request(
         if (far) {
             tunnel = sgwc_tunnel_find_by_far_id(sess, far->id);
             ogs_assert(tunnel);
-            bearer = tunnel->bearer;
+            bearer = sgwc_bearer_cycle(tunnel->bearer);
             ogs_assert(bearer);
             if (far->dst_if == OGS_PFCP_INTERFACE_ACCESS) {
                 ogs_warn("[%s] Error Indication from eNB", sgwc_ue->imsi_bcd);
                 ogs_list_for_each(&sgwc_ue->sess_list, sess) {
-                    ogs_assert(OGS_OK ==
+                    ogs_expect(OGS_OK ==
                         sgwc_pfcp_send_session_modification_request(sess,
                     /* We only use the `assoc_xact` parameter temporarily here
                      * to pass the `bearer` context. */

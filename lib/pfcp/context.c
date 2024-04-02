@@ -771,7 +771,10 @@ ogs_pfcp_node_t *ogs_pfcp_node_new(ogs_sockaddr_t *sa_list)
 
 void ogs_pfcp_node_free(ogs_pfcp_node_t *node)
 {
-    ogs_assert(node);
+    if (NULL == pfcp_node_cycle(node)) {
+        ogs_error("Trying to free a node that doesn't exist");
+        return;
+    }
 
     ogs_gtpu_resource_remove_all(&node->gtpu_resource_list);
 
@@ -811,6 +814,12 @@ ogs_pfcp_node_t *ogs_pfcp_node_find(
     ogs_assert(addr);
 
     ogs_list_for_each(list, node) {
+        node = pfcp_node_cycle(node);
+        if (NULL == node) {
+            ogs_error("Node does not exist");
+            break;
+        }
+
         if (ogs_sockaddr_is_equal(&node->addr, addr) == true)
             break;
     }

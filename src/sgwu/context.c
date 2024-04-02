@@ -410,7 +410,12 @@ static void sgwu_sess_urr_acc_timers_cb(void *data)
 
     ogs_pfcp_user_plane_report_t report;
     ogs_pfcp_sess_t *pfcp_sess = urr->sess;
-    sgwu_sess_t *sess = SGWU_SESS(pfcp_sess);
+    sgwu_sess_t *sess = sgwu_sess_cycle(SGWU_SESS(pfcp_sess));
+
+    if (NULL == sess) {
+        ogs_fatal("sess doesn't exist");
+        return;
+    }
 
     ogs_debug("sgwu_time_threshold_cb() triggered!");
 
@@ -439,9 +444,11 @@ static void sgwu_sess_urr_acc_validity_time_setup(sgwu_sess_t *sess, ogs_pfcp_ur
 
     ogs_debug("Installing URR Quota Validity Time timer");
     urr_acc->reporting_enabled = true;
-    if (!urr_acc->t_validity_time)
+    if (NULL == urr_acc->t_validity_time) {
         urr_acc->t_validity_time = ogs_timer_add(ogs_app()->timer_mgr,
                                         sgwu_sess_urr_acc_timers_cb, urr);
+    }
+    ogs_assert(urr_acc->t_validity_time);
     ogs_timer_start(urr_acc->t_validity_time,
             ogs_time_from_sec(urr->quota_validity_time));
 }
@@ -452,9 +459,11 @@ static void sgwu_sess_urr_acc_time_quota_setup(sgwu_sess_t *sess, ogs_pfcp_urr_t
 
     ogs_debug("Installing URR Time Quota timer");
     urr_acc->reporting_enabled = true;
-    if (!urr_acc->t_time_quota)
+    if (NULL == urr_acc->t_time_quota) {
         urr_acc->t_time_quota = ogs_timer_add(ogs_app()->timer_mgr,
                                         sgwu_sess_urr_acc_timers_cb, urr);
+    }
+    ogs_assert(urr_acc->t_time_quota);
     ogs_timer_start(urr_acc->t_time_quota, ogs_time_from_sec(urr->time_quota));
 }
 
@@ -464,9 +473,11 @@ static void sgwu_sess_urr_acc_time_threshold_setup(sgwu_sess_t *sess, ogs_pfcp_u
 
     ogs_debug("Installing URR Time Threshold timer (%i s)", urr->time_threshold);
     urr_acc->reporting_enabled = true;
-    if (!urr_acc->t_time_threshold)
+    if (NULL == urr_acc->t_time_threshold) {
         urr_acc->t_time_threshold = ogs_timer_add(ogs_app()->timer_mgr,
                                         sgwu_sess_urr_acc_timers_cb, urr);
+    }
+    ogs_assert(urr_acc->t_time_threshold);
     ogs_timer_start(urr_acc->t_time_threshold,
             ogs_time_from_sec(urr->time_threshold));
 }

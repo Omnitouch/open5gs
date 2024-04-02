@@ -40,8 +40,10 @@ void sgwu_pfcp_state_initial(ogs_fsm_t *s, sgwu_event_t *e)
             ogs_pfcp_self()->pfcp_sock, ogs_pfcp_self()->pfcp_sock6, node);
     ogs_assert(rv == OGS_OK);
 
-    node->t_no_heartbeat = ogs_timer_add(ogs_app()->timer_mgr,
-            sgwu_timer_no_heartbeat, node);
+    if (NULL == node->t_no_heartbeat) {
+        node->t_no_heartbeat = ogs_timer_add(ogs_app()->timer_mgr,
+                sgwu_timer_no_heartbeat, node);
+    }
     ogs_assert(node->t_no_heartbeat);
 
     OGS_FSM_TRAN(s, &sgwu_pfcp_state_will_associate);
@@ -169,7 +171,7 @@ void sgwu_pfcp_state_associated(ogs_fsm_t *s, sgwu_event_t *e)
 
     sgwu_sm_debug(e);
 
-    node = e->pfcp_node;
+    node = pfcp_node_cycle(e->pfcp_node);
     ogs_assert(node);
     addr = node->sa_list;
     ogs_assert(addr);
