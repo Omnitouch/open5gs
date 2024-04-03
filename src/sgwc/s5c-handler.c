@@ -103,7 +103,10 @@ void sgwc_s5c_handle_create_session_response(
      ********************/
     ogs_assert(s5c_xact);
     s11_xact = s5c_xact->assoc_xact;
-    ogs_assert(s11_xact);
+    if (NULL == s11_xact) {
+        ogs_error("s11_xact was NULL");
+        return;
+    }
 
     rv = ogs_gtp_xact_commit(s5c_xact);
     ogs_expect(rv == OGS_OK);

@@ -307,7 +307,9 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
                 }
                 up_f_seid = rsp->up_f_seid.data;
                 ogs_assert(up_f_seid);
-                sess->sgwu_sxa_seid = be64toh(up_f_seid->seid);
+                if (NULL != sess) {
+                    sess->sgwu_sxa_seid = be64toh(up_f_seid->seid);
+                }
             } else {
                 sgwc_sxa_handle_session_establishment_response(
                     sess, xact, e->gtp_message,

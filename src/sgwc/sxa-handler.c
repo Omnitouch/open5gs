@@ -1501,7 +1501,7 @@ void sgwc_sxa_handle_session_report_request(
      *
      * - Session could be deleted before a message is received from SMF.
      ************************/
-    if (!sess) {
+    if (!sgwc_sess_cycle(sess)) {
         ogs_error("No Context");
         cause_value = OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND;
     }
@@ -1587,11 +1587,14 @@ void sgwc_sxa_handle_session_report_request(
     } else if (report_type.error_indication_report) {
         far = ogs_pfcp_far_find_by_pfcp_session_report(
                 &sess->pfcp, &pfcp_req->error_indication_report);
-        if (far) {
-            tunnel = sgwc_tunnel_find_by_far_id(sess, far->id);
-            ogs_assert(tunnel);
-            bearer = sgwc_bearer_cycle(tunnel->bearer);
-            ogs_assert(bearer);
+        tunnel = far ? sgwc_tunnel_find_by_far_id(sess, far->id) : NULL;
+        bearer = tunnel ? sgwc_bearer_cycle(tunnel->bearer) : NULL;
+
+        if (NULL == bearer) {
+            ogs_error("Could not find bearer from given FAR");
+        }
+
+        if (far && tunnel && bearer) {
             if (far->dst_if == OGS_PFCP_INTERFACE_ACCESS) {
                 ogs_warn("[%s] Error Indication from eNB", sgwc_ue->imsi_bcd);
                 ogs_list_for_each(&sgwc_ue->sess_list, sess) {

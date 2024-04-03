@@ -1084,7 +1084,7 @@ sgwc_tunnel_t *sgwc_tunnel_find_by_far_id(
             far = pfcp_far_cycle(tunnel->far);
             if (NULL == far) {
                 ogs_error("FAR does not exist");
-                continue;
+                break;
             }
 
             if (far->id == far_id) return tunnel;
