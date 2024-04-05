@@ -252,6 +252,11 @@ uint8_t smf_s5c_handle_create_session_request(
     sess->session.session_type = sess->ue_session_type;
     rv = ogs_gtp2_paa_to_ip(paa, &sess->session.ue_ip);
     ogs_assert(rv == OGS_OK);
+    if (ue_ipv4_addr_assigned(sess->session.ue_ip.addr)) {
+        ogs_warn("PAA contained an IPv4 that has already been assigned to another UE!");
+        /* Clobber back to 0 so we get address dynamically assigned in ogs_pfcp_ue_ip_alloc */
+        sess->session.ue_ip.addr = 0;
+    }
 
     ogs_assert(OGS_PFCP_CAUSE_REQUEST_ACCEPTED == smf_sess_set_ue_ip(sess));
 

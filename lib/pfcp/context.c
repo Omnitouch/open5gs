@@ -41,6 +41,8 @@ static OGS_POOL(ogs_pfcp_rule_pool, ogs_pfcp_rule_t);
 static OGS_POOL(ogs_pfcp_dev_pool, ogs_pfcp_dev_t);
 static OGS_POOL(ogs_pfcp_subnet_pool, ogs_pfcp_subnet_t);
 
+static ogs_pfcp_ue_ip_t *find_assigned_ue_ip(uint32_t addr[4]);
+
 void ogs_pfcp_context_init(void)
 {
     int i;
@@ -2108,6 +2110,7 @@ ogs_pfcp_ue_ip_t *ogs_pfcp_ue_ip_alloc(
 
     /* if assigning a static IP, do so. If not, assign dynamically! */
     if (memcmp(addr, zero, maxbytes) != 0) {
+        /* Static */
         ue_ip = ogs_calloc(1, sizeof(ogs_pfcp_ue_ip_t));
         if (!ue_ip) {
             ogs_error("All dynamic addresses are occupied");
@@ -2119,6 +2122,7 @@ ogs_pfcp_ue_ip_t *ogs_pfcp_ue_ip_alloc(
         ue_ip->static_ip = true;
         memcpy(ue_ip->addr, addr, maxbytes);
     } else {
+        /* Dynamic */
         ogs_pool_alloc(&subnet->pool, &ue_ip);
         if (!ue_ip) {
             ogs_error("No resources available");
@@ -2127,15 +2131,25 @@ ogs_pfcp_ue_ip_t *ogs_pfcp_ue_ip_alloc(
         }
     }
 
+    ogs_list_add(&self.assigned_addr_list, ue_ip);
+
     return ue_ip;
 }
 
 void ogs_pfcp_ue_ip_free(ogs_pfcp_ue_ip_t *ue_ip)
 {
     ogs_pfcp_subnet_t *subnet = NULL;
+    ogs_pfcp_ue_ip_t *assigned_addr = NULL;
 
     ogs_assert(ue_ip);
     subnet = pfcp_subnet_cycle(ue_ip->subnet);
+
+    assigned_addr = find_assigned_ue_ip(ue_ip->addr);
+    if (NULL != assigned_addr) {
+        ogs_list_remove(&self.assigned_addr_list, assigned_addr);
+    } else {
+        ogs_error("Could not find assigned address in assigned address list!");
+    }
 
     if (ue_ip->static_ip) {
         ogs_free(ue_ip);
@@ -2352,4 +2366,29 @@ ogs_pfcp_subnet_t *pfcp_subnet_cycle(ogs_pfcp_subnet_t *subnet)
 ogs_pfcp_node_t *pfcp_node_cycle(ogs_pfcp_node_t *node)
 {
     return ogs_pool_cycle(&ogs_pfcp_node_pool, node);
+}
+
+bool ue_ipv4_addr_assigned(uint32_t addr)
+{
+    ogs_pfcp_ue_ip_t *assigned_addr = NULL;
+
+    ogs_list_for_each(&self.assigned_addr_list, assigned_addr) {
+        if (assigned_addr->addr[0] == addr) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static ogs_pfcp_ue_ip_t *find_assigned_ue_ip(uint32_t addr[4])
+{
+    ogs_pfcp_ue_ip_t *assigned_addr = NULL;
+
+    ogs_list_for_each(&self.assigned_addr_list, assigned_addr) {
+        if (memcmp(&assigned_addr->addr, addr, sizeof(assigned_addr->addr)) != 0) {
+            return assigned_addr;
+        }
+    }
+    return NULL;
 }
