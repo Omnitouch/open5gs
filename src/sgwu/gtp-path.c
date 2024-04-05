@@ -297,7 +297,10 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
             ogs_assert(sess);
 
             far = pfcp_far_cycle(pdr->far);
-            ogs_assert(far);
+            if (NULL == far) {
+                ogs_error("FAR does not exist any more");
+                goto cleanup;
+            }
 
             /* Check if FAR is Uplink */
             if (far->dst_if == OGS_PFCP_INTERFACE_CORE) {
@@ -348,15 +351,23 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
             ogs_assert_if_reached();
         }
 
-        ogs_assert(pdr);
+        pdr = pfcp_pdr_cycle(pdr);
+        if (NULL == pdr) {
+            ogs_error("PDR doesn't exist!");
+            goto cleanup;
+        }
         ogs_assert(true == ogs_pfcp_up_handle_pdr(
                                 pdr, gtp_h->type, pkbuf, &report));
 
         if (report.type.downlink_data_report) {
             ogs_assert(pdr->sess);
+            sess = sgwu_sess_cycle(SGWU_SESS(pdr->sess));
+            if (NULL == sess) {
+                ogs_error("PDR doesn't have a valid sess!");
+                goto cleanup;
+            }
+
             ogs_assert(pdr->sess->obj.type == OGS_PFCP_OBJ_SESS_TYPE);
-            sess = SGWU_SESS(pdr->sess);
-            ogs_assert(sess);
 
             report.downlink_data.pdr_id = pdr->id;
             report.downlink_data.qfi = qfi; /* for 5GC */
