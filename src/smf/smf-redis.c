@@ -242,7 +242,7 @@ static bool pfcp_ue_ip_pool_to_redis(void)
             ue_ip = &subnet->pool.array[i];
             ogs_assert(ue_ip);
 
-            if (!redis_add_available_ip(ue_ip->addr[0], i)) {
+            if (!redis_add_available_ip(ue_ip->addr[0], i + 1)) {
                 return false;
             }
         }
