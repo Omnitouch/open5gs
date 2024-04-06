@@ -70,7 +70,6 @@ typedef struct ogs_pfcp_context_s {
 
     ogs_list_t      dev_list;       /* Tun Device List */
     ogs_list_t      subnet_list;    /* UE Subnet List */
-    ogs_list_t      assigned_addr_list; /* All the UE addresses that are currently in use */
 
     ogs_hash_t      *object_teid_hash; /* hash table for PFCP OBJ(TEID) */
     ogs_hash_t      *far_f_teid_hash;  /* hash table for FAR(TEID+ADDR) */
@@ -498,8 +497,6 @@ ogs_pfcp_qer_t *pfcp_qer_cycle(ogs_pfcp_qer_t *qer);
 ogs_pfcp_rule_t *pfcp_rule_cycle(ogs_pfcp_rule_t *rule);
 ogs_pfcp_subnet_t *pfcp_subnet_cycle(ogs_pfcp_subnet_t *subnet);
 ogs_pfcp_node_t *pfcp_node_cycle(ogs_pfcp_node_t *node);
-
-bool ue_ipv4_addr_assigned(uint32_t addr);
 
 #ifdef __cplusplus
 }
