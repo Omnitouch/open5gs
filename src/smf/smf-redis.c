@@ -342,6 +342,13 @@ static bool redis_get_reserved_ip(const char* imsi_bcd, const char* apn, uint32_
         return false;
     }
 
+    if(REDIS_REPLY_NIL == reply->type) {
+        /* Return true as the operation didn't fail, there as just no data
+         * AKA it was not reserved */
+        freeReplyObject(reply);
+        return true;
+    }
+
     if (REDIS_REPLY_STRING != reply->type) {
         freeReplyObject(reply);
         return false;
