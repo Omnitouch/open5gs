@@ -1458,6 +1458,17 @@ smf_sess_t *smf_sess_add_by_gtp2_message(ogs_gtp2_message_t *message)
     if (sess) {
         ogs_info("OLD Session Will Release [IMSI:%s,APN:%s]",
                 smf_ue->imsi_bcd, sess->session.name);
+
+        if (smf_self()->redis_ip_reuse.enabled) {
+            /* So that we dont get race conditions when deleting the sess after the response */
+            if (sess->ipv4) {
+                redis_ue_ip_free(smf_ue->imsi_bcd, sess->session.name, sess->ipv4->addr[0]);
+                ogs_hash_set(self.ipv4_hash, sess->ipv4->addr, OGS_IPV4_LEN, NULL);
+                ogs_pfcp_ue_ip_free(sess->ipv4);
+                sess->ipv4 = NULL;
+            }
+        }
+
         ogs_expect(OGS_OK ==
             smf_epc_pfcp_send_session_deletion_request(sess, NULL));
     }
@@ -1622,17 +1633,6 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
     if (sess->ipv4) {
         ogs_hash_set(smf_self()->ipv4_hash,
                 sess->ipv4->addr, OGS_IPV4_LEN, NULL);
-        if (smf_self()->redis_ip_reuse.enabled) {
-            if (!redis_ip_recycle(sess->smf_ue->imsi_bcd, sess->session.name, sess->ipv4->addr[0])) {
-                ogs_fatal("Failed to recycle IP");
-            } else {
-                char *recycled_ip_str = ogs_ipv4_to_string(sess->ipv4->addr[0]);
-                ogs_debug("IP '%s' has successfully entered the recycling process", recycled_ip_str);
-                ogs_free(recycled_ip_str);
-            }
-
-            ogs_debug("Number of available IPs on redis is now %i", redis_get_num_available_ips());
-        }
         ogs_pfcp_ue_ip_free(sess->ipv4);
     }
     if (sess->ipv6) {
@@ -1644,6 +1644,7 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
     if (sess->session.session_type == OGS_PDU_SESSION_TYPE_IPV4) {
         if (smf_self()->redis_ip_reuse.enabled) {
             sess->ipv4 = redis_ue_ip_alloc(sess->smf_ue->imsi_bcd, sess->session.name, sess->session.ue_ip.addr);
+            sess->session.ue_ip.addr = sess->ipv4->addr[0];
             ogs_debug("Number of available IPs on redis is now %i", redis_get_num_available_ips());
         } else {
             sess->ipv4 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET,
@@ -1676,6 +1677,7 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
     } else if (sess->session.session_type == OGS_PDU_SESSION_TYPE_IPV4V6) {
         if (smf_self()->redis_ip_reuse.enabled) {
             sess->ipv4 = redis_ue_ip_alloc(sess->smf_ue->imsi_bcd, sess->session.name, sess->session.ue_ip.addr);
+            sess->session.ue_ip.addr = sess->ipv4->addr[0];
             ogs_debug("Number of available IPs on redis is now %i", redis_get_num_available_ips());
         } else {
             sess->ipv4 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET,
@@ -1788,18 +1790,8 @@ void smf_sess_remove(smf_sess_t *sess)
             sizeof(sess->smf_n4_seid), NULL);
 
     if (sess->ipv4) {
+        redis_ue_ip_free(smf_ue->imsi_bcd, sess->session.name, sess->ipv4->addr[0]);
         ogs_hash_set(self.ipv4_hash, sess->ipv4->addr, OGS_IPV4_LEN, NULL);
-        if (smf_self()->redis_ip_reuse.enabled) {
-            if (!redis_ip_recycle(sess->smf_ue->imsi_bcd, sess->session.name, sess->ipv4->addr[0])) {
-                ogs_fatal("Failed to recycle IP");
-            } else {
-                char *recycled_ip_str = ogs_ipv4_to_string(sess->ipv4->addr[0]);
-                ogs_debug("IP '%s' has successfully entered the recycling process", recycled_ip_str);
-                ogs_free(recycled_ip_str);
-            }
-
-            ogs_debug("Number of available IPs on redis is now %i", redis_get_num_available_ips());
-        }
         ogs_pfcp_ue_ip_free(sess->ipv4);
     }
     if (sess->ipv6) {
