@@ -95,12 +95,7 @@ ogs_pfcp_ue_ip_t *redis_ue_ip_alloc(const char* imsi_bcd, const char* apn, uint3
         /* The UE is requesting a specific address via paa */
 
         /* Is the requested address one that we have a hold on? */
-        isSuccess = redis_get_temp_ip_hold(imsi_bcd, apn, &ipv4);
-        if (false == isSuccess) {
-            ogs_error("Something bad happened and redis was involved!");
-        }
-
-        if (paa_ip == ipv4) {
+        if (redis_get_temp_ip_hold(imsi_bcd, apn, &ipv4) && (paa_ip == ipv4)) {
             isSuccess = redis_remove_available_ip(ipv4);
             char *ip_str = ogs_ipv4_to_string(ipv4);
             ogs_debug("UE [%s:%s] has requested an address it had a hold on during holding interval, it will keep the IP '%s'", imsi_bcd, apn, ip_str);
@@ -108,8 +103,8 @@ ogs_pfcp_ue_ip_t *redis_ue_ip_alloc(const char* imsi_bcd, const char* apn, uint3
         } else {
             if (redis_ip_is_available(paa_ip)) {
                 /* If the address is available, then get it */
-                isSuccess = redis_remove_available_ip(ipv4);
-                char *ip_str = ogs_ipv4_to_string(ipv4);
+                isSuccess = redis_remove_available_ip(paa_ip);
+                char *ip_str = ogs_ipv4_to_string(paa_ip);
                 ogs_debug("UE [%s:%s] has rejoined during the holding interval, it will keep the IP '%s'", imsi_bcd, apn, ip_str);
                 ogs_free(ip_str);
             } else {
