@@ -2135,7 +2135,7 @@ ogs_pfcp_ue_ip_t *ogs_pfcp_ue_ip_alloc(
             /* Do an allocation ourselves */
             for (i = 0; i < subnet->pool.size; ++i) {
                 ogs_pool_alloc(&subnet->pool, &ue_ip);
-                if (NULL != ue_ip) {
+                if (NULL == ue_ip) {
                     ogs_error("No resources available");
                     *cause_value = OGS_PFCP_CAUSE_NO_RESOURCES_AVAILABLE;
                     return NULL;

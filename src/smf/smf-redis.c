@@ -14,6 +14,7 @@ static bool redis_set_temp_ip_hold(const char* imsi_bcd, const char* apn, uint32
 static bool redis_get_temp_ip_hold(const char* imsi_bcd, const char* apn, uint32_t* ipv4);
 static bool redis_remove_available_ip(uint32_t ipv4);
 static bool redis_add_available_ip(uint32_t ipv4, size_t available_time);
+static bool redis_ip_is_available(uint32_t ipv4);
 
 
 void smf_redis_init(void) {
@@ -77,7 +78,7 @@ bool redis_ip_recycle(const char* imsi_bcd, const char* apn, uint32_t ipv4) {
     return true;
 }
 
-ogs_pfcp_ue_ip_t *redis_ue_ip_alloc(const char* imsi_bcd, const char* apn) {
+ogs_pfcp_ue_ip_t *redis_ue_ip_alloc(const char* imsi_bcd, const char* apn, uint32_t paa_ip) {
     ogs_assert(imsi_bcd);
     ogs_assert(apn);
 
@@ -90,12 +91,43 @@ ogs_pfcp_ue_ip_t *redis_ue_ip_alloc(const char* imsi_bcd, const char* apn) {
     ogs_pfcp_ue_ip_t *ue_ip = NULL;
     uint32_t ipv4 = 0;
 
-    if (redis_get_temp_ip_hold(imsi_bcd, apn, &ipv4)) {
+    if (0 != paa_ip) {
+        /* The UE is requesting a specific address via paa */
+
+        /* Is the requested address one that we have a hold on? */
+        isSuccess = redis_get_temp_ip_hold(imsi_bcd, apn, &ipv4);
+        if (false == isSuccess) {
+            ogs_error("Something bad happened and redis was involved!");
+        }
+
+        if (paa_ip == ipv4) {
+            isSuccess = redis_remove_available_ip(ipv4);
+            char *ip_str = ogs_ipv4_to_string(ipv4);
+            ogs_debug("UE [%s:%s] has requested an address it had a hold on during holding interval, it will keep the IP '%s'", imsi_bcd, apn, ip_str);
+            ogs_free(ip_str);
+        } else {
+            if (redis_ip_is_available(paa_ip)) {
+                /* If the address is available, then get it */
+                isSuccess = redis_remove_available_ip(ipv4);
+                char *ip_str = ogs_ipv4_to_string(ipv4);
+                ogs_debug("UE [%s:%s] has rejoined during the holding interval, it will keep the IP '%s'", imsi_bcd, apn, ip_str);
+                ogs_free(ip_str);
+            } else {
+                /* Default back to a random IP */
+                isSuccess = redis_pop_available_ip(&ipv4);
+                char *ip_str = ogs_ipv4_to_string(ipv4);
+                ogs_debug("UE [%s:%s] could not get the address its requesting and instead has been given the IP '%s'", imsi_bcd, apn, ip_str);
+                ogs_free(ip_str);
+            }
+        }
+    } else if (redis_get_temp_ip_hold(imsi_bcd, apn, &ipv4)) {
+        /* This UE had a hold on an IP, lets give it back that same one */
         isSuccess = redis_remove_available_ip(ipv4);
         char *ip_str = ogs_ipv4_to_string(ipv4);
         ogs_debug("UE [%s:%s] has rejoined during the holding interval, it will keep the IP '%s'", imsi_bcd, apn, ip_str);
         ogs_free(ip_str);
     } else {
+        /*  */
         isSuccess = redis_pop_available_ip(&ipv4);
         char *ip_str = ogs_ipv4_to_string(ipv4);
         ogs_debug("UE [%s:%s] has not been seen recently and has been given the IP '%s'", imsi_bcd, apn, ip_str);
@@ -319,6 +351,37 @@ static bool redis_add_available_ip(uint32_t ipv4, size_t available_time) {
     }
 
     freeReplyObject(reply);
+    
+    return true;
+}
+
+static bool redis_ip_is_available(uint32_t ipv4) {
+    if (NULL == connection) {
+        ogs_error("Cannot call redis_ue_ip_alloc without a valid redis connection");
+        return false;
+    }
+    
+    redisReply *reply = redisCommand(connection, "ZSCORE %s %u", available_ip_record_key, ipv4);
+
+    if (NULL == reply) {
+        /* Got NULL response from redis, this address must not  be in the avaliable list */
+        return false;
+    }
+
+    if (REDIS_REPLY_STRING != reply->type) {
+        freeReplyObject(reply);
+        return false;
+    }
+
+    uint32_t available_time = (uint32_t)atoi(reply->str);
+    freeReplyObject(reply);
+    
+    time_t current_time_sec;
+    time(&current_time_sec);
+
+    if (current_time_sec < available_time) {
+        return false;
+    }
     
     return true;
 }

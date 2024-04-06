@@ -1643,7 +1643,7 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
 
     if (sess->session.session_type == OGS_PDU_SESSION_TYPE_IPV4) {
         if (smf_self()->redis_ip_reuse.enabled) {
-            sess->ipv4 = redis_ue_ip_alloc(sess->smf_ue->imsi_bcd, sess->session.name);
+            sess->ipv4 = redis_ue_ip_alloc(sess->smf_ue->imsi_bcd, sess->session.name, sess->session.ue_ip.addr);
             ogs_debug("Number of available IPs on redis is now %i", redis_get_num_available_ips());
         } else {
             sess->ipv4 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET,
@@ -1675,7 +1675,7 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
                 sess->ipv6->addr, OGS_IPV6_DEFAULT_PREFIX_LEN >> 3, sess);
     } else if (sess->session.session_type == OGS_PDU_SESSION_TYPE_IPV4V6) {
         if (smf_self()->redis_ip_reuse.enabled) {
-            sess->ipv4 = redis_ue_ip_alloc(sess->smf_ue->imsi_bcd, sess->session.name);
+            sess->ipv4 = redis_ue_ip_alloc(sess->smf_ue->imsi_bcd, sess->session.name, sess->session.ue_ip.addr);
             ogs_debug("Number of available IPs on redis is now %i", redis_get_num_available_ips());
         } else {
             sess->ipv4 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET,
