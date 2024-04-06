@@ -122,7 +122,7 @@ ogs_pfcp_ue_ip_t *redis_ue_ip_alloc(const char* imsi_bcd, const char* apn, uint3
         ogs_debug("Doing dynamic IP allocation");
         return redis_ue_ip_alloc_dynamic(imsi_bcd, apn);
     } else {
-        ogs_debug("Doing dynamic IP allocation");
+        ogs_debug("Doing static IP allocation");
         return redis_ue_ip_alloc_static(imsi_bcd, apn, requested_ipv4);
     }
 }
@@ -391,6 +391,11 @@ static bool redis_ip_is_reserved(uint32_t ipv4)
 
     if (NULL == reply) {
         ogs_error("Got NULL response from redis, something has gone terribly wrong");
+        return false;
+    }
+
+    if (REDIS_REPLY_STRING != reply->type) {
+        freeReplyObject(reply);
         return false;
     }
 
