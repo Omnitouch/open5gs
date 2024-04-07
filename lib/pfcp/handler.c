@@ -95,6 +95,8 @@ bool ogs_pfcp_cp_handle_association_setup_request(
 {
     int i;
 
+    ogs_debug("ogs_pfcp_cp_handle_association_setup_request");
+
     ogs_assert(xact);
     ogs_assert(node);
     ogs_assert(req);
@@ -144,6 +146,8 @@ bool ogs_pfcp_cp_handle_association_setup_response(
 {
     int i;
 
+    ogs_debug("ogs_pfcp_cp_handle_association_setup_response");
+
     ogs_assert(xact);
     ogs_pfcp_xact_commit(xact);
 
@@ -190,6 +194,8 @@ bool ogs_pfcp_up_handle_association_setup_request(
         ogs_pfcp_node_t *node, ogs_pfcp_xact_t *xact,
         ogs_pfcp_association_setup_request_t *req)
 {
+    ogs_debug("ogs_pfcp_up_handle_association_setup_request");
+
     ogs_assert(xact);
     ogs_pfcp_up_send_association_setup_response(
             xact, OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
@@ -206,6 +212,8 @@ bool ogs_pfcp_up_handle_association_setup_response(
         ogs_pfcp_node_t *node, ogs_pfcp_xact_t *xact,
         ogs_pfcp_association_setup_response_t *rsp)
 {
+    ogs_debug("ogs_pfcp_up_handle_association_setup_response");
+
     ogs_assert(xact);
     ogs_pfcp_xact_commit(xact);
 

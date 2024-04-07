@@ -33,8 +33,11 @@ void sgwc_pfcp_state_initial(ogs_fsm_t *s, sgwc_event_t *e)
 
     sgwc_sm_debug(e);
 
-    node = e->pfcp_node;
-    ogs_assert(node);
+    node = pfcp_node_cycle(e->pfcp_node);
+    if (NULL == node) {
+        ogs_error("Node is NULL");
+        return;
+    }
 
     rv = ogs_pfcp_connect(
             ogs_pfcp_self()->pfcp_sock, ogs_pfcp_self()->pfcp_sock6, node);
@@ -55,8 +58,11 @@ void sgwc_pfcp_state_final(ogs_fsm_t *s, sgwc_event_t *e)
 
     sgwc_sm_debug(e);
 
-    node = e->pfcp_node;
-    ogs_assert(node);
+    node = pfcp_node_cycle(e->pfcp_node);
+    if (NULL == node) {
+        ogs_error("Node is NULL");
+        return;
+    }
 
     ogs_timer_delete(node->t_no_heartbeat);
 }
@@ -76,8 +82,11 @@ void sgwc_pfcp_state_will_associate(ogs_fsm_t *s, sgwc_event_t *e)
 
     sgwc_sm_debug(e);
 
-    node = e->pfcp_node;
-    ogs_assert(node);
+    node = pfcp_node_cycle(e->pfcp_node);
+    if (NULL == node) {
+        ogs_error("Node is NULL");
+        return;
+    }
     addr = node->sa_list;
     ogs_assert(addr);
 
@@ -100,8 +109,11 @@ void sgwc_pfcp_state_will_associate(ogs_fsm_t *s, sgwc_event_t *e)
     case SGWC_EVT_SXA_TIMER:
         switch(e->timer_id) {
         case SGWC_TIMER_PFCP_ASSOCIATION:
-            node = e->pfcp_node;
-            ogs_assert(node);
+            node = pfcp_node_cycle(e->pfcp_node);
+            if (NULL == node) {
+                ogs_error("Node is NULL");
+                break;
+            }
 
             ogs_warn("Retry to association with peer [%s]:%d failed",
                         OGS_ADDR(addr, buf), OGS_PORT(addr));
@@ -173,8 +185,11 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
 
     sgwc_sm_debug(e);
 
-    node = e->pfcp_node;
-    ogs_assert(node);
+    node = pfcp_node_cycle(e->pfcp_node);
+    if (NULL == node) {
+        ogs_error("Node is NULL");
+        return;
+    }
     addr = node->sa_list;
     ogs_assert(addr);
 
@@ -350,8 +365,11 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
     case SGWC_EVT_SXA_TIMER:
         switch(e->timer_id) {
         case SGWC_TIMER_PFCP_NO_HEARTBEAT:
-            node = e->pfcp_node;
-            ogs_assert(node);
+            node = pfcp_node_cycle(e->pfcp_node);
+            if (NULL == node) {
+                ogs_error("Node is NULL");
+                break;
+            }
 
             ogs_assert(OGS_OK ==
                 ogs_pfcp_send_heartbeat_request(node, node_timeout));
@@ -427,6 +445,11 @@ static void node_timeout(ogs_pfcp_xact_t *xact, void *data)
 
     ogs_assert(xact);
     type = xact->seq[0].type;
+
+    if (NULL == pfcp_node_cycle(data)) {
+        ogs_error("node_timeout had invalid node");
+        return;
+    }
 
     switch (type) {
     case OGS_PFCP_HEARTBEAT_REQUEST_TYPE:
