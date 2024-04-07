@@ -119,10 +119,12 @@ bool redis_get_rand_p_cscf_ipv4(ogs_ipsubnet_t *p_cscf, const char *redis_key) {
 ogs_pfcp_ue_ip_t *redis_ue_ip_alloc(const char* imsi_bcd, const char* apn, uint32_t requested_ipv4)
 {
     if (0 == requested_ipv4) {
-        ogs_debug("Doing dynamic IP allocation");
+        ogs_debug("Trying dynamic IP allocation");
         return redis_ue_ip_alloc_dynamic(imsi_bcd, apn);
     } else {
-        ogs_debug("Doing static IP allocation");
+        char requested_ipv4_str[OGS_ADDRSTRLEN] = "";
+        ogs_ipv4_to_string_stack(requested_ipv4, requested_ipv4_str);
+        ogs_debug("Trying static IP allocation for '%s'", requested_ipv4_str);
         return redis_ue_ip_alloc_static(imsi_bcd, apn, requested_ipv4);
     }
 }

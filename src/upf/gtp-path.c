@@ -198,7 +198,7 @@ static void _gtpv1_tun_recv_common_cb(
     }
 
     if (!pdr)
-        pdr = fallback_pdr;
+        pdr = pfcp_pdr_cycle(fallback_pdr);
 
     if (!pdr) {
         if (ogs_app()->parameter.multicast) {
@@ -449,14 +449,23 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
         case OGS_PFCP_OBJ_PDR_TYPE:
             /* UPF does not use PDR TYPE */
             ogs_assert_if_reached();
-            pdr = (ogs_pfcp_pdr_t *)pfcp_object;
+            pdr = pfcp_pdr_cycle((ogs_pfcp_pdr_t *)pfcp_object);
             ogs_assert(pdr);
             break;
         case OGS_PFCP_OBJ_SESS_TYPE:
             pfcp_sess = (ogs_pfcp_sess_t *)pfcp_object;
             ogs_assert(pfcp_sess);
+            if (NULL == upf_sess_cycle(UPF_SESS(pfcp_sess))) {
+                ogs_error("PFCP cant exist");
+                break;
+            }
 
             ogs_list_for_each(&pfcp_sess->pdr_list, pdr) {
+                pdr = pfcp_pdr_cycle(pdr);
+                if (NULL == pdr) {
+                    ogs_info("Found a pdr that doesn't exist");
+                    break;
+                }
 
                 /* Check if Source Interface */
                 if (pdr->src_if != OGS_PFCP_INTERFACE_ACCESS &&
@@ -511,13 +520,21 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
 
         ogs_assert(pdr);
         ogs_assert(pdr->sess);
+        sess = upf_sess_cycle(UPF_SESS(pdr->sess));
+
+        if (NULL == sess) {
+            ogs_error("PFCP cant exist");
+            goto cleanup;
+        }
+
         ogs_assert(pdr->sess->obj.type == OGS_PFCP_OBJ_SESS_TYPE);
 
-        sess = UPF_SESS(pdr->sess);
-        ogs_assert(sess);
+        far = pfcp_far_cycle(pdr->far);
 
-        far = pdr->far;
-        ogs_assert(far);
+        if (NULL == far) {
+            ogs_error("FAR does't exist");
+            goto cleanup;
+        }
 
         if (ip_h->ip_v == 4 && sess->ipv4) {
             src_addr = (void *)&ip_h->ip_src.s_addr;
@@ -537,10 +554,18 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
                 } else if (check_framed_routes(sess, AF_INET, src_addr)) {
                     /* Or source IP address should match a framed route */
                 } else {
+                    char src_ip_str[OGS_ADDRSTRLEN] = "";
+                    char ue_ip_str[OGS_ADDRSTRLEN] = "";
+                    
                     ogs_error("[DROP] Source IP-%d Spoofing APN:%s SrcIf:%d DstIf:%d TEID:0x%x",
                                 ip_h->ip_v, pdr->dnn, pdr->src_if, far->dst_if, teid);
-                    ogs_error("       SRC:%08X, UE:%08X",
-                        be32toh(src_addr[0]), be32toh(sess->ipv4->addr[0]));
+
+                    ogs_ipv4_to_string_stack(src_addr[0], src_ip_str);
+                    ogs_ipv4_to_string_stack(sess->ipv4->addr[0], ue_ip_str);
+
+                    ogs_error("       SRC:'%s'(%08X), UE:'%s'(%08X)",
+                        src_ip_str, be32toh(src_addr[0]), 
+                        ue_ip_str, be32toh(sess->ipv4->addr[0]));
                     ogs_log_hexdump(OGS_LOG_ERROR, pkbuf->data, pkbuf->len);
 
                     goto cleanup;

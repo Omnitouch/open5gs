@@ -2106,55 +2106,20 @@ ogs_pfcp_ue_ip_t *ogs_pfcp_ue_ip_alloc(
         return NULL;
     }
 
+    /* if assigning a static IP, do so. If not, assign dynamically! */
     if (memcmp(addr, zero, maxbytes) != 0) {
-        ogs_info("Trying 'static' ip assignment");
-        bool address_is_available = false;
-        /* Trying for a static IP assignment */
-        int i = 0;
-        for (i = 0; i < subnet->pool.size; ++i) {
-            ogs_pfcp_ue_ip_t *free_ip = subnet->pool.free[i];
-            
-            if (NULL != free_ip) {
-                /* This is an available IP */
-                if (0 == memcmp(addr, free_ip->addr, maxbytes)) {
-                    /* We found a match, this address is in the free section of the pool and so it should be good to go */
-                    ogs_debug("Address is in the available list");
-                    address_is_available = true;
-                    break;
-                }
-            } else {
-                /* This address is in use and so its NULL */
-            }
+        /* Static */
+        ue_ip = ogs_calloc(1, sizeof(ogs_pfcp_ue_ip_t));
+        if (!ue_ip) {
+            ogs_error("All dynamic addresses are occupied");
+            *cause_value = OGS_PFCP_CAUSE_ALL_DYNAMIC_ADDRESS_ARE_OCCUPIED;
+            return NULL;
         }
 
-        if (false == address_is_available) {
-            /* Treat this as a dynamic allocation */
-            ogs_error("Cant assign a static address for an address thats not in the free list!");
-            memset(addr, 0, maxbytes);
-        } else {
-            /* Do an allocation ourselves */
-            for (i = 0; i < subnet->pool.size; ++i) {
-                ogs_pool_alloc(&subnet->pool, &ue_ip);
-                if (NULL == ue_ip) {
-                    ogs_error("No resources available");
-                    *cause_value = OGS_PFCP_CAUSE_NO_RESOURCES_AVAILABLE;
-                    return NULL;
-                }
-
-                if (0 == memcmp(addr, ue_ip->addr, maxbytes)) {
-                    /* We allocated the correct one, we're done here! */
-                    break;
-                } else {
-                    /* We allocated one without the IP we wanted... */
-                    ogs_pool_free(&subnet->pool, ue_ip);
-                    ue_ip = NULL;
-                }
-            }
-        }
-    }
-
-    /* If we havent assigned an address we need to */
-    if (NULL == ue_ip) {
+        ue_ip->subnet = subnet;
+        ue_ip->static_ip = true;
+        memcpy(ue_ip->addr, addr, maxbytes);
+    } else {
         /* Dynamic */
         ogs_pool_alloc(&subnet->pool, &ue_ip);
         if (!ue_ip) {
