@@ -557,7 +557,7 @@ void smf_s5c_handle_modify_bearer_request(
 
             memcpy(&bearer->sgw_s5u_ip, &remote_ip, sizeof(ogs_ip_t));
 
-            far = bearer->dl_far;
+            far = pfcp_far_cycle(bearer->dl_far);
             ogs_assert(far);
 
             far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
@@ -776,7 +776,7 @@ void smf_s5c_handle_create_bearer_response(
             sess->sgw_s5c_teid, sess->smf_n4_teid);
 
     /* Setup FAR */
-    dl_far = bearer->dl_far;
+    dl_far = pfcp_far_cycle(bearer->dl_far);
     ogs_assert(dl_far);
 
     dl_far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;

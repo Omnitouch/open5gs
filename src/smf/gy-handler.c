@@ -185,7 +185,7 @@ void smf_gy_handle_cca_update_request(
     bearer = smf_default_bearer_in_sess(sess);
     ogs_assert(bearer);
 
-    urr = bearer->urr;
+    urr = pfcp_urr_cycle(bearer->urr);
     ogs_assert(urr);
     prev_meas_method = urr->meas_method;
     prev_rep_triggers = urr->rep_triggers;

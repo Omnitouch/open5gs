@@ -562,7 +562,7 @@ bool smf_nsmf_handle_update_sm_context(
             sess->handover.prepared = false;
 
             ogs_list_for_each(&sess->bearer_list, qos_flow) {
-                ogs_pfcp_far_t *dl_far = qos_flow->dl_far;
+                ogs_pfcp_far_t *dl_far = pfcp_far_cycle(qos_flow->dl_far);
                 ogs_assert(dl_far);
 
                 if (dl_far->handover.prepared == true) {
@@ -609,7 +609,7 @@ bool smf_nsmf_handle_update_sm_context(
             sess->handover.prepared = false;
 
             ogs_list_for_each(&sess->bearer_list, qos_flow) {
-                ogs_pfcp_far_t *dl_far = qos_flow->dl_far;
+                ogs_pfcp_far_t *dl_far = pfcp_far_cycle(qos_flow->dl_far);
                 ogs_assert(dl_far);
 
                 dl_far->handover.prepared = false;

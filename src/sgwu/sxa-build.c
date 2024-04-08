@@ -197,6 +197,11 @@ ogs_pkbuf_t *sgwu_sxa_build_session_deletion_response(uint8_t type,
 
     memset(&report, 0, sizeof(report));
     ogs_list_for_each(&sess->pfcp.urr_list, urr) {
+        if (NULL == pfcp_urr_cycle(urr)) {
+            ogs_fatal("Found a URR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_assert(num_of_reports < OGS_ARRAY_SIZE(report.usage_report));
         sgwu_sess_urr_acc_fill_usage_report(sess, urr, &report, num_of_reports);
         report.usage_report[num_of_reports].rep_trigger.termination_report = 1;

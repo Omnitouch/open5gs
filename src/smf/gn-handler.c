@@ -491,7 +491,12 @@ void smf_gn_handle_update_pdp_context_request(
      * will be sent when UPF answers back this request
      */
      ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
-        ogs_pfcp_far_t *far = pdr->far;
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
+        ogs_pfcp_far_t *far = pfcp_far_cycle(pdr->far);
         ogs_assert(far);
 
         if (pdr->src_if != OGS_PFCP_INTERFACE_CORE ||

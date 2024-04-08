@@ -2141,6 +2141,11 @@ void smf_sess_create_indirect_data_forwarding(smf_sess_t *sess)
         ogs_pfcp_far_t *far = NULL;
         ogs_pfcp_qer_t *qer = NULL;
 
+        if (NULL == smf_bearer_cycle(qos_flow)) {
+            ogs_error("Found a bearer that does not exist");
+            break;
+        }
+
         ogs_assert(sess);
 
         pdr = ogs_pfcp_pdr_add(&sess->pfcp);
@@ -2177,7 +2182,7 @@ void smf_sess_create_indirect_data_forwarding(smf_sess_t *sess)
 
         far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
 
-        qer = qos_flow->qer;
+        qer = pfcp_qer_cycle(qos_flow->qer);
         ogs_assert(qer);
 
         ogs_pfcp_pdr_associate_qer(pdr, qer);
@@ -2281,8 +2286,12 @@ bool smf_sess_have_indirect_data_forwarding(smf_sess_t *sess)
     ogs_assert(sess);
 
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
-        ogs_pfcp_far_t *far = pdr->far;
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
 
+        ogs_pfcp_far_t *far = pfcp_far_cycle(pdr->far);
         ogs_assert(far);
 
         if ((pdr->src_if == OGS_PFCP_INTERFACE_ACCESS) &&
@@ -2301,7 +2310,12 @@ void smf_sess_delete_indirect_data_forwarding(smf_sess_t *sess)
     ogs_assert(sess);
 
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
-        ogs_pfcp_far_t *far = pdr->far;
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
+        ogs_pfcp_far_t *far = pfcp_far_cycle(pdr->far);
 
         ogs_assert(far);
 
@@ -2377,7 +2391,7 @@ void smf_sess_create_cp_up_data_forwarding(smf_sess_t *sess)
     ogs_assert(ogs_list_next(qos_flow) == NULL);
 
     /* We'll use the DL-FAR for CP2UP-FAR */
-    cp2up_far = qos_flow->dl_far;
+    cp2up_far = pfcp_far_cycle(qos_flow->dl_far);
     ogs_assert(cp2up_far);
     ogs_pfcp_pdr_associate_far(cp2up_pdr, cp2up_far);
     sess->cp2up_far = cp2up_far;
@@ -2730,9 +2744,9 @@ smf_bearer_t *smf_bearer_find_by_pdr_id(
         ogs_pfcp_pdr_t *dl_pdr = NULL;
         ogs_pfcp_pdr_t *ul_pdr = NULL;
 
-        dl_pdr = bearer->dl_pdr;
+        dl_pdr = pfcp_pdr_cycle(bearer->dl_pdr);
         ogs_assert(dl_pdr);
-        ul_pdr = bearer->ul_pdr;
+        ul_pdr = pfcp_pdr_cycle(bearer->ul_pdr);
         ogs_assert(ul_pdr);
 
         if (dl_pdr->id == pdr_id || ul_pdr->id == pdr_id)
@@ -2749,9 +2763,9 @@ void smf_bearer_tft_update(smf_bearer_t *bearer)
 
     ogs_assert(bearer);
 
-    dl_pdr = bearer->dl_pdr;
+    dl_pdr = pfcp_pdr_cycle(bearer->dl_pdr);
     ogs_assert(dl_pdr);
-    ul_pdr = bearer->ul_pdr;
+    ul_pdr = pfcp_pdr_cycle(bearer->ul_pdr);
     ogs_assert(ul_pdr);
 
     dl_pdr->num_of_flow = 0;
@@ -2784,12 +2798,12 @@ void smf_bearer_qos_update(smf_bearer_t *bearer)
     sess = bearer->sess;
     ogs_assert(sess);
 
-    dl_pdr = bearer->dl_pdr;
+    dl_pdr = pfcp_pdr_cycle(bearer->dl_pdr);
     ogs_assert(dl_pdr);
-    ul_pdr = bearer->ul_pdr;
+    ul_pdr = pfcp_pdr_cycle(bearer->ul_pdr);
     ogs_assert(ul_pdr);
 
-    qer = bearer->qer;
+    qer = pfcp_qer_cycle(bearer->qer);
     if (!qer) {
         qer = ogs_pfcp_qer_add(&sess->pfcp);
         ogs_assert(qer);

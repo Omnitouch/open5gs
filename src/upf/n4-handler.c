@@ -149,13 +149,18 @@ void upf_n4_handle_session_establishment_request(
 
     /* Setup GTP Node */
     ogs_list_for_each(&sess->pfcp.far_list, far) {
+        if (NULL == pfcp_far_cycle(far)) {
+            ogs_fatal("Found a FAR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_assert(OGS_ERROR != ogs_pfcp_setup_far_gtpu_node(far));
         if (far->gnode)
             ogs_pfcp_far_f_teid_hash_set(far);
     }
 
     for (i = 0; i < num_of_created_pdr; i++) {
-        pdr = created_pdr[i];
+        pdr = pfcp_pdr_cycle(created_pdr[i]);
         ogs_assert(pdr);
 
         /* Setup UE IP address */
@@ -193,6 +198,11 @@ void upf_n4_handle_session_establishment_request(
 
     /* Send Buffered Packet to gNB/SGW */
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         if (pdr->src_if == OGS_PFCP_INTERFACE_CORE) { /* Downlink */
             ogs_pfcp_send_buffered_packet(pdr);
         }
@@ -213,6 +223,7 @@ void upf_n4_handle_session_establishment_request(
 cleanup:
     upf_metrics_inst_by_cause_add(cause_value,
             UPF_METR_CTR_SM_N4SESSIONESTABFAIL, 1);
+    sess = upf_sess_cycle(sess);
     ogs_pfcp_sess_clear(&sess->pfcp);
     ogs_pfcp_send_error_message(xact, sess ? sess->smf_n4_f_seid.seid : 0,
             OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE,
@@ -291,15 +302,26 @@ void upf_n4_handle_session_modification_request(
 
     /* Send End Marker to gNB */
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         if (pdr->src_if == OGS_PFCP_INTERFACE_CORE) { /* Downlink */
-            far = pdr->far;
+            far = pfcp_far_cycle(pdr->far);
             if (far && far->smreq_flags.send_end_marker_packets)
                 ogs_assert(OGS_ERROR != ogs_pfcp_send_end_marker(pdr));
         }
     }
     /* Clear PFCPSMReq-Flags */
-    ogs_list_for_each(&sess->pfcp.far_list, far)
+    ogs_list_for_each(&sess->pfcp.far_list, far) {
+        if (NULL == pfcp_far_cycle(far)) {
+            ogs_fatal("Found a FAR that doesn't exist anymore!");
+            break;
+        }
+
         far->smreq_flags.value = 0;
+    }
 
     for (i = 0; i < OGS_MAX_NUM_OF_FAR; i++) {
         if (ogs_pfcp_handle_update_far(&sess->pfcp, &req->update_far[i],
@@ -377,13 +399,18 @@ void upf_n4_handle_session_modification_request(
 
     /* Setup GTP Node */
     ogs_list_for_each(&sess->pfcp.far_list, far) {
+        if (NULL == pfcp_far_cycle(far)) {
+            ogs_fatal("Found a FAR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_assert(OGS_ERROR != ogs_pfcp_setup_far_gtpu_node(far));
         if (far->gnode)
             ogs_pfcp_far_f_teid_hash_set(far);
     }
 
     for (i = 0; i < num_of_created_pdr; i++) {
-        pdr = created_pdr[i];
+        pdr = pfcp_pdr_cycle(created_pdr[i]);
         ogs_assert(pdr);
 
         /* Setup UPF-N3-TEID & QFI Hash */
@@ -393,6 +420,11 @@ void upf_n4_handle_session_modification_request(
 
     /* Send Buffered Packet to gNB/SGW */
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         if (pdr->src_if == OGS_PFCP_INTERFACE_CORE) { /* Downlink */
             ogs_pfcp_send_buffered_packet(pdr);
         }
@@ -409,6 +441,7 @@ void upf_n4_handle_session_modification_request(
     return;
 
 cleanup:
+    sess = upf_sess_cycle(sess);
     ogs_pfcp_sess_clear(&sess->pfcp);
     ogs_pfcp_send_error_message(xact, sess ? sess->smf_n4_f_seid.seid : 0,
             OGS_PFCP_SESSION_MODIFICATION_RESPONSE_TYPE,
@@ -437,7 +470,17 @@ void upf_n4_handle_session_deletion_request(
     upf_pfcp_send_session_deletion_response(xact, sess);
 
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_list_for_each(&sess->pfcp.qer_list, qer) {
+            if (NULL == pfcp_qer_cycle(qer)) {
+                ogs_fatal("Found a QER that doesn't exist anymore!");
+                break;
+            }
+
             upf_metrics_inst_by_dnn_add(sess->apn_dnn,
                     UPF_METR_GAUGE_UPF_QOSFLOWS, -1);
         }

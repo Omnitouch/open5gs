@@ -1024,8 +1024,8 @@ ogs_pfcp_pdr_t *ogs_pfcp_pdr_find(
 
     ogs_list_for_each(&sess->pdr_list, pdr) {
         if (NULL == pfcp_pdr_cycle(pdr)) {
-            ogs_error("Found a PDR that doesn't exist anymore!");
-            continue;
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
         }
         
         if (pdr->id == id) return pdr;
@@ -1174,6 +1174,11 @@ int ogs_pfcp_object_count_by_teid(ogs_pfcp_sess_t *sess, uint32_t teid)
     ogs_assert(sess);
 
     ogs_list_for_each(&sess->pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         if (pdr->f_teid.teid == teid) count++;
     }
 
@@ -1188,9 +1193,10 @@ ogs_pfcp_pdr_t *ogs_pfcp_pdr_find_by_choose_id(
     ogs_assert(sess);
 
     ogs_list_for_each(&sess->pdr_list, pdr) {
-        if (NULL == pfcp_pdr_cycle(pdr)) {
-            ogs_error("Found a PDR that doesn't exist anymore!");
-            continue;
+        pdr = pfcp_pdr_cycle(pdr);
+        if (NULL == pdr) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
         }
 
         if (pdr->chid == true && pdr->choose_id == choose_id)
@@ -1205,7 +1211,11 @@ void ogs_pfcp_pdr_reorder_by_precedence(
 {
     ogs_pfcp_sess_t *sess = NULL;
 
-    ogs_assert(pdr);
+    if (NULL == pfcp_pdr_cycle(pdr)) {
+        ogs_error("Cannot reorder a PDR that does not exist");
+        return;
+    }
+
     sess = pdr->sess;
     ogs_assert(sess);
 
@@ -1220,7 +1230,7 @@ void ogs_pfcp_pdr_associate_far(ogs_pfcp_pdr_t *pdr, ogs_pfcp_far_t *far)
     ogs_assert(pdr);
     ogs_assert(far);
 
-    pdr->far = far;
+    pdr->far = pfcp_far_cycle(far);
 }
 void ogs_pfcp_pdr_associate_urr(ogs_pfcp_pdr_t *pdr, ogs_pfcp_urr_t *urr)
 {
@@ -1242,20 +1252,23 @@ void ogs_pfcp_pdr_associate_qer(ogs_pfcp_pdr_t *pdr, ogs_pfcp_qer_t *qer)
     ogs_assert(pdr);
     ogs_assert(qer);
 
-    pdr->qer = qer;
+    pdr->qer = pfcp_qer_cycle(qer);
 }
 
 void ogs_pfcp_pdr_remove(ogs_pfcp_pdr_t *pdr)
 {
     int i;
+    ogs_pfcp_sess_t *sess;
 
     if (NULL == pfcp_pdr_cycle(pdr)) {
         ogs_error("Trying to remove a PDR that has already been removed!");
         return;
     }
-    ogs_assert(pdr->sess);
 
-    ogs_list_remove(&pdr->sess->pdr_list, pdr);
+    sess = pdr->sess;
+    ogs_assert(sess);
+
+    ogs_list_remove(&sess->pdr_list, pdr);
 
     ogs_pfcp_rule_remove_all(pdr);
 
@@ -1372,7 +1385,7 @@ ogs_pfcp_far_t *ogs_pfcp_far_find(
 
     ogs_list_for_each(&sess->far_list, far) {
         if (NULL == pfcp_far_cycle(far)) {
-            ogs_error("Found a FAR that doesn't exist anymore!");
+            ogs_fatal("Found a FAR that doesn't exist anymore!");
             break;
         }
 
@@ -1545,7 +1558,7 @@ ogs_pfcp_far_t *ogs_pfcp_far_find_by_pfcp_session_report(
 
     ogs_list_for_each(&sess->far_list, far) {
         if (NULL == pfcp_far_cycle(far)) {
-            ogs_error("Found a FAR that doesn't exist anymore!");
+            ogs_fatal("Found a FAR that doesn't exist anymore!");
             break;
         }
 
@@ -1680,8 +1693,8 @@ ogs_pfcp_urr_t *ogs_pfcp_urr_find(
 
     ogs_list_for_each(&sess->urr_list, urr) {
         if (NULL == pfcp_urr_cycle(urr)) {
-            ogs_error("Found a URR that doesn't exist anymore!");
-            continue;
+            ogs_fatal("Found a URR that doesn't exist anymore!");
+            break;
         }
 
         if (urr->id == id) return urr;
@@ -1788,8 +1801,8 @@ ogs_pfcp_qer_t *ogs_pfcp_qer_find(
 
     ogs_list_for_each(&sess->qer_list, qer) {
         if (NULL == pfcp_qer_cycle(qer)) {
-            ogs_error("Found a QER that doesn't exist anymore!");
-            continue;
+            ogs_fatal("Found a QER that doesn't exist anymore!");
+            break;
         }
 
         if (qer->id == id) return qer;
@@ -1903,7 +1916,7 @@ ogs_pfcp_rule_t *ogs_pfcp_rule_add(ogs_pfcp_pdr_t *pdr)
 {
     ogs_pfcp_rule_t *rule = NULL;
 
-    ogs_assert(pdr);
+    ogs_assert(pfcp_pdr_cycle(pdr));
 
     ogs_pool_alloc(&ogs_pfcp_rule_pool, &rule);
     ogs_assert(rule);
@@ -1925,14 +1938,14 @@ ogs_pfcp_rule_t *ogs_pfcp_rule_find_by_sdf_filter_id(
 
     ogs_list_for_each(&sess->pdr_list, pdr) {
         if (NULL == pfcp_pdr_cycle(pdr)) {
-            ogs_error("Found a PDR that doesn't exist anymore!");
-            continue;
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
         }
 
         ogs_list_for_each(&pdr->rule_list, rule) {
             if (NULL == pfcp_rule_cycle(rule)) {
-                ogs_error("Found a rule that doesn't exist anymore!");
-                continue;
+                ogs_fatal("Found a rule that doesn't exist anymore!");
+                break;
             }
 
             if (rule->bid && rule->sdf_filter_id == sdf_filter_id)

@@ -60,10 +60,6 @@ static ogs_inline void *ogs_list_last(const ogs_list_t *list)
 static ogs_inline void *ogs_list_next(void *lnode)
 {
     ogs_list_t *node = lnode;
-    if (node < (ogs_list_t*)0x10) {
-        /* Monkey patch to prevent frequent address sanitizer issue */
-        return NULL;
-    }
     return node->next;
 }
 

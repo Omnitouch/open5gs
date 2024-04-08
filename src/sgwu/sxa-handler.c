@@ -22,26 +22,6 @@
 #include "gtp-path.h"
 #include "sxa-handler.h"
 
-static void sgwu_sxa_handle_create_urr(sgwu_sess_t *sess, ogs_pfcp_tlv_create_urr_t *create_urr_arr,
-                              uint8_t *cause_value, uint8_t *offending_ie_value)
-{
-    int i;
-    ogs_pfcp_urr_t *urr;
-
-    *cause_value = OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
-
-    for (i = 0; i < OGS_MAX_NUM_OF_URR; i++) {
-        urr = ogs_pfcp_handle_create_urr(&sess->pfcp, &create_urr_arr[i],
-                    cause_value, offending_ie_value);
-        if (!urr)
-            return;
-        
-        /* TODO: enable counters somewhere else if ISTM not set, upon first pkt received */
-        if (urr->meas_info.istm) {
-            sgwu_sess_urr_acc_timers_setup(sess, urr);
-        }
-    }
-}
 
 void sgwu_sxa_handle_session_establishment_request(
         sgwu_sess_t *sess, ogs_pfcp_xact_t *xact, 
@@ -99,7 +79,11 @@ void sgwu_sxa_handle_session_establishment_request(
     if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED)
         goto cleanup;
 
-    sgwu_sxa_handle_create_urr(sess, &req->create_urr[0], &cause_value, &offending_ie_value);
+    for (i = 0; i < OGS_MAX_NUM_OF_URR; i++) {
+        if (ogs_pfcp_handle_create_urr(&sess->pfcp, &req->create_urr[i],
+                    &cause_value, &offending_ie_value) == NULL)
+            break;
+    }
     if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED)
         goto cleanup;
 
@@ -119,7 +103,7 @@ void sgwu_sxa_handle_session_establishment_request(
     /* PFCPSEReq-Flags */
     if (sereq_flags.restoration_indication == 1) {
         for (i = 0; i < num_of_created_pdr; i++) {
-            pdr = created_pdr[i];
+            pdr = pfcp_pdr_cycle(created_pdr[i]);
             ogs_assert(pdr);
 
             if (pdr->f_teid_len)
@@ -130,13 +114,18 @@ void sgwu_sxa_handle_session_establishment_request(
 
     /* Setup GTP Node */
     ogs_list_for_each(&sess->pfcp.far_list, far) {
+        if (NULL == pfcp_far_cycle(far)) {
+            ogs_fatal("Found a FAR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_assert(OGS_ERROR != ogs_pfcp_setup_far_gtpu_node(far));
         if (far->gnode)
             ogs_pfcp_far_f_teid_hash_set(far);
     }
 
     for (i = 0; i < num_of_created_pdr; i++) {
-        pdr = created_pdr[i];
+        pdr = pfcp_pdr_cycle(created_pdr[i]);
         ogs_assert(pdr);
 
         /* Setup TEID Hash */
@@ -147,6 +136,11 @@ void sgwu_sxa_handle_session_establishment_request(
 
     /* Send Buffered Packet to gNB */
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         if (pdr->src_if == OGS_PFCP_INTERFACE_CORE) { /* Downlink */
             ogs_pfcp_send_buffered_packet(pdr);
         }
@@ -164,6 +158,7 @@ void sgwu_sxa_handle_session_establishment_request(
     return;
 
 cleanup:
+    sess = sgwu_sess_cycle(sess);
     ogs_pfcp_sess_clear(&sess->pfcp);
     ogs_pfcp_send_error_message(xact, sess ? sess->sgwu_sxa_seid : 0,
             OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE,
@@ -260,23 +255,36 @@ void sgwu_sxa_handle_session_modification_request(
     if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED)
         goto cleanup;
 
-    sgwu_sxa_handle_create_urr(sess, &req->create_urr[0], &cause_value, &offending_ie_value);
-    if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
-        ogs_error("Failed to handle create URR!");
-        goto cleanup;
+    for (i = 0; i < OGS_MAX_NUM_OF_URR; i++) {
+        if (ogs_pfcp_handle_create_urr(&sess->pfcp, &req->create_urr[i],
+                    &cause_value, &offending_ie_value) == NULL)
+            break;
     }
+    if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED)
+        goto cleanup;
 
     /* Send End Marker to gNB */
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         if (pdr->src_if == OGS_PFCP_INTERFACE_CORE) { /* Downlink */
-            far = pdr->far;
+            far = pfcp_far_cycle(pdr->far);
             if (far && far->smreq_flags.send_end_marker_packets)
                 ogs_assert(OGS_ERROR != ogs_pfcp_send_end_marker(pdr));
         }
     }
     /* Clear PFCPSMReq-Flags */
-    ogs_list_for_each(&sess->pfcp.far_list, far)
+    ogs_list_for_each(&sess->pfcp.far_list, far) {
+        if (NULL == pfcp_far_cycle(far)) {
+            ogs_fatal("Found a FAR that doesn't exist anymore!");
+            break;
+        }
+
         far->smreq_flags.value = 0;
+    }
 
     for (i = 0; i < OGS_MAX_NUM_OF_FAR; i++) {
         if (ogs_pfcp_handle_update_far(&sess->pfcp, &req->update_far[i],
@@ -330,13 +338,18 @@ void sgwu_sxa_handle_session_modification_request(
 
     /* Setup GTP Node */
     ogs_list_for_each(&sess->pfcp.far_list, far) {
+        if (NULL == pfcp_far_cycle(far)) {
+            ogs_fatal("Found a FAR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_assert(OGS_ERROR != ogs_pfcp_setup_far_gtpu_node(far));
         if (far->gnode)
             ogs_pfcp_far_f_teid_hash_set(far);
     }
 
     for (i = 0; i < num_of_created_pdr; i++) {
-        pdr = created_pdr[i];
+        pdr = pfcp_pdr_cycle(created_pdr[i]);
         ogs_assert(pdr);
 
         /* Setup TEID Hash */
@@ -346,6 +359,11 @@ void sgwu_sxa_handle_session_modification_request(
 
     /* Send Buffered Packet to gNB */
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         if (pdr->src_if == OGS_PFCP_INTERFACE_CORE) { /* Downlink */
             ogs_pfcp_send_buffered_packet(pdr);
         }
@@ -362,6 +380,7 @@ void sgwu_sxa_handle_session_modification_request(
     return;
 
 cleanup:
+    sess = sgwu_sess_cycle(sess);
     ogs_pfcp_sess_clear(&sess->pfcp);
     ogs_pfcp_send_error_message(xact, sess ? sess->sgwu_sxa_seid : 0,
             OGS_PFCP_SESSION_MODIFICATION_RESPONSE_TYPE,

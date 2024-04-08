@@ -114,7 +114,7 @@ uint32_t smf_gx_handle_cca_initial_request(
     /* Setup QER */
     if (sess->session.ambr.downlink || sess->session.ambr.uplink) {
         /* Only 1 QER is used per bearer */
-        qer = bearer->qer;
+        qer = pfcp_qer_cycle(bearer->qer);
         if (!qer) {
             qer = ogs_pfcp_qer_add(&sess->pfcp);
             ogs_assert(qer);
@@ -126,9 +126,9 @@ uint32_t smf_gx_handle_cca_initial_request(
     }
 
     /* Setup FAR */
-    dl_far = bearer->dl_far;
+    dl_far = pfcp_far_cycle(bearer->dl_far);
     ogs_assert(dl_far);
-    up2cp_far = sess->up2cp_far;
+    up2cp_far = pfcp_far_cycle(sess->up2cp_far);
     ogs_assert(up2cp_far);
 
     dl_far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
@@ -142,13 +142,13 @@ uint32_t smf_gx_handle_cca_initial_request(
     dl_far->outer_header_creation.teid = bearer->sgw_s5u_teid;
 
     /* Setup PDR */
-    dl_pdr = bearer->dl_pdr;
+    dl_pdr = pfcp_pdr_cycle(bearer->dl_pdr);
     ogs_assert(dl_pdr);
-    ul_pdr = bearer->ul_pdr;
+    ul_pdr = pfcp_pdr_cycle(bearer->ul_pdr);
     ogs_assert(ul_pdr);
-    cp2up_pdr = sess->cp2up_pdr;
+    cp2up_pdr = pfcp_pdr_cycle(sess->cp2up_pdr);
     ogs_assert(cp2up_pdr);
-    up2cp_pdr = sess->up2cp_pdr;
+    up2cp_pdr = pfcp_pdr_cycle(sess->up2cp_pdr);
     ogs_assert(up2cp_pdr);
 
     /* Set UE IP Address to the Default DL PDR */

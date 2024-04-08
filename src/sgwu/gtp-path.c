@@ -188,10 +188,10 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
             bool is_uplink = false;
             ogs_pfcp_far_t *far = NULL;
 
-            sess = SGWU_SESS(pdr->sess);
+            sess = sgwu_sess_cycle(SGWU_SESS(pdr->sess));
             ogs_assert(sess);
 
-            far = pdr->far;
+            far = pfcp_far_cycle(pdr->far);
             ogs_assert(far);
 
             /* Check if FAR is Uplink */
@@ -234,7 +234,7 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
 
             if (report.type.error_indication_report) {
                 ogs_assert(far->sess);
-                sess = SGWU_SESS(far->sess);
+                sess = sgwu_sess_cycle(SGWU_SESS(far->sess));
                 ogs_assert(sess);
 
                 ogs_assert(OGS_OK ==
@@ -324,6 +324,11 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
             ogs_assert(pfcp_sess);
 
             ogs_list_for_each(&pfcp_sess->pdr_list, pdr) {
+                if (NULL == pfcp_pdr_cycle(pdr)) {
+                    ogs_fatal("Found a PDR that doesn't exist anymore!");
+                    break;
+                }
+
                 /* Check if TEID */
                 if (teid != pdr->f_teid.teid)
                     continue;

@@ -523,7 +523,12 @@ ogs_pkbuf_t *ngap_build_handover_command_transfer(smf_sess_t *sess)
                 sess->handover.upf_dl_teid, &gTPTunnel->gTP_TEID);
 
         ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
-            ogs_pfcp_far_t *far = pdr->far;
+            if (NULL == pfcp_pdr_cycle(pdr)) {
+                ogs_fatal("Found a PDR that doesn't exist anymore!");
+                break;
+            }
+
+            ogs_pfcp_far_t *far = pfcp_far_cycle(pdr->far);
             ogs_assert(far);
 
             if (pdr->src_if == OGS_PFCP_INTERFACE_ACCESS &&

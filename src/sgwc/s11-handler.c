@@ -374,7 +374,7 @@ void sgwc_s11_handle_create_session_request(
             ogs_assert(OGS_OK ==
                     ogs_gtp2_f_teid_to_ip(enb_s1u_teid, &dl_tunnel->remote_ip));
 
-            far = dl_tunnel->far;
+            far = pfcp_far_cycle(dl_tunnel->far);
             ogs_assert(far);
 
             far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
@@ -402,7 +402,7 @@ void sgwc_s11_handle_create_session_request(
             ogs_assert(OGS_OK ==
                     ogs_gtp2_f_teid_to_ip(pgw_s5u_teid, &ul_tunnel->remote_ip));
 
-            far = ul_tunnel->far;
+            far = pfcp_far_cycle(ul_tunnel->far);
             ogs_assert(far);
 
             far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
@@ -575,7 +575,7 @@ void sgwc_s11_handle_modify_bearer_request(
 
         memcpy(&dl_tunnel->remote_ip, &remote_ip, sizeof(ogs_ip_t));
 
-        far = dl_tunnel->far;
+        far = pfcp_far_cycle(dl_tunnel->far);
         ogs_assert(far);
 
         far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
@@ -896,7 +896,7 @@ void sgwc_s11_handle_create_bearer_response(
     ogs_assert(OGS_OK ==
             ogs_gtp2_f_teid_to_ip(enb_s1u_teid, &dl_tunnel->remote_ip));
 
-    far = dl_tunnel->far;
+    far = pfcp_far_cycle(dl_tunnel->far);
     ogs_assert(far);
 
     far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
@@ -1388,7 +1388,7 @@ void sgwc_s11_handle_create_indirect_data_forwarding_tunnel_request(
                 return;
             }
 
-            far = tunnel->far;
+            far = pfcp_far_cycle(tunnel->far);
             ogs_assert(far);
 
             far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
@@ -1423,7 +1423,7 @@ void sgwc_s11_handle_create_indirect_data_forwarding_tunnel_request(
                 return;
             }
 
-            far = tunnel->far;
+            far = pfcp_far_cycle(tunnel->far);
             ogs_assert(far);
 
             far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;

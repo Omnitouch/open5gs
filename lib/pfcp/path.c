@@ -360,7 +360,7 @@ void ogs_pfcp_send_g_pdu(
     ogs_assert(type);
     ogs_assert(sendbuf);
 
-    far = pdr->far;
+    far = pfcp_far_cycle(pdr->far);
     if (!far) {
         ogs_error("No FAR");
         ogs_pkbuf_free(sendbuf);
@@ -399,7 +399,7 @@ int ogs_pfcp_send_end_marker(ogs_pfcp_pdr_t *pdr)
     ogs_gtp2_extension_header_t ext_hdesc;
 
     ogs_assert(pdr);
-    far = pdr->far;
+    far = pfcp_far_cycle(pdr->far);
     ogs_assert(far);
 
     gnode = far->gnode;
@@ -438,7 +438,7 @@ void ogs_pfcp_send_buffered_packet(ogs_pfcp_pdr_t *pdr)
     int i;
 
     ogs_assert(pdr);
-    far = pdr->far;
+    far = pfcp_far_cycle(pdr->far);
 
     if (far && far->gnode) {
         if (far->apply_action & OGS_PFCP_APPLY_ACTION_FORW) {

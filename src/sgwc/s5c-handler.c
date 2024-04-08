@@ -286,7 +286,7 @@ void sgwc_s5c_handle_create_session_response(
             return;
         }
 
-        far = ul_tunnel->far;
+        far = pfcp_far_cycle(ul_tunnel->far);
         ogs_assert(far);
 
         far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
@@ -692,7 +692,7 @@ void sgwc_s5c_handle_create_bearer_request(
         ogs_error("No bearer level qos was present in S5C Create Bearer Request");
     }
 
-    far = ul_tunnel->far;
+    far = pfcp_far_cycle(ul_tunnel->far);
     ogs_assert(far);
 
     far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;

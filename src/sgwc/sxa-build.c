@@ -78,8 +78,8 @@ ogs_pkbuf_t *sgwc_sxa_build_session_establishment_request(
     i = 0;
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
         if (NULL == pfcp_pdr_cycle(pdr)) {
-            ogs_error("PDR does not exist");
-            continue;
+            ogs_fatal("Found a PDR that does not exist");
+            break;
         }
         ogs_pfcp_build_create_pdr(&req->create_pdr[i], i, pdr);
         i++;
@@ -89,8 +89,8 @@ ogs_pkbuf_t *sgwc_sxa_build_session_establishment_request(
     i = 0;
     ogs_list_for_each(&sess->pfcp.far_list, far) {
         if (NULL == pfcp_far_cycle(far)) {
-            ogs_error("FAR does not exist");
-            continue;
+            ogs_fatal("Found a FAR that does not exist");
+            break;
         }
         ogs_pfcp_build_create_far(&req->create_far[i], i, far);
         i++;
@@ -100,8 +100,8 @@ ogs_pkbuf_t *sgwc_sxa_build_session_establishment_request(
     i = 0;
     ogs_list_for_each(&sess->pfcp.urr_list, urr) {
         if (NULL == pfcp_urr_cycle(urr)) {
-            ogs_error("URR does not exist");
-            continue;
+            ogs_fatal("Found a URR that doesn't exist anymore!");
+            break;
         }
         ogs_pfcp_build_create_urr(&req->create_urr[i], i, urr);
         i++;
@@ -111,8 +111,8 @@ ogs_pkbuf_t *sgwc_sxa_build_session_establishment_request(
     i = 0;
     ogs_list_for_each(&sess->pfcp.qer_list, qer) {
         if (NULL == pfcp_qer_cycle(qer)) {
-            ogs_error("QER does not exist");
-            continue;
+            ogs_fatal("Found a QER that doesn't exist anymore!");
+            break;
         }
         ogs_pfcp_build_create_qer(&req->create_qer[i], i, qer);
         i++;

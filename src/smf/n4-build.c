@@ -86,6 +86,11 @@ ogs_pkbuf_t *smf_n4_build_session_establishment_request(
     /* Create PDR */
     i = 0;
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_pfcp_build_create_pdr(&req->create_pdr[i], i, pdr);
         i++;
     }
@@ -93,6 +98,11 @@ ogs_pkbuf_t *smf_n4_build_session_establishment_request(
     /* Create FAR */
     i = 0;
     ogs_list_for_each(&sess->pfcp.far_list, far) {
+        if (NULL == pfcp_far_cycle(far)) {
+            ogs_fatal("Found a FAR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_pfcp_build_create_far(&req->create_far[i], i, far);
         i++;
     }
@@ -100,6 +110,11 @@ ogs_pkbuf_t *smf_n4_build_session_establishment_request(
     /* Create URR */
     i = 0;
     ogs_list_for_each(&sess->pfcp.urr_list, urr) {
+        if (NULL == pfcp_urr_cycle(urr)) {
+            ogs_fatal("Found a URR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_pfcp_build_create_urr(&req->create_urr[i], i, urr);
         i++;
     }
@@ -107,6 +122,11 @@ ogs_pkbuf_t *smf_n4_build_session_establishment_request(
     /* Create QER */
     i = 0;
     ogs_list_for_each(&sess->pfcp.qer_list, qer) {
+        if (NULL == pfcp_qer_cycle(qer)) {
+            ogs_fatal("Found a QER that doesn't exist anymore!");
+            break;
+        }
+
         ogs_pfcp_build_create_qer(&req->create_qer[i], i, qer);
         i++;
     }
@@ -218,7 +238,7 @@ ogs_pkbuf_t *smf_n4_build_pdr_to_modify_list(
     }
 
     ogs_list_for_each_entry(&sess->pdr_to_modify_list, pdr, to_modify_node) {
-        ogs_pfcp_far_t *far = pdr->far;
+        ogs_pfcp_far_t *far = pfcp_far_cycle(pdr->far);
         ogs_assert(far);
 
         if (((modify_flags &
@@ -299,6 +319,11 @@ ogs_pkbuf_t *smf_n4_build_pdr_to_modify_list(
     /* Update URR */
     i = 0;
     ogs_list_for_each(&sess->pfcp.urr_list, urr) {
+        if (NULL == pfcp_urr_cycle(urr)) {
+            ogs_fatal("Found a URR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_pfcp_build_update_urr(&req->update_urr[i], i, urr, modify_flags);
         i++;
     }

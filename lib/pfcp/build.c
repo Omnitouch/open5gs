@@ -339,7 +339,7 @@ void ogs_pfcp_build_create_pdr(
 
     ogs_assert(pdr);
 
-    far = pdr->far;
+    far = pfcp_far_cycle(pdr->far);
     ogs_assert(far);
 
     message->presence = 1;

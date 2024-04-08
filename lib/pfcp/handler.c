@@ -238,7 +238,7 @@ bool ogs_pfcp_up_handle_pdr(
     ogs_assert(pdr);
     ogs_assert(report);
 
-    far = pdr->far;
+    far = pfcp_far_cycle(pdr->far);
     ogs_assert(far);
 
     memset(report, 0, sizeof(*report));

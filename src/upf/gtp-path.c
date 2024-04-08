@@ -166,7 +166,12 @@ static void _gtpv1_tun_recv_common_cb(
         goto cleanup;
 
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
-        far = pdr->far;
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
+        far = pfcp_far_cycle(pdr->far);
         ogs_assert(far);
 
         /* Check if PDR is Downlink */
@@ -916,6 +921,11 @@ static void upf_gtp_handle_multicast(ogs_pkbuf_t *recvbuf)
                     ogs_pfcp_pdr_t *pdr = NULL;
 
                     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+                        if (NULL == pfcp_pdr_cycle(pdr)) {
+                            ogs_fatal("Found a PDR that doesn't exist anymore!");
+                            break;
+                        }
+
                         if (pdr->src_if == OGS_PFCP_INTERFACE_CORE) {
                             ogs_assert(true ==
                                 ogs_pfcp_up_handle_pdr(pdr,

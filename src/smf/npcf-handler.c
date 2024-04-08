@@ -464,23 +464,23 @@ bool smf_npcf_smpolicycontrol_handle_create(
     memcpy(&qos_flow->qos, &sess->session.qos, sizeof(ogs_qos_t));
 
     /* Setup QER */
-    qer = qos_flow->qer;
+    qer = pfcp_qer_cycle(qos_flow->qer);
     ogs_assert(qer);
     qer->mbr.uplink = sess->session.ambr.uplink;
     qer->mbr.downlink = sess->session.ambr.downlink;
 
     /* Setup PDR */
-    dl_pdr = qos_flow->dl_pdr;
+    dl_pdr = pfcp_pdr_cycle(qos_flow->dl_pdr);
     ogs_assert(dl_pdr);
-    ul_pdr = qos_flow->ul_pdr;
+    ul_pdr = pfcp_pdr_cycle(qos_flow->ul_pdr);
     ogs_assert(ul_pdr);
-    cp2up_pdr = sess->cp2up_pdr;
+    cp2up_pdr = pfcp_pdr_cycle(sess->cp2up_pdr);
     ogs_assert(cp2up_pdr);
-    up2cp_pdr = sess->up2cp_pdr;
+    up2cp_pdr = pfcp_pdr_cycle(sess->up2cp_pdr);
     ogs_assert(up2cp_pdr);
 
     /* Setup FAR */
-    up2cp_far = sess->up2cp_far;
+    up2cp_far = pfcp_far_cycle(sess->up2cp_far);
     ogs_assert(up2cp_far);
 
     /* Set UE IP Address to the Default DL PDR */

@@ -194,7 +194,12 @@ uint8_t smf_5gc_n4_handle_session_establishment_response(
     }
 
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
-        far = pdr->far;
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
+        far = pfcp_far_cycle(pdr->far);
         ogs_assert(far);
 
         if (pdr->src_if == OGS_PFCP_INTERFACE_ACCESS) {
@@ -311,7 +316,7 @@ void smf_5gc_n4_handle_session_modification_response(
         }
 
         ogs_list_for_each_entry(&pdr_to_create_list, pdr, to_create_node) {
-            far = pdr->far;
+            far = pfcp_far_cycle(pdr->far);
             ogs_assert(far);
 
             if (pdr->src_if == OGS_PFCP_INTERFACE_ACCESS) {
@@ -771,7 +776,12 @@ uint8_t smf_epc_n4_handle_session_establishment_response(
         }
 
         ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
-            far = pdr->far;
+            if (NULL == pfcp_pdr_cycle(pdr)) {
+                ogs_fatal("Found a PDR that doesn't exist anymore!");
+                break;
+            }
+
+            far = pfcp_far_cycle(pdr->far);
             ogs_assert(far);
 
             if (pdr->src_if == OGS_PFCP_INTERFACE_ACCESS) {
@@ -901,7 +911,7 @@ void smf_epc_n4_handle_session_modification_response(
     }
 
     ogs_list_for_each_entry(&pdr_to_create_list, pdr, to_create_node) {
-        far = pdr->far;
+        far = pfcp_far_cycle(pdr->far);
         ogs_assert(far);
 
         if (pdr->src_if == OGS_PFCP_INTERFACE_ACCESS) {

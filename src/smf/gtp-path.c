@@ -717,6 +717,11 @@ static void send_router_advertisement(smf_sess_t *sess, uint8_t *ip6_dst)
     memcpy(ip6_h->ip6_dst.s6_addr, ip6_dst, OGS_IPV6_LEN);
 
     ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         if (pdr->src_if == OGS_PFCP_INTERFACE_CP_FUNCTION && pdr->gnode) {
             ogs_gtp2_header_t gtp_hdesc;
             ogs_gtp2_extension_header_t ext_hdesc;

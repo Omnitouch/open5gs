@@ -360,8 +360,8 @@ static void pfcp_restoration(ogs_pfcp_node_t *node)
 
     ogs_list_for_each_safe(&sgwu_self()->sess_list, next, sess) {
         if (NULL == sgwu_sess_cycle(sess)) {
-            ogs_error("Found a sess that doesn't exist");
-            continue;
+            ogs_fatal("Found a sess that doesn't exist");
+            break;
         }
 
         if (node == sess->pfcp_node) {

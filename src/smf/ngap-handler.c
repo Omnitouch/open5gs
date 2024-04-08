@@ -122,7 +122,7 @@ int ngap_handle_pdu_session_resource_setup_response_transfer(
                     sess, associatedQosFlowItem->qosFlowIdentifier);
 
             if (qos_flow) {
-                ogs_pfcp_far_t *dl_far = qos_flow->dl_far;
+                ogs_pfcp_far_t *dl_far = pfcp_far_cycle(qos_flow->dl_far);
                 ogs_assert(dl_far);
                 if (dl_far->apply_action != OGS_PFCP_APPLY_ACTION_FORW) {
                     far_update = true;
@@ -328,7 +328,7 @@ int ngap_handle_pdu_session_resource_modify_response_transfer(
                 qos_flow = smf_qos_flow_find_by_qfi(sess,
                         qosFlowAddOrModifyResponseItem->qosFlowIdentifier);
                 if (qos_flow) {
-                    dl_far = qos_flow->dl_far;
+                    dl_far = pfcp_far_cycle(qos_flow->dl_far);
                     ogs_assert(dl_far);
 
                     dl_far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
@@ -459,7 +459,7 @@ int ngap_handle_path_switch_request_transfer(
                     sess, acceptedQosFlowItem->qosFlowIdentifier);
 
             if (qos_flow) {
-                ogs_pfcp_far_t *dl_far = qos_flow->dl_far;
+                ogs_pfcp_far_t *dl_far = pfcp_far_cycle(qos_flow->dl_far);
                 ogs_assert(dl_far);
                 if (dl_far->apply_action != OGS_PFCP_APPLY_ACTION_FORW) {
                     far_update = true;
@@ -631,7 +631,7 @@ int ngap_handle_handover_request_ack(
                     sess, qosFlowSetupResponseItem->qosFlowIdentifier);
 
             if (qos_flow) {
-                ogs_pfcp_far_t *dl_far = qos_flow->dl_far;
+                ogs_pfcp_far_t *dl_far = pfcp_far_cycle(qos_flow->dl_far);
                 ogs_assert(dl_far);
 
                 dl_far->handover.prepared = true;

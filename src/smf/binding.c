@@ -157,9 +157,9 @@ void smf_bearer_binding(smf_sess_t *sess)
                 bearer = smf_bearer_add(sess);
                 ogs_assert(bearer);
 
-                dl_pdr = bearer->dl_pdr;
+                dl_pdr = pfcp_pdr_cycle(bearer->dl_pdr);
                 ogs_assert(dl_pdr);
-                ul_pdr = bearer->ul_pdr;
+                ul_pdr = pfcp_pdr_cycle(bearer->ul_pdr);
                 ogs_assert(ul_pdr);
 
                 /* Precedence is set to the order in which it was created */
@@ -514,9 +514,9 @@ void smf_qos_flow_binding(smf_sess_t *sess)
                 qos_flow = smf_qos_flow_add(sess);
                 ogs_assert(qos_flow);
 
-                dl_pdr = qos_flow->dl_pdr;
+                dl_pdr = pfcp_pdr_cycle(qos_flow->dl_pdr);
                 ogs_assert(dl_pdr);
-                ul_pdr = qos_flow->ul_pdr;
+                ul_pdr = pfcp_pdr_cycle(qos_flow->ul_pdr);
                 ogs_assert(ul_pdr);
 
                 /* Precedence is derived from PCC Rule Precedence */

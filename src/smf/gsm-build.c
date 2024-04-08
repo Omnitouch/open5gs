@@ -362,7 +362,7 @@ ogs_pkbuf_t *gsm_build_pdu_session_modification_command(
                 &sess->qos_flow_to_modify_list, qos_flow, to_modify_node) {
             ogs_assert(i < OGS_MAX_NUM_OF_BEARER);
 
-            dl_pdr = qos_flow->dl_pdr;
+            dl_pdr = pfcp_pdr_cycle(qos_flow->dl_pdr);
             ogs_assert(dl_pdr);
 
             qos_rule[i].identifier = qos_flow->qfi; /* Use QFI in Open5GS */

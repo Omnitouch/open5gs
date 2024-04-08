@@ -232,7 +232,7 @@ void sgwc_sxa_handle_session_establishment_response(
         }
 
         ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
-            far = pdr->far;
+            far = pfcp_far_cycle(pdr->far);
             ogs_assert(far);
 
             if (pdr->src_if == OGS_PFCP_INTERFACE_CP_FUNCTION)
@@ -592,7 +592,7 @@ void sgwc_sxa_handle_session_modification_response(
         }
 
         ogs_list_for_each_entry(&pdr_to_create_list, pdr, to_create_node) {
-            far = pdr->far;
+            far = pfcp_far_cycle(pdr->far);
             ogs_assert(far);
 
             if (pdr->src_if == OGS_PFCP_INTERFACE_CP_FUNCTION)
@@ -1558,13 +1558,13 @@ void sgwc_sxa_handle_session_report_request(
 
         ogs_list_for_each(&sess->bearer_list, bearer) {
             if (NULL == sgwc_bearer_cycle(bearer)) {
-                ogs_error("Found an invalid bearer in sess->bearer_list");
+                ogs_fatal("Found an invalid bearer in sess->bearer_list");
                 break;
             }
 
             ogs_list_for_each(&bearer->tunnel_list, tunnel) {
                 if (NULL == sgwc_tunnel_cycle(tunnel)) {
-                    ogs_error("Found an invalid tunnel in bearer->tunnel_list");
+                    ogs_fatal("Found an invalid tunnel in bearer->tunnel_list");
                     break;
                 }
 

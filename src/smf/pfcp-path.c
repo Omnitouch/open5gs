@@ -455,8 +455,14 @@ int smf_5gc_pfcp_send_all_pdr_modification_request(
     xact->modify_flags = flags | OGS_PFCP_MODIFY_SESSION;
 
     ogs_list_init(&sess->pdr_to_modify_list);
-    ogs_list_for_each(&sess->pfcp.pdr_list, pdr)
+    ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_list_add(&sess->pdr_to_modify_list, &pdr->to_modify_node);
+    }
 
     rv = smf_pfcp_send_modify_list(
             sess, smf_n4_build_pdr_to_modify_list, xact, duration);
@@ -639,8 +645,14 @@ int smf_epc_pfcp_send_all_pdr_modification_request(
     }
 
     ogs_list_init(&sess->pdr_to_modify_list);
-    ogs_list_for_each(&sess->pfcp.pdr_list, pdr)
+    ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+        if (NULL == pfcp_pdr_cycle(pdr)) {
+            ogs_fatal("Found a PDR that doesn't exist anymore!");
+            break;
+        }
+
         ogs_list_add(&sess->pdr_to_modify_list, &pdr->to_modify_node);
+    }
 
     rv = smf_pfcp_send_modify_list(
             sess, smf_n4_build_pdr_to_modify_list, xact, 0);

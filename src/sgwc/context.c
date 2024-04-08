@@ -835,7 +835,7 @@ sgwc_tunnel_t *sgwc_tunnel_add(
     uint8_t src_if, dst_if;
 
     ogs_assert(bearer);
-    sess = bearer->sess;
+    sess = sgwc_sess_cycle(bearer->sess);
     ogs_assert(sess);
 
     switch (interface_type) {
@@ -947,10 +947,10 @@ sgwc_tunnel_t *sgwc_tunnel_add(
         pdr->f_teid.teid = tunnel->local_teid;
     }
 
-    tunnel->pdr = pdr;
-    tunnel->far = far;
+    tunnel->pdr = pfcp_pdr_cycle(pdr);
+    tunnel->far = pfcp_far_cycle(far);
 
-    tunnel->bearer = bearer;
+    tunnel->bearer = sgwc_bearer_cycle(bearer);
 
     ogs_list_add(&bearer->tunnel_list, tunnel);
 
@@ -1049,7 +1049,7 @@ sgwc_tunnel_t *sgwc_tunnel_find_by_pdr_id(
             pdr = pfcp_pdr_cycle(tunnel->pdr);
             if (NULL == pdr) {
                 ogs_error("PDR does not exist");
-                continue;
+                break;
             }
 
             if (pdr->id == pdr_id) return tunnel;
