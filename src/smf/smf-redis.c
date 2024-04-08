@@ -459,6 +459,13 @@ static bool redis_get_ip_hold(const char* imsi_bcd, const char* apn, uint32_t* i
         return false;
     }
 
+    if (REDIS_REPLY_NIL == reply->type) {
+        /* Return true as the operation didn't fail, there as just no data
+         * AKA there was no hold */
+        freeReplyObject(reply);
+        return true;
+    }
+
     if (REDIS_REPLY_STRING != reply->type) {
         freeReplyObject(reply);
         return false;
