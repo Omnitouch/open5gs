@@ -431,7 +431,7 @@ ogs_pkbuf_t *esm_build_bearer_resource_modification_reject(
             &message.esm.bearer_resource_modification_reject;
 
     ogs_assert(mme_ue);
-    ogs_assert(pti != OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED);
+    ogs_expect(pti != OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED);
 
     ogs_debug("Bearer resource modification reject");
     ogs_debug("    IMSI[%s] PTI[%d] Cause[%d]",

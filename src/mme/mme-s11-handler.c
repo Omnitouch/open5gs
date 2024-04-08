@@ -1924,7 +1924,6 @@ void mme_s11_handle_bearer_resource_failure_indication(
     r = nas_eps_send_bearer_resource_modification_reject(
             mme_ue, sess->pti, esm_cause_from_gtp(cause_value));
     ogs_expect(r == OGS_OK);
-    ogs_assert(r != OGS_ERROR);
 
     if (!sgw_ue ||
         cause_value == OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND) {

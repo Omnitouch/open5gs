@@ -788,7 +788,7 @@ int nas_eps_send_bearer_resource_modification_reject(
         return OGS_NOTFOUND;
     }
 
-    ogs_assert(pti != OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED);
+    ogs_expect(pti != OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED);
 
     esmbuf = esm_build_bearer_resource_modification_reject(
             mme_ue, pti, esm_cause);
