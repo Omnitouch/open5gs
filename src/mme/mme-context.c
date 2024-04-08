@@ -2342,8 +2342,11 @@ mme_sgw_t *mme_sgw_add(ogs_sockaddr_t *addr)
 
 void mme_sgw_remove(mme_sgw_t *sgw)
 {
-    ogs_assert(sgw);
-
+    if (NULL != mme_sgw_cycle(sgw)) {
+        ogs_error("Trying to remove a sgw that doesn't exist");
+        return;
+    }
+    
     ogs_list_remove(&self.sgw_list, sgw);
 
     ogs_gtp_xact_delete_all(&sgw->gnode);
@@ -2359,8 +2362,14 @@ void mme_sgw_remove_all(void)
 {
     mme_sgw_t *sgw = NULL, *next_sgw = NULL;
 
-    ogs_list_for_each_safe(&self.sgw_list, next_sgw, sgw)
+    ogs_list_for_each_safe(&self.sgw_list, next_sgw, sgw) {
+        if (NULL == mme_sgw_cycle(sgw)) {
+            ogs_fatal("There is an invalid sgw in self.sgw_list");
+            break;
+        }
+
         mme_sgw_remove(sgw);
+    }
 }
 
 mme_sgw_t *mme_sgw_find_by_addr(ogs_sockaddr_t *addr)
@@ -2482,6 +2491,11 @@ mme_sgw_t *select_random_sgw_roaming()
     );
 
     return random;
+}
+
+mme_sgw_t *mme_sgw_cycle(mme_sgw_t *sgw)
+{
+    return ogs_pool_cycle(&mme_sgw_pool, sgw);
 }
 
 mme_pgw_t *mme_pgw_add(ogs_sockaddr_t *addr)
