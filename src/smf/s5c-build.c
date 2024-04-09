@@ -106,8 +106,14 @@ ogs_pkbuf_t *smf_s5c_build_create_session_response(
         rsp->pdn_address_allocation.len = OGS_PAA_IPV4_LEN;
     else if (sess->ipv6)
         rsp->pdn_address_allocation.len = OGS_PAA_IPV6_LEN;
-    else
-        ogs_assert_if_reached();
+    else {
+        /* Whats happened here is that a Delete Session Request must 
+         * have been made right before this but the response hasn't 
+         * been received yet. So we have deleted the sess->ipv4 but not
+         * the sess. */
+        ogs_error("Trying to send a Create Session Response with a partially invalid sess");
+        return NULL;
+    }
     rsp->pdn_address_allocation.presence = 1;
 
     /* APN Restriction */
