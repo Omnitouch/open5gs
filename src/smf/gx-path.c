@@ -108,13 +108,21 @@ void smf_gx_send_ccr(smf_sess_t *sess, ogs_gtp_xact_t *xact,
     struct sockaddr_in6 sin6;
     uint32_t charging_id;
 
-    ogs_assert(sess);
+    ogs_debug("[Credit-Control-Request]");
+
+    sess = smf_sess_cycle(sess);
+    smf_ue = sess ? smf_ue_cycle(sess->smf_ue) : NULL;
+
+    if (NULL == smf_ue) {
+        ogs_error("No context");
+        return;
+    }
 
     ogs_assert(sess->ipv4 || sess->ipv6);
-    smf_ue = sess->smf_ue;
-    ogs_assert(smf_ue);
-
-    ogs_debug("[Credit-Control-Request]");
+    if ((NULL == sess->ipv4) && (NULL == sess->ipv6)) {
+        ogs_error("Sess does not have a valid ipv4 or ipv6");
+        return;
+    }
 
     /* Create the request */
     ret = fd_msg_new(ogs_diam_gx_cmd_ccr, MSGFL_ALLOC_ETEID, &req);
