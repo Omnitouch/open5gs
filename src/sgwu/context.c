@@ -330,6 +330,8 @@ void sgwu_sess_urr_acc_add(sgwu_sess_t *sess, ogs_pfcp_urr_t *urr, size_t size, 
 void sgwu_sess_urr_acc_fill_usage_report(sgwu_sess_t *sess, const ogs_pfcp_urr_t *urr,
                                   ogs_pfcp_user_plane_report_t *report, unsigned int idx)
 {
+    ogs_assert(urr->id < OGS_MAX_NUM_OF_URR);
+    ogs_assert(idx < OGS_MAX_NUM_OF_URR);
     sgwu_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id];
     ogs_time_t last_report_timestamp;
     ogs_time_t now;
@@ -389,6 +391,7 @@ void sgwu_sess_urr_acc_fill_usage_report(sgwu_sess_t *sess, const ogs_pfcp_urr_t
 
 void sgwu_sess_urr_acc_snapshot(sgwu_sess_t *sess, ogs_pfcp_urr_t *urr)
 {
+    ogs_assert(urr->id < OGS_MAX_NUM_OF_URR);
     sgwu_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id];
     urr_acc->last_report.total_octets = urr_acc->total_octets;
     urr_acc->last_report.dl_octets = urr_acc->dl_octets;

@@ -2341,6 +2341,21 @@ ogs_pfcp_pdr_t *pfcp_pdr_cycle(ogs_pfcp_pdr_t *pdr)
 
 ogs_pfcp_far_t *pfcp_far_cycle(ogs_pfcp_far_t *far)
 {
+    ogs_pfcp_far_t *result = NULL;
+    ogs_debug("((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) ==> %li > 0", ((((far)) - ((&ogs_pfcp_far_pool))->array) + 1));
+    ogs_debug("((&ogs_pfcp_far_pool))->size ==> %i", ((&ogs_pfcp_far_pool))->size);
+    ogs_debug("((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) - 1 ==> %li", ((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) - 1);
+
+    if ((((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) > 0) && 
+        (((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) <= ((&ogs_pfcp_far_pool))->size))
+    {
+        result = ((&ogs_pfcp_far_pool))->index[((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) - 1];
+    }
+    else
+    {
+        result = ((void *)0);
+    }
+
     return ogs_pool_cycle(&ogs_pfcp_far_pool, far);
 }
 
