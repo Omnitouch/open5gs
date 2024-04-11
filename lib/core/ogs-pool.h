@@ -90,7 +90,7 @@ typedef uint32_t ogs_pool_id_t;
  * (pool)->size size will be an int so we cast to int to match. */
 #define ogs_pool_index(pool, node) (((node) - (pool)->array)+1)
 #define ogs_pool_find(pool, _index) \
-    (((int)_index > 0) && (0 <= (int)((int)_index - 1)) && ((int)_index <= (pool)->size)) ? (pool)->index[(int)((int)_index - 1)] : NULL
+    ((_index > 0) && (_index <= (pool)->size)) ? (pool)->index[_index-1] : NULL
 #define ogs_pool_cycle(pool, node) \
     ogs_pool_find((pool), ogs_pool_index((pool), (node)))
 

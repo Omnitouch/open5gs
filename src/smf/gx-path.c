@@ -118,7 +118,6 @@ void smf_gx_send_ccr(smf_sess_t *sess, ogs_gtp_xact_t *xact,
         return;
     }
 
-    ogs_assert(sess->ipv4 || sess->ipv6);
     if ((NULL == sess->ipv4) && (NULL == sess->ipv6)) {
         ogs_error("Sess does not have a valid ipv4 or ipv6");
         return;
