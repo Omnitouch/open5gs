@@ -76,9 +76,21 @@ typedef uint32_t ogs_pool_id_t;
     memset((pool), 0, sizeof(*(pool))); \
 } while (0)
 
+/* If the node is at index 0 of array i.e. (pool)->array[0] then this function will return 1
+ *
+ * Pointer magic example:
+ *     int arr[10] = {};
+ *     int* p1  = arr;
+ *     int* p2  = &arr[7];
+ *     printf("%i", (int)(p2 - p1));
+ * 
+ *     > 7 
+ * 
+ * Not entirely sure why we add 1 here, we change it so that the index starts at 1 and not 0 
+ * (pool)->size size will be an int so we cast to int to match. */
 #define ogs_pool_index(pool, node) (((node) - (pool)->array)+1)
 #define ogs_pool_find(pool, _index) \
-    ((_index > 0) && (_index <= (pool)->size)) ? (pool)->index[_index-1] : NULL
+    (((int)_index > 0) && (0 <= (int)((int)_index - 1)) && ((int)_index <= (pool)->size)) ? (pool)->index[(int)((int)_index - 1)] : NULL
 #define ogs_pool_cycle(pool, node) \
     ogs_pool_find((pool), ogs_pool_index((pool), (node)))
 

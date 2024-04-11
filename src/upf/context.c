@@ -673,7 +673,12 @@ uint8_t upf_sess_set_ue_ipv6_framed_routes(upf_sess_t *sess,
 
 void upf_sess_urr_acc_add(upf_sess_t *sess, ogs_pfcp_urr_t *urr, size_t size, bool is_uplink)
 {
-    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id];
+    ogs_assert(0 < urr->id);
+    ogs_assert(urr->id <= OGS_MAX_NUM_OF_URR);
+
+    /* urr->id is in range [1, 16] to make that fit into 
+     * the urr_acc array we just take one to get the index */
+    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id - 1];
     uint64_t vol;
 
     /* Increment total & ul octets + pkts */
@@ -713,7 +718,12 @@ void upf_sess_urr_acc_add(upf_sess_t *sess, ogs_pfcp_urr_t *urr, size_t size, bo
 void upf_sess_urr_acc_fill_usage_report(upf_sess_t *sess, const ogs_pfcp_urr_t *urr,
                                   ogs_pfcp_user_plane_report_t *report, unsigned int idx)
 {
-    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id];
+    ogs_assert(0 < urr->id);
+    ogs_assert(urr->id <= OGS_MAX_NUM_OF_URR);
+
+    /* urr->id is in range [1, 16] to make that fit into 
+     * the urr_acc array we just take one to get the index */
+    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id - 1];
     ogs_time_t last_report_timestamp;
     ogs_time_t now;
 
@@ -771,7 +781,12 @@ void upf_sess_urr_acc_fill_usage_report(upf_sess_t *sess, const ogs_pfcp_urr_t *
 
 void upf_sess_urr_acc_snapshot(upf_sess_t *sess, ogs_pfcp_urr_t *urr)
 {
-    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id];
+    ogs_assert(0 < urr->id);
+    ogs_assert(urr->id <= OGS_MAX_NUM_OF_URR);
+
+    /* urr->id is in range [1, 16] to make that fit into 
+     * the urr_acc array we just take one to get the index */
+    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id - 1];
     urr_acc->last_report.total_octets = urr_acc->total_octets;
     urr_acc->last_report.dl_octets = urr_acc->dl_octets;
     urr_acc->last_report.ul_octets = urr_acc->ul_octets;
@@ -807,7 +822,12 @@ static void upf_sess_urr_acc_timers_cb(void *data)
 
 static void upf_sess_urr_acc_validity_time_setup(upf_sess_t *sess, ogs_pfcp_urr_t *urr)
 {
-    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id];
+    ogs_assert(0 < urr->id);
+    ogs_assert(urr->id <= OGS_MAX_NUM_OF_URR);
+
+    /* urr->id is in range [1, 16] to make that fit into 
+     * the urr_acc array we just take one to get the index */
+    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id - 1];
 
     ogs_debug("Installing URR Quota Validity Time timer");
     urr_acc->reporting_enabled = true;
@@ -819,7 +839,12 @@ static void upf_sess_urr_acc_validity_time_setup(upf_sess_t *sess, ogs_pfcp_urr_
 }
 static void upf_sess_urr_acc_time_quota_setup(upf_sess_t *sess, ogs_pfcp_urr_t *urr)
 {
-    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id];
+    ogs_assert(0 < urr->id);
+    ogs_assert(urr->id <= OGS_MAX_NUM_OF_URR);
+
+    /* urr->id is in range [1, 16] to make that fit into 
+     * the urr_acc array we just take one to get the index */
+    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id - 1];
 
     ogs_debug("Installing URR Time Quota timer");
     urr_acc->reporting_enabled = true;
@@ -830,7 +855,12 @@ static void upf_sess_urr_acc_time_quota_setup(upf_sess_t *sess, ogs_pfcp_urr_t *
 }
 static void upf_sess_urr_acc_time_threshold_setup(upf_sess_t *sess, ogs_pfcp_urr_t *urr)
 {
-    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id];
+    ogs_assert(0 < urr->id);
+    ogs_assert(urr->id <= OGS_MAX_NUM_OF_URR);
+
+    /* urr->id is in range [1, 16] to make that fit into 
+     * the urr_acc array we just take one to get the index */
+    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id - 1];
 
     ogs_debug("Installing URR Time Threshold timer");
     urr_acc->reporting_enabled = true;
@@ -843,7 +873,12 @@ static void upf_sess_urr_acc_time_threshold_setup(upf_sess_t *sess, ogs_pfcp_urr
 
 void upf_sess_urr_acc_timers_setup(upf_sess_t *sess, ogs_pfcp_urr_t *urr)
 {
-    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id];
+    ogs_assert(0 < urr->id);
+    ogs_assert(urr->id <= OGS_MAX_NUM_OF_URR);
+
+    /* urr->id is in range [1, 16] to make that fit into 
+     * the urr_acc array we just take one to get the index */
+    upf_sess_urr_acc_t *urr_acc = &sess->urr_acc[urr->id - 1];
     urr_acc->time_start = ogs_time_ntp32_now();
     if (urr->rep_triggers.quota_validity_time && urr->quota_validity_time > 0)
         upf_sess_urr_acc_validity_time_setup(sess, urr);

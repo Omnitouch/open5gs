@@ -2342,14 +2342,15 @@ ogs_pfcp_pdr_t *pfcp_pdr_cycle(ogs_pfcp_pdr_t *pdr)
 ogs_pfcp_far_t *pfcp_far_cycle(ogs_pfcp_far_t *far)
 {
     ogs_pfcp_far_t *result = NULL;
-    ogs_debug("((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) ==> %li > 0", ((((far)) - ((&ogs_pfcp_far_pool))->array) + 1));
+    ogs_debug("((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) ==> %i > 0", (int)((((far)) - ((&ogs_pfcp_far_pool))->array) + 1));
     ogs_debug("((&ogs_pfcp_far_pool))->size ==> %i", ((&ogs_pfcp_far_pool))->size);
-    ogs_debug("((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) - 1 ==> %li", ((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) - 1);
+    ogs_debug("((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) - 1 ==> %i", (int)((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) - 1);
 
-    if ((((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) > 0) && 
-        (((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) <= ((&ogs_pfcp_far_pool))->size))
+    if (((int)((int)(((far)) - ((&ogs_pfcp_far_pool))->array) + 1) > 0) &&
+        (0 < (int)((int)((int)(((far)) - ((&ogs_pfcp_far_pool))->array) + 1) - 1)) &&
+        ((int)((int)(((far)) - ((&ogs_pfcp_far_pool))->array) + 1) <= ((&ogs_pfcp_far_pool))->size))
     {
-        result = ((&ogs_pfcp_far_pool))->index[((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) - 1];
+        result = ((&ogs_pfcp_far_pool))->index[(int)(((((far)) - ((&ogs_pfcp_far_pool))->array) + 1) - 1)];
     }
     else
     {
