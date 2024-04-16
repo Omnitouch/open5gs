@@ -2342,7 +2342,7 @@ mme_sgw_t *mme_sgw_add(ogs_sockaddr_t *addr)
 
 void mme_sgw_remove(mme_sgw_t *sgw)
 {
-    if (NULL != mme_sgw_cycle(sgw)) {
+    if (NULL == mme_sgw_cycle(sgw)) {
         ogs_error("Trying to remove a sgw that doesn't exist");
         return;
     }
@@ -2410,7 +2410,10 @@ mme_sgw_t *mme_sgw_roaming_add(ogs_sockaddr_t *addr)
 
 void mme_sgw_roaming_remove(mme_sgw_t *sgw)
 {
-    ogs_assert(sgw);
+    if (NULL == mme_sgw_cycle(sgw)) {
+        ogs_error("Trying to remove a sgw that doesn't exist");
+        return;
+    }
 
     ogs_list_remove(&self.sgw_roaming_list, sgw);
 
@@ -2517,7 +2520,10 @@ mme_pgw_t *mme_pgw_add(ogs_sockaddr_t *addr)
 
 void mme_pgw_remove(mme_pgw_t *pgw)
 {
-    ogs_assert(pgw);
+    if (NULL == mme_pgw_cycle(pgw)) {
+        ogs_error("Trying to remove a sgw that doesn't exist");
+        return;
+    }
 
     ogs_list_remove(&self.pgw_list, pgw);
 
@@ -2604,6 +2610,11 @@ ogs_sockaddr_t *mme_pgw_addr_find_by_apn(
     }
 
     return NULL;
+}
+
+mme_pgw_t *mme_pgw_cycle(mme_pgw_t *pgw)
+{
+    return ogs_pool_cycle(&mme_pgw_pool, pgw);
 }
 
 mme_vlr_t *mme_vlr_add(ogs_sockaddr_t *sa_list, ogs_sockopt_t *option)
@@ -3070,13 +3081,13 @@ void sgw_ue_remove(sgw_ue_t *sgw_ue)
 {
     mme_sgw_t *sgw = NULL;
 
-    if (NULL == sgw_ue) {
+    if (NULL == sgw_ue_cycle(sgw_ue)) {
         /* If the sgw_ue was never set we don't need to do anything */
         ogs_warn("Trying to remove sgw_ue that doesn't exist!");
         return;
     }
 
-    sgw = sgw_ue->sgw;
+    sgw = mme_sgw_cycle(sgw_ue->sgw);
     ogs_assert(sgw);
 
     ogs_list_remove(&sgw->sgw_ue_list, sgw_ue);
@@ -3698,6 +3709,12 @@ int mme_ue_set_imsi(mme_ue_t *mme_ue, char *imsi_bcd)
     mme_ue_t *old_mme_ue = NULL;
     mme_sess_t *old_sess = NULL;
     mme_bearer_t *old_bearer = NULL;
+
+    if (NULL == mme_ue_cycle(mme_ue)) {
+        ogs_error("mme_ue does not exist");
+        return OGS_ERROR;
+    }
+
     ogs_assert(mme_ue && imsi_bcd);
 
     ogs_cpystrn(mme_ue->imsi_bcd, imsi_bcd, OGS_MAX_IMSI_BCD_LEN+1);
@@ -3734,7 +3751,17 @@ int mme_ue_set_imsi(mme_ue_t *mme_ue, char *imsi_bcd)
      */
             /* Phase-1 : Change MME-UE Context in Session Context */
             ogs_list_for_each(&old_mme_ue->sess_list, old_sess) {
+                if (NULL == mme_sess_cycle(old_sess)) {
+                    ogs_error("Found a sess that doesn't exist");
+                    break;
+                }
+
                 ogs_list_for_each(&old_sess->bearer_list, old_bearer) {
+                    if (NULL == mme_bearer_cycle(old_bearer)) {
+                        ogs_error("Found a bearer that doesn't exist");
+                        break;
+                    }
+
                     old_bearer->mme_ue = mme_ue;
 
                     if (old_bearer->ebi_node)
@@ -4227,10 +4254,18 @@ mme_bearer_t *mme_bearer_add(mme_sess_t *sess)
 
     mme_bearer_t *bearer = NULL;
     mme_ue_t *mme_ue = NULL;
+    
+    sess = mme_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("Cannot add bearer to a sess that doesn't exist");
+        return NULL;
+    }
 
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
+    mme_ue = mme_ue_cycle(sess->mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("Cannot add bearer to a mme_ue that doesn't exist");
+        return NULL;
+    }
 
     ogs_pool_alloc(&mme_bearer_pool, &bearer);
     ogs_assert(bearer);
@@ -4264,9 +4299,10 @@ void mme_bearer_remove(mme_bearer_t *bearer)
 {
     mme_event_t e;
 
-    ogs_assert(bearer);
-    ogs_assert(bearer->mme_ue);
-    ogs_assert(bearer->sess);
+    if (NULL == mme_bearer_cycle(bearer)) {
+        ogs_error("Cannot remove a bearer that doesn't exist");
+        return;
+    }
 
     memset(&e, 0, sizeof(e));
     e.bearer = bearer;
@@ -4275,12 +4311,21 @@ void mme_bearer_remove(mme_bearer_t *bearer)
     CLEAR_BEARER_ALL_TIMERS(bearer);
     ogs_timer_delete(bearer->t3489.timer);
 
-    ogs_list_remove(&bearer->sess->bearer_list, bearer);
+    if (NULL != mme_sess_cycle(bearer->sess)) {
+        ogs_list_remove(&bearer->sess->bearer_list, bearer);
+    } else {
+        ogs_error("Bearer doesn't have a valid sess");
+    }
 
     OGS_TLV_CLEAR_DATA(&bearer->tft);
 
-    if (bearer->ebi_node)
-        ogs_pool_free(&bearer->mme_ue->ebi_pool, bearer->ebi_node);
+    if (bearer->ebi_node) {
+        if (NULL != mme_ue_cycle(bearer->mme_ue)) {
+            ogs_pool_free(&bearer->mme_ue->ebi_pool, bearer->ebi_node);
+        } else {
+            ogs_error("Bearer doesn't have a valid mme_ue, possible memory leak detected");
+        }
+    }
 
     /* Clear bearer so if pointer is used again use-after-free is easier to detect */
     memset(bearer, 0, sizeof(*bearer));
@@ -4760,9 +4805,12 @@ void mme_ebi_pool_init(mme_ue_t *mme_ue)
 {
     int i, index;
 
-    ogs_assert(mme_ue);
+    if (NULL == mme_ue_cycle(mme_ue)) {
+        ogs_error("mme_ue does not exist");
+        return;
+    }
 
-    ogs_pool_init(&mme_ue->ebi_pool, MAX_EPS_BEARER_ID-MIN_EPS_BEARER_ID+1);
+    ogs_pool_init(&mme_ue->ebi_pool, MAX_EPS_BEARER_ID - MIN_EPS_BEARER_ID + 1);
 
     for (i = MIN_EPS_BEARER_ID, index = 0;
             i <= MAX_EPS_BEARER_ID; i++, index++) {
@@ -4779,7 +4827,10 @@ void mme_ebi_pool_final(mme_ue_t *mme_ue)
 
 void mme_ebi_pool_clear(mme_ue_t *mme_ue)
 {
-    ogs_assert(mme_ue);
+    if (NULL == mme_ue_cycle(mme_ue)) {
+        ogs_error("mme_ue does not exist");
+        return;
+    }
 
     /* Suppress log message (mme_ue->ebi_pool.avail != mme_ue->ebi_pool.size) */
     mme_ue->ebi_pool.avail = mme_ue->ebi_pool.size;

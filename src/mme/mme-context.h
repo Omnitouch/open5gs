@@ -848,6 +848,7 @@ ogs_sockaddr_t *mme_pgw_addr_find_by_apn(
         ogs_list_t *list, int family, char *apn);
 
 ogs_sockaddr_t *mme_pgw_addr_select_random(ogs_list_t *list, int family);
+mme_pgw_t *mme_pgw_cycle(mme_pgw_t *pgw);
 
 mme_vlr_t *mme_vlr_add(ogs_sockaddr_t *sa_list, ogs_sockopt_t *option);
 void mme_vlr_remove(mme_vlr_t *vlr);
