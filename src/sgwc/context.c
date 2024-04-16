@@ -1070,13 +1070,13 @@ sgwc_tunnel_t *sgwc_tunnel_find_by_far_id(
     ogs_assert(sess);
 
     ogs_list_for_each(&sess->bearer_list, bearer) {
-        if (NULL != sgwc_bearer_cycle(bearer)) {
+        if (NULL == sgwc_bearer_cycle(bearer)) {
             ogs_error("Bearer in sess->bearer_list does not exist");
             break;
         }
 
         ogs_list_for_each(&bearer->tunnel_list, tunnel) {
-            if (NULL != sgwc_tunnel_cycle(tunnel)) {
+            if (NULL == sgwc_tunnel_cycle(tunnel)) {
                 ogs_error("Tunnel in sess->tunnel_list does not exist");
                 break;
             }
