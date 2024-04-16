@@ -52,7 +52,11 @@ static void timer_send_event(int timer_id, void *data)
 {
     int rv;
     smf_event_t *e = NULL;
-    ogs_assert(data);
+
+    if (NULL == pfcp_node_cycle(data)) {
+        ogs_error("Node does not exist!");
+        return;
+    }
 
     switch (timer_id) {
     case SMF_TIMER_PFCP_ASSOCIATION:

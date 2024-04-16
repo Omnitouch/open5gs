@@ -127,7 +127,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         }
 
         if (NULL == sess) {
-            ogs_error("Just got an event with a NULL sess");
+            ogs_debug("Just got an event with a NULL sess");
         }
 
         switch(gtp2_message.h.type) {
@@ -393,8 +393,11 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         ogs_assert(e);
         recvbuf = e->pkbuf;
         ogs_assert(recvbuf);
-        pfcp_node = e->pfcp_node;
-        ogs_assert(pfcp_node);
+        pfcp_node = pfcp_node_cycle(e->pfcp_node);
+        if (NULL == pfcp_node) {
+            ogs_error("Node does not exist!");
+            break;
+        }
         ogs_assert(OGS_FSM_STATE(&pfcp_node->sm));
 
         /*
@@ -437,8 +440,12 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
     case SMF_EVT_N4_TIMER:
     case SMF_EVT_N4_NO_HEARTBEAT:
         ogs_assert(e);
-        pfcp_node = e->pfcp_node;
-        ogs_assert(pfcp_node);
+        pfcp_node = pfcp_node_cycle(e->pfcp_node);
+        if (NULL == pfcp_node) {
+            ogs_error("Node does not exist!");
+            break;
+        }
+
         ogs_assert(OGS_FSM_STATE(&pfcp_node->sm));
 
         ogs_fsm_dispatch(&pfcp_node->sm, e);

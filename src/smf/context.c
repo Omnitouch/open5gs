@@ -1265,6 +1265,8 @@ smf_sess_t *smf_sess_add_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type)
 
     smf_sess_t *sess = NULL;
 
+    ogs_debug("smf_sess_add_by_apn");
+
     ogs_assert(smf_ue);
     ogs_assert(apn);
 
@@ -1329,6 +1331,8 @@ smf_sess_t *smf_sess_add_by_gtp1_message(ogs_gtp1_message_t *message)
     smf_sess_t *sess = NULL;
     char apn[OGS_MAX_APN_LEN+1];
 
+    ogs_debug("smf_sess_add_by_gtp1_message");
+
     ogs_gtp1_create_pdp_context_request_t *req = &message->create_pdp_context_request;
 
     if (req->imsi.presence == 0) {
@@ -1391,9 +1395,27 @@ smf_sess_t *smf_sess_add_by_gtp1_message(ogs_gtp1_message_t *message)
 
     sess = smf_sess_find_by_apn(smf_ue, apn, req->rat_type.u8);
     if (sess) {
-        ogs_warn("OLD Session Will Release [IMSI:%s,APN:%s]",
+        int rv;
+        ogs_info("OLD Session Will Release [IMSI:%s,APN:%s]",
                 smf_ue->imsi_bcd, sess->session.name);
-        smf_sess_remove(sess);
+
+        if (smf_self()->redis_ip_reuse.enabled) {
+            /* So that we dont get race conditions when deleting the sess after the response */
+            if (sess->ipv4) {
+                redis_ue_ip_free(smf_ue->imsi_bcd, sess->session.name, sess->ipv4->addr[0]);
+                ogs_hash_set(self.ipv4_hash, sess->ipv4->addr, OGS_IPV4_LEN, NULL);
+                ogs_pfcp_ue_ip_free(sess->ipv4);
+                sess->ipv4 = NULL;
+            }
+        }
+
+        rv = smf_epc_pfcp_send_session_deletion_request(sess, NULL);
+        ogs_expect(OGS_OK == rv);
+
+        if (OGS_OK != rv) {
+            ogs_error("Failed to send session deletion, deleting session locally");
+            smf_sess_remove(sess);
+        }
     }
 
     sess = smf_sess_add_by_apn(smf_ue, apn, req->rat_type.u8);
@@ -1407,6 +1429,8 @@ smf_sess_t *smf_sess_add_by_gtp2_message(ogs_gtp2_message_t *message)
     smf_ue_t *smf_ue = NULL;
     smf_sess_t *sess = NULL;
     char apn[OGS_MAX_APN_LEN+1];
+
+    ogs_debug("smf_sess_add_by_gtp2_message");
 
     ogs_gtp2_create_session_request_t *req = &message->create_session_request;
 
@@ -1456,6 +1480,7 @@ smf_sess_t *smf_sess_add_by_gtp2_message(ogs_gtp2_message_t *message)
 
     sess = smf_sess_find_by_apn(smf_ue, apn, req->rat_type.u8);
     if (sess) {
+        int rv;
         ogs_info("OLD Session Will Release [IMSI:%s,APN:%s]",
                 smf_ue->imsi_bcd, sess->session.name);
 
@@ -1469,8 +1494,13 @@ smf_sess_t *smf_sess_add_by_gtp2_message(ogs_gtp2_message_t *message)
             }
         }
 
-        ogs_expect(OGS_OK ==
-            smf_epc_pfcp_send_session_deletion_request(sess, NULL));
+        rv = smf_epc_pfcp_send_session_deletion_request(sess, NULL);
+        ogs_expect(OGS_OK == rv);
+
+        if (OGS_OK != rv) {
+            ogs_error("Failed to send session deletion, deleting session locally");
+            smf_sess_remove(sess);
+        }
     }
 
     sess = smf_sess_add_by_apn(smf_ue, apn, req->rat_type.u8);
@@ -1484,6 +1514,8 @@ smf_sess_t *smf_sess_add_by_psi(smf_ue_t *smf_ue, uint8_t psi)
     smf_event_t e;
 
     smf_sess_t *sess = NULL;
+
+    ogs_debug("smf_sess_add_by_psi");
 
     ogs_assert(smf_ue);
     ogs_assert(psi != OGS_NAS_PDU_SESSION_IDENTITY_UNASSIGNED);
@@ -1553,6 +1585,8 @@ smf_sess_t *smf_sess_add_by_sbi_message(ogs_sbi_message_t *message)
 {
     smf_ue_t *smf_ue = NULL;
     smf_sess_t *sess = NULL;
+    
+    ogs_debug("smf_sess_add_by_sbi_message");
 
     OpenAPI_sm_context_create_data_t *SmContextCreateData = NULL;
 
@@ -1578,10 +1612,28 @@ smf_sess_t *smf_sess_add_by_sbi_message(ogs_sbi_message_t *message)
     }
 
     sess = smf_sess_find_by_psi(smf_ue, SmContextCreateData->pdu_session_id);
-    if (sess) {
+    if (sess) {        
+        int rv;
         ogs_warn("OLD Session Will Release [SUPI:%s,PDU Session identity:%d]",
                 SmContextCreateData->supi, SmContextCreateData->pdu_session_id);
-        smf_sess_remove(sess);
+
+        if (smf_self()->redis_ip_reuse.enabled) {
+            /* So that we dont get race conditions when deleting the sess after the response */
+            if (sess->ipv4) {
+                redis_ue_ip_free(smf_ue->imsi_bcd, sess->session.name, sess->ipv4->addr[0]);
+                ogs_hash_set(self.ipv4_hash, sess->ipv4->addr, OGS_IPV4_LEN, NULL);
+                ogs_pfcp_ue_ip_free(sess->ipv4);
+                sess->ipv4 = NULL;
+            }
+        }
+
+        rv = smf_epc_pfcp_send_session_deletion_request(sess, NULL);
+        ogs_expect(OGS_OK == rv);
+
+        if (OGS_OK != rv) {
+            ogs_error("Failed to send session deletion, deleting session locally");
+            smf_sess_remove(sess);
+        }        
     }
 
     sess = smf_sess_add_by_psi(smf_ue, SmContextCreateData->pdu_session_id);
@@ -1916,9 +1968,10 @@ smf_sess_t *smf_sess_find_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type)
     ogs_assert(apn);
 
     ogs_list_reverse_for_each(&smf_ue->sess_list, sess) {
-        if (NULL == smf_sess_cycle(sess)) {
+        sess = smf_sess_cycle(sess);
+        if (NULL == sess) {
             ogs_error("smf_ue has an invalid sess in its sess_list");
-            continue;
+            break;
         }
 
         if (ogs_strcasecmp(sess->session.name, apn) == 0 &&

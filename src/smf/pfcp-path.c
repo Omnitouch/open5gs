@@ -63,7 +63,10 @@ static void pfcp_node_fsm_init(ogs_pfcp_node_t *node, bool try_to_assoicate)
 {
     smf_event_t e;
 
-    ogs_assert(node);
+    if (NULL == pfcp_node_cycle(node)) {
+        ogs_error("Cannot init a node that doesn't exist");
+        return;
+    }
 
     memset(&e, 0, sizeof(e));
     e.pfcp_node = node;
@@ -81,7 +84,10 @@ static void pfcp_node_fsm_fini(ogs_pfcp_node_t *node)
 {
     smf_event_t e;
 
-    ogs_assert(node);
+    if (NULL == pfcp_node_cycle(node)) {
+        ogs_error("Cannot fini a node that doesn't exist");
+        return;
+    }
 
     memset(&e, 0, sizeof(e));
     e.pfcp_node = node;
@@ -193,8 +199,14 @@ void smf_pfcp_close(void)
 {
     ogs_pfcp_node_t *pfcp_node = NULL;
 
-    ogs_list_for_each(&ogs_pfcp_self()->pfcp_peer_list, pfcp_node)
+    ogs_list_for_each(&ogs_pfcp_self()->pfcp_peer_list, pfcp_node) {
+        if (NULL == pfcp_node_cycle(pfcp_node)) {
+            ogs_error("Node does not exist!");
+            break;
+        }
+
         pfcp_node_fsm_fini(pfcp_node);
+    }
 
     ogs_freeaddrinfo(ogs_pfcp_self()->pfcp_advertise);
     ogs_freeaddrinfo(ogs_pfcp_self()->pfcp_advertise6);
@@ -669,9 +681,13 @@ int smf_epc_pfcp_send_one_bearer_modification_request(
     ogs_pfcp_xact_t *xact = NULL;
     smf_sess_t *sess = NULL;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    bearer = smf_bearer_cycle(bearer);
+    sess = bearer ? smf_sess_cycle(bearer->sess) : NULL;
+    
+    if (NULL == sess) {
+        ogs_error("No context");
+        return OGS_ERROR;
+    }
 
     xact = ogs_pfcp_xact_local_create(
             sess->pfcp_node, bearer_epc_timeout, bearer);

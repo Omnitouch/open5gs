@@ -436,19 +436,34 @@ void smf_pfcp_state_exception(ogs_fsm_t *s, smf_event_t *e)
 
 static void pfcp_restoration(ogs_pfcp_node_t *node)
 {
-    smf_ue_t *smf_ue = NULL;
+    if (NULL == pfcp_node_cycle(node)) {
+        ogs_error("Cannot do a pfcp restoration for a node that doesn't exist");
+        return;
+    }
 
     char buf1[OGS_ADDRSTRLEN];
     char buf2[OGS_ADDRSTRLEN];
 
+    smf_ue_t *smf_ue = NULL;
     ogs_list_for_each(&smf_self()->smf_ue_list, smf_ue) {
-        smf_sess_t *sess = NULL;
-        ogs_assert(smf_ue);
+        if (NULL == smf_ue_cycle(smf_ue)) {
+            ogs_error("Found a smf_ue that doesn't exist");
+            break;
+        }
 
+        smf_sess_t *sess = NULL;
         ogs_list_for_each(&smf_ue->sess_list, sess) {
-            ogs_assert(sess);
+            if (NULL == smf_sess_cycle(sess)) {
+                ogs_error("Found a sess that doesn't exist");
+                break;
+            }
 
             if (node == sess->pfcp_node) {
+                if (NULL == pfcp_node_cycle(sess->pfcp_node)) {
+                    ogs_error("Found a node that doesn't exist");
+                    break;
+                }
+
                 if (sess->epc) {
                     ogs_info("UE IMSI[%s] APN[%s] IPv4[%s] IPv6[%s]",
                         smf_ue->imsi_bcd, sess->session.name,
@@ -482,7 +497,10 @@ static void reselect_upf(ogs_pfcp_node_t *node)
     smf_ue_t *smf_ue = NULL;
     ogs_pfcp_node_t *iter = NULL;
 
-    ogs_assert(node);
+    if (NULL == pfcp_node_cycle(node)) {
+        ogs_error("Cannot do a upf reselection for a node that doesn't exist");
+        return;
+    }
 
     if (node->restoration_required == true) {
         ogs_error("UPF has already been restarted");
@@ -502,12 +520,19 @@ static void reselect_upf(ogs_pfcp_node_t *node)
     }
 
     ogs_list_for_each(&smf_self()->smf_ue_list, smf_ue) {
+        if (NULL == smf_ue_cycle(smf_ue)) {
+            ogs_error("Found a smf_ue that doesn't exist");
+            break;
+        }
+
         smf_sess_t *sess = NULL;
-        ogs_assert(smf_ue);
-
         ogs_list_for_each(&smf_ue->sess_list, sess) {
-            ogs_assert(sess);
+            if (NULL == smf_sess_cycle(sess)) {
+                ogs_error("Found a sess that doesn't exist");
+                break;
+            }
 
+            sess->pfcp_node = pfcp_node_cycle(sess->pfcp_node);
             if (node == sess->pfcp_node) {
                 if (sess->epc) {
                     ogs_error("[%s:%s] EPC restoration is not implemented",

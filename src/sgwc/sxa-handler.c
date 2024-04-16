@@ -1850,8 +1850,8 @@ static UsageLoggerData build_usage_logger_data(sgwc_bearer_t *bearer, char const
     UsageLoggerData usageLoggerData = {0};
     sgwc_sess_t *sess = NULL;
     
-    ogs_assert(bearer);
-    sess = sgwc_sess_cycle(bearer->sess);
+    bearer = sgwc_bearer_cycle(bearer);
+    sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
     if (NULL == sess) {
         ogs_error("Failed to build_usage_logger_data as sess does not exist");
         return usageLoggerData;

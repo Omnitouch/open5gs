@@ -73,7 +73,10 @@ ogs_pfcp_xact_t *ogs_pfcp_xact_local_create(ogs_pfcp_node_t *node,
     char buf[OGS_ADDRSTRLEN];
     ogs_pfcp_xact_t *xact = NULL;
 
-    ogs_assert(node);
+    if (NULL == pfcp_node_cycle(node)) {
+        ogs_error("Node does not exist!");
+        return NULL;
+    }
 
     ogs_pool_alloc(&pool, &xact);
     ogs_assert(xact);
