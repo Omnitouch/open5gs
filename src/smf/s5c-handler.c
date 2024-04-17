@@ -640,20 +640,23 @@ void smf_s5c_handle_create_bearer_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(xact);
-    bearer = xact->data;
-    ogs_assert(bearer);
-
+    ogs_assert(ogs_gtp_xact_cycle(xact));
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
 
+    bearer = smf_bearer_cycle(xact->data);
+    if (NULL == bearer) {
+        ogs_error("Bearer does not exist");
+        return;
+    }
+    
     /************************
      * Check Session Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
-        ogs_assert(OGS_OK ==
+        ogs_expect(OGS_OK ==
             smf_epc_pfcp_send_one_bearer_modification_request(
                 bearer, NULL, OGS_PFCP_MODIFY_REMOVE,
                 OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED,
@@ -710,7 +713,7 @@ void smf_s5c_handle_create_bearer_response(
     }
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
-        ogs_assert(OGS_OK ==
+        ogs_expect(OGS_OK ==
             smf_epc_pfcp_send_one_bearer_modification_request(
                 bearer, NULL, OGS_PFCP_MODIFY_REMOVE,
                 OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED,
