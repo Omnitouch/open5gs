@@ -881,7 +881,10 @@ static void mme_s6a_aia_cb(void *data, struct msg **msg)
     }
 
     mme_ue = mme_ue_cycle(sess_data->mme_ue);
-    ogs_assert(mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("sess_data->mme_ue is invalid");
+        return;
+    }
 
     /* Set Authentication-Information Command */
     s6a_message = ogs_calloc(1, sizeof(ogs_diam_s6a_message_t));
