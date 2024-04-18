@@ -764,12 +764,11 @@ void sgwc_s11_handle_create_bearer_response(
     ogs_gtp2_f_teid_t *sgw_s1u_teid = NULL, *enb_s1u_teid = NULL;
     ogs_gtp2_uli_t uli;
 
-    ogs_assert(sgwc_ue);
+    ogs_debug("Create Bearer Response");
+
     ogs_assert(message);
     rsp = &message->create_bearer_response;
     ogs_assert(rsp);
-
-    ogs_debug("Create Bearer Response");
 
     /********************
      * Check Transaction
@@ -789,9 +788,10 @@ void sgwc_s11_handle_create_bearer_response(
         ogs_error("bearer doesn't exist!");
     }
 
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
     sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
-    if (NULL == sess) {
-        ogs_error("sess doesn't exist!");
+    if ((NULL == sgwc_ue) || (NULL == sess)) {
+        ogs_error("No context");
         ogs_gtp_send_error_message(s5c_xact, sess ? sess->pgw_s5c_teid : 0,
             OGS_GTP2_CREATE_BEARER_RESPONSE_TYPE, OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND);
         return;
