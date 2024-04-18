@@ -595,7 +595,15 @@ struct mme_ue_s {
         CLEAR_MME_UE_TIMER((__mME)->t_implicit_detach); \
         \
         ogs_list_for_each(&mme_ue->sess_list, sess) { \
+            if (NULL == mme_sess_cycle(sess)) { \
+                ogs_error("Found a invalid sess in mme_ue->sess_list"); \
+                break; \
+            } \
             ogs_list_for_each(&sess->bearer_list, bearer) { \
+                if (NULL == mme_bearer_cycle(bearer)) { \
+                    ogs_error("Found a invalid bearer in sess->bearer_list"); \
+                    break; \
+                } \
                 CLEAR_BEARER_ALL_TIMERS(bearer); \
             } \
         } \

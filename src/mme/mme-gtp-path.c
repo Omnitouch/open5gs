@@ -96,26 +96,17 @@ static void timeout(ogs_gtp_xact_t *xact, void *data)
     case OGS_GTP2_RELEASE_ACCESS_BEARERS_REQUEST_TYPE:
     case OGS_GTP2_CREATE_INDIRECT_DATA_FORWARDING_TUNNEL_REQUEST_TYPE:
     case OGS_GTP2_DELETE_INDIRECT_DATA_FORWARDING_TUNNEL_REQUEST_TYPE:
-        mme_ue = data;
-        ogs_assert(mme_ue);
+        mme_ue = mme_ue_cycle(data);
         break;
     case OGS_GTP2_CREATE_SESSION_REQUEST_TYPE:
     case OGS_GTP2_DELETE_SESSION_REQUEST_TYPE:
         sess = mme_sess_cycle(data);
-        if (NULL == sess) {
-            ogs_error("OGS_GTP2_DELETE_SESSION_REQUEST_TYPE timeout for mme_sess that doesn't exist anymore");
-            return;
-        }
-        mme_ue = sess->mme_ue;
-        ogs_assert(mme_ue);
+        mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
         break;
     case OGS_GTP2_BEARER_RESOURCE_COMMAND_TYPE:
-        bearer = data;
-        ogs_assert(bearer);
-        sess = bearer->sess;
-        ogs_assert(sess);
-        mme_ue = sess->mme_ue;
-        ogs_assert(mme_ue);
+        bearer = mme_bearer_cycle(data);
+        sess = bearer ? mme_sess_cycle(bearer->sess) : NULL;
+        mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
         break;
     default:
         ogs_fatal("Invalid type [%d]", type);
@@ -123,7 +114,10 @@ static void timeout(ogs_gtp_xact_t *xact, void *data)
         break;
     }
 
-    ogs_assert(mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("Invalid context");
+        return;
+    }
 
     switch (type) {
     case OGS_GTP2_DELETE_SESSION_REQUEST_TYPE:
@@ -220,12 +214,19 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
     sgw_ue_t *sgw_ue = NULL;
     ogs_session_t *session = NULL;
 
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
-    session = sess->session;
-    ogs_assert(session);
-    sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
+    sess = mme_sess_cycle(sess);
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
+    session = sess ? sess->session : NULL;
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
+
+    if ((NULL == sess)    ||
+        (NULL == mme_ue)  ||
+        (NULL == session) ||
+        (NULL == sgw_ue))
+    {
+        ogs_error("Invalid context");
+        return OGS_ERROR;
+    }
 
     /* Pick SGW if one has not been chosen */
     if (NULL == sgw_ue) {
@@ -483,13 +484,13 @@ int mme_gtp_send_delete_session_request(
     mme_ue_t *mme_ue = NULL;
 
     ogs_assert(action);
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
+    sess = mme_sess_cycle(sess);
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
+    sgw_ue = sgw_ue_cycle(sgw_ue);
 
-    if (NULL == sgw_ue) {
+    if ((NULL == mme_ue) || (NULL == sgw_ue)) {
         /* If the sgw_ue was never set we don't need to do anything */
-        ogs_warn("Trying to send a delete session request before create session request has been sent");
+        ogs_warn("Invalid context");
         return OGS_ERROR;
     }
 
@@ -533,9 +534,14 @@ void mme_gtp_send_delete_all_sessions(mme_ue_t *mme_ue, int action)
 
     ogs_assert(action);
     
-    sgw_ue = mme_ue->sgw_ue;
+    sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
 
     ogs_list_for_each_safe(&mme_ue->sess_list, next_sess, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+        
         if (sgw_ue && MME_HAVE_SGW_S1U_PATH(sess)) {
             mme_gtp_send_delete_session_request(sgw_ue, sess, action);
         } else {
@@ -556,14 +562,13 @@ int mme_gtp_send_create_bearer_response(
     ogs_gtp2_header_t h;
     ogs_pkbuf_t *pkbuf = NULL;
 
-    ogs_assert(bearer);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
-    
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
+
     if (NULL == sgw_ue) {
         /* sgw_ue is set in mme_gtp_send_create_session_request */
-        ogs_error("Trying to send a create bearer response before create session request has been sent");
+        ogs_error("Invalid context");
         ogs_error("\tcause_value: %i", cause_value);
         return OGS_ERROR;
     }
@@ -608,14 +613,13 @@ int mme_gtp_send_update_bearer_response(
     ogs_gtp2_header_t h;
     ogs_pkbuf_t *pkbuf = NULL;
 
-    ogs_assert(bearer);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
 
     if (NULL == sgw_ue) {
         /* sgw_ue is set in mme_gtp_send_create_session_request */
-        ogs_error("Trying to send a update bearer response before create session request has been sent");
+        ogs_error("Invalid context");
         ogs_error("\tcause_value: %i", cause_value);
         return OGS_ERROR;
     }
@@ -660,14 +664,13 @@ int mme_gtp_send_delete_bearer_response(
     ogs_gtp2_header_t h;
     ogs_pkbuf_t *pkbuf = NULL;
 
-    ogs_assert(bearer);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
 
     if (NULL == sgw_ue) {
         /* sgw_ue is set in mme_gtp_send_create_session_request */
-        ogs_error("Trying to send a delete bearer response before create session request has been sent");
+        ogs_error("Invalid context");
         ogs_error("\tcause_value: %i", cause_value);
         return OGS_ERROR;
     }
@@ -749,9 +752,10 @@ void mme_gtp_send_release_all_ue_in_enb(mme_enb_t *enb, int action)
     enb_ue_t *enb_ue = NULL, *next = NULL;
 
     ogs_list_for_each_safe(&enb->enb_ue_list, next, enb_ue) {
-        mme_ue = enb_ue->mme_ue;
+        enb_ue = enb_ue_cycle(enb_ue);
+        mme_ue = enb_ue ? mme_ue_cycle(enb_ue->mme_ue) : NULL;
 
-        if (mme_ue && mme_ue->sgw_ue) {
+        if (mme_ue && sgw_ue_cycle(mme_ue->sgw_ue)) {
             if (action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_LO_CONNREFUSED) {
                 /*
                  * https://github.com/open5gs/open5gs/pull/1497
@@ -804,19 +808,23 @@ int mme_gtp_send_downlink_data_notification_ack(
     ogs_gtp2_header_t h;
     ogs_pkbuf_t *s11buf = NULL;
 
-    ogs_assert(bearer);
+    bearer = mme_bearer_cycle(bearer);
+    if (NULL == bearer) {
+        ogs_error("Invalid context");
+        return OGS_ERROR;
+    }
+
     xact = ogs_gtp_xact_cycle(bearer->notify.xact);
     if (!xact) {
         ogs_warn("GTP transaction(NOTIFY) has already been removed");
         return OGS_OK;
     }
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
-
+    
+    mme_ue = mme_ue_cycle(bearer->mme_ue);
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
     if (NULL == sgw_ue) {
         /* sgw_ue is set in mme_gtp_send_create_session_request */
-        ogs_error("Trying to send a send downlink data notification ack before create session request has been sent");
+        ogs_error("Invalid context");
         ogs_error("\tcause_value: %i", cause_value);
         return OGS_ERROR;
     }
@@ -943,14 +951,13 @@ int mme_gtp_send_bearer_resource_command(
     mme_ue_t *mme_ue = NULL;
     sgw_ue_t *sgw_ue = NULL;
 
-    ogs_assert(bearer);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
     
     if (NULL == sgw_ue) {
         /* sgw_ue is set in mme_gtp_send_create_session_request */
-        ogs_error("Trying to send a bearer resource command before create session request has been sent");
+        ogs_error("Invalid context");
         return OGS_ERROR;
     }
 

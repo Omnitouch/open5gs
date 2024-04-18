@@ -32,9 +32,13 @@ ogs_pkbuf_t *esm_build_pdn_connectivity_reject(
     ogs_nas_eps_pdn_connectivity_reject_t *pdn_connectivity_reject =
             &message.esm.pdn_connectivity_reject;
 
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
+    sess = mme_sess_cycle(sess);
+    mme_ue = mme_ue_cycle(sess->mme_ue);
+    
+    if (NULL == mme_ue) {
+        ogs_error("Invalid context");
+        return NULL;
+    }
 
     ogs_debug("PDN connectivity reject");
     ogs_debug("    IMSI[%s] PTI[%d] Cause[%d]",
@@ -67,11 +71,14 @@ ogs_pkbuf_t *esm_build_information_request(mme_bearer_t *bearer)
     mme_ue_t *mme_ue = NULL;
     mme_sess_t *sess = NULL;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
+    bearer = mme_bearer_cycle(bearer);
+    sess = bearer ? mme_sess_cycle(bearer->sess) : NULL;
+    mme_ue = sess ? mme_ue_cycle(bearer->mme_ue) : NULL;
+
+    if (NULL == mme_ue) {
+        ogs_error("No context");
+        return NULL;
+    }
 
     ogs_debug("ESM information request");
     ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",
@@ -116,15 +123,20 @@ ogs_pkbuf_t *esm_build_activate_default_bearer_context_request(
     mme_bearer_t *bearer = NULL;
     ogs_session_t *session = NULL;
 
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
-    session = sess->session;
-    ogs_assert(session);
-    ogs_assert(session->name);
-    bearer = mme_default_bearer_in_sess(sess);
-    ogs_assert(bearer);
-    ogs_assert(mme_bearer_next(bearer) == NULL);
+    sess = mme_sess_cycle(sess);
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
+    session = sess ? sess->session : NULL;
+    bearer = sess ? mme_default_bearer_in_sess(sess) : NULL;
+
+    if ((NULL == sess)    || 
+        (NULL == mme_ue)  ||
+        (NULL == session) ||
+        (NULL == bearer)  ||
+        (NULL != mme_bearer_next(bearer)))
+    {
+        ogs_error("Invalid context");
+        return NULL;
+    }
 
     ogs_debug("Activate default bearer context request");
     ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",
@@ -268,11 +280,16 @@ ogs_pkbuf_t *esm_build_activate_dedicated_bearer_context_request(
     ogs_nas_traffic_flow_template_t *tft =
         &activate_dedicated_eps_bearer_context_request->tft;
     
-    ogs_assert(bearer);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
     linked_bearer = mme_linked_bearer(bearer); 
-    ogs_assert(linked_bearer);
+
+    if ((NULL == mme_ue) ||
+        (NULL == linked_bearer)) 
+    {
+        ogs_error("Invalid context");
+        return NULL;
+    }
 
     ogs_debug("Activate dedicated bearer context request");
     ogs_debug("    IMSI[%s] EBI[%d] Linked-EBI[%d]",
@@ -316,11 +333,14 @@ ogs_pkbuf_t *esm_build_modify_bearer_context_request(
     ogs_nas_traffic_flow_template_t *tft =
         &modify_eps_bearer_context_request->tft;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
+    bearer = mme_bearer_cycle(bearer);
+    sess = bearer ? mme_sess_cycle(bearer->sess) : NULL;
+    mme_ue = sess ? mme_ue_cycle(bearer->mme_ue) : NULL;
+
+    if (NULL == mme_ue) {
+        ogs_error("No context");
+        return NULL;
+    }
 
     ogs_debug("Modify bearer context request");
     ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",
@@ -366,11 +386,14 @@ ogs_pkbuf_t *esm_build_deactivate_bearer_context_request(
         *deactivate_eps_bearer_context_request =
             &message.esm.deactivate_eps_bearer_context_request;
     
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
+    bearer = mme_bearer_cycle(bearer);
+    sess = bearer ? mme_sess_cycle(bearer->sess) : NULL;
+    mme_ue = sess ? mme_ue_cycle(bearer->mme_ue) : NULL;
+
+    if (NULL == mme_ue) {
+        ogs_error("No context");
+        return NULL;
+    }
 
     ogs_debug("Deactivate bearer context request");
     ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",

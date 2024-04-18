@@ -690,7 +690,7 @@ void mme_s6a_send_air(mme_ue_t *mme_ue,
 
     uint8_t resync[OGS_AUTS_LEN + OGS_RAND_LEN];
 
-    ogs_assert(mme_ue);
+    ogs_assert(mme_ue_cycle(mme_ue));
 
     ogs_debug("[MME] Authentication-Information-Request");
 
@@ -880,7 +880,7 @@ static void mme_s6a_aia_cb(void *data, struct msg **msg)
         return;
     }
 
-    mme_ue = sess_data->mme_ue;
+    mme_ue = mme_ue_cycle(sess_data->mme_ue);
     ogs_assert(mme_ue);
 
     /* Set Authentication-Information Command */
@@ -1036,7 +1036,7 @@ out:
         int rv;
         e = mme_event_new(MME_EVENT_S6A_MESSAGE);
         ogs_assert(e);
-        e->mme_ue = mme_ue;
+        e->mme_ue = mme_ue_cycle(mme_ue);
         e->s6a_message = s6a_message;
         rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {
@@ -1105,7 +1105,7 @@ void mme_s6a_send_ulr(mme_ue_t *mme_ue)
     struct session *session = NULL;
     ogs_nas_plmn_id_t nas_plmn_id;
 
-    ogs_assert(mme_ue);
+    ogs_assert(mme_ue_cycle(mme_ue));
 
     ogs_debug("[MME] Update-Location-Request");
 
@@ -1270,7 +1270,7 @@ void mme_s6a_send_pur(mme_ue_t *mme_ue)
     struct sess_state *sess_data = NULL, *svg;
     struct session *session = NULL;
 
-    ogs_assert(mme_ue);
+    ogs_assert(mme_ue_cycle(mme_ue));
 
     ogs_debug("[MME] Purge-UE-Request");
 
@@ -1409,7 +1409,7 @@ static void mme_s6a_ula_cb(void *data, struct msg **msg)
         return;
     }
 
-    mme_ue = sess_data->mme_ue;
+    mme_ue = mme_ue_cycle(sess_data->mme_ue);
     ogs_assert(mme_ue);
 
     /* Set Update-Location Command */
@@ -1565,7 +1565,7 @@ static void mme_s6a_ula_cb(void *data, struct msg **msg)
         int rv;
         e = mme_event_new(MME_EVENT_S6A_MESSAGE);
         ogs_assert(e);
-        e->mme_ue = mme_ue;
+        e->mme_ue = mme_ue_cycle(mme_ue);
         e->s6a_message = s6a_message;
         rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {
@@ -1675,7 +1675,7 @@ static void mme_s6a_pua_cb(void *data, struct msg **msg)
         return;
     }
 
-    mme_ue = sess_data->mme_ue;
+    mme_ue = mme_ue_cycle(sess_data->mme_ue);
     ogs_assert(mme_ue);
 
     /* Set Purge-UE Command */
@@ -1773,7 +1773,7 @@ static void mme_s6a_pua_cb(void *data, struct msg **msg)
         int rv;
         e = mme_event_new(MME_EVENT_S6A_MESSAGE);
         ogs_assert(e);
-        e->mme_ue = mme_ue;
+        e->mme_ue = mme_ue_cycle(mme_ue);
         e->s6a_message = s6a_message;
         rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {
@@ -1930,7 +1930,7 @@ static int mme_ogs_diam_s6a_clr_cb( struct msg **msg, struct avp *avp,
 
     e = mme_event_new(MME_EVENT_S6A_MESSAGE);
     ogs_assert(e);
-    e->mme_ue = mme_ue;
+    e->mme_ue = mme_ue_cycle(mme_ue);
     e->s6a_message = s6a_message;
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
@@ -2185,7 +2185,7 @@ static int mme_ogs_diam_s6a_idr_cb( struct msg **msg, struct avp *avp,
     int rv;
     e = mme_event_new(MME_EVENT_S6A_MESSAGE);
     ogs_assert(e);
-    e->mme_ue = mme_ue;
+    e->mme_ue = mme_ue_cycle(mme_ue);
     e->s6a_message = s6a_message;
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
@@ -2238,7 +2238,7 @@ void mme_s13_send_ecr(mme_ue_t *mme_ue)
     struct sess_state *sess_data = NULL, *svg;
     struct session *session = NULL;
 
-    ogs_assert(mme_ue);
+    ogs_assert(mme_ue_cycle(mme_ue));
 
     ogs_debug("[MME] ME-Identity-Check-Request");
 
@@ -2396,7 +2396,7 @@ static void mme_s13_eca_cb(void *data, struct msg **msg)
         return;
     }
 
-    mme_ue = sess_data->mme_ue;
+    mme_ue = mme_ue_cycle(sess_data->mme_ue);
     ogs_assert(mme_ue);
 
     /* Set ME-Identity-Check Command */
@@ -2492,7 +2492,7 @@ out:
         int rv;
         e = mme_event_new(MME_EVENT_S13_MESSAGE);
         ogs_assert(e);
-        e->mme_ue = mme_ue;
+        e->mme_ue = mme_ue_cycle(mme_ue);
         e->s13_message = s13_message;
         rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {
@@ -2555,7 +2555,7 @@ static int push_pcscf_restoration_event(mme_ue_t *mme_ue)
 
     e = mme_event_new(MME_EVENT_S6A_PCSCF_RESTORATION);
     ogs_assert(e);
-    e->mme_ue = mme_ue;
+    e->mme_ue = mme_ue_cycle(mme_ue);
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
         ogs_error("ogs_queue_push() failed:%d", (int)rv);

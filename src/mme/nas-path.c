@@ -472,10 +472,9 @@ int nas_eps_send_pdn_connectivity_reject(
     mme_ue_t *mme_ue;
     ogs_pkbuf_t *esmbuf = NULL;
 
-    ogs_assert(sess);
-
-    mme_ue = sess->mme_ue;
-    if (!mme_ue_cycle(mme_ue)) {
+    sess = mme_sess_cycle(sess);
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
+    if (NULL == mme_ue) {
         ogs_error("UE(mme-ue) context has already been removed");
         return OGS_NOTFOUND;
     }
@@ -520,10 +519,9 @@ int nas_eps_send_esm_information_request(mme_bearer_t *bearer)
     mme_ue_t *mme_ue = NULL;
     ogs_pkbuf_t *esmbuf = NULL;
 
-    ogs_assert(bearer);
-
-    mme_ue = bearer->mme_ue;
-    if (!mme_ue_cycle(mme_ue)) {
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    if (NULL == mme_ue) {
         ogs_error("UE(mme-ue) context has already been removed");
         return OGS_NOTFOUND;
     }
@@ -567,12 +565,11 @@ int nas_eps_send_activate_default_bearer_context_request(
     mme_sess_t *sess = NULL;
     mme_ue_t *mme_ue = NULL;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    bearer = mme_bearer_cycle(bearer);
+    sess = bearer ? mme_sess_cycle(bearer->sess) : NULL;
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
 
-    mme_ue = bearer->mme_ue;
-    if (!mme_ue_cycle(mme_ue)) {
+    if (NULL == mme_ue) {
         ogs_error("UE(mme-ue) context has already been removed");
         return OGS_NOTFOUND;
     }
@@ -609,10 +606,9 @@ int nas_eps_send_activate_dedicated_bearer_context_request(
     ogs_pkbuf_t *esmbuf = NULL;
     mme_ue_t *mme_ue = NULL;
 
-    ogs_assert(bearer);
-
-    mme_ue = bearer->mme_ue;
-    if (!mme_ue_cycle(mme_ue)) {
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    if (NULL == mme_ue) {
         ogs_error("UE(mme-ue) context has already been removed");
         return OGS_NOTFOUND;
     }
@@ -664,10 +660,9 @@ int nas_eps_send_modify_bearer_context_request(
     ogs_pkbuf_t *esmbuf = NULL;
     mme_ue_t *mme_ue = NULL;
 
-    ogs_assert(bearer);
-
-    mme_ue = bearer->mme_ue;
-    if (!mme_ue_cycle(mme_ue)) {
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    if (NULL == mme_ue) {
         ogs_error("UE(mme-ue) context has already been removed");
         return OGS_NOTFOUND;
     }
@@ -708,10 +703,9 @@ int nas_eps_send_deactivate_bearer_context_request(mme_bearer_t *bearer)
     ogs_pkbuf_t *esmbuf = NULL;
     mme_ue_t *mme_ue = NULL;
 
-    ogs_assert(bearer);
-
-    mme_ue = bearer->mme_ue;
-    if (!mme_ue_cycle(mme_ue)) {
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    if (NULL == mme_ue) {
         ogs_error("UE(mme-ue) context has already been removed");
         return OGS_NOTFOUND;
     }

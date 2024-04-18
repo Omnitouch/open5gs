@@ -131,7 +131,11 @@ static void emm_timer_event_send(
 {
     int rv;
     mme_event_t *e = NULL;
-    ogs_assert(mme_ue);
+    
+    if (NULL == mme_ue_cycle(mme_ue)) {
+        ogs_error("No context");
+        return;
+    }
 
     e = mme_event_new(MME_EVENT_EMM_TIMER);
     e->timer_id = timer_id;
@@ -179,9 +183,14 @@ static void esm_timer_event_send(
     int rv;
     mme_event_t *e = NULL;
     mme_ue_t *mme_ue = NULL;
-    ogs_assert(bearer);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(bearer);
+
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    
+    if (NULL == mme_ue) {
+        ogs_error("No context");
+        return;
+    }
 
     e = mme_event_new(MME_EVENT_ESM_TIMER);
     e->timer_id = timer_id;

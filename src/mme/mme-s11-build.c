@@ -52,22 +52,27 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     char apn[OGS_MAX_APN_LEN+1];
 
     ogs_gtp2_indication_t indication;
+    
+    ogs_debug("Create Session Request");
 
-    ogs_assert(sess);
-    session = sess->session;
+    sess = mme_sess_cycle(sess);
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
+
+    if (NULL == sgw_ue) {
+        ogs_error("Invalid context");
+        return NULL;
+    }
+
+    session = sess ? sess->session : NULL;
     ogs_assert(session);
     ogs_assert(session->name);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
 
     if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST) {
         sgw_ue = sgw_ue_cycle(sgw_ue->target_ue);
         ogs_assert(sgw_ue);
     }
 
-    ogs_debug("Create Session Request");
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
             mme_ue->mme_s11_teid, sgw_ue->sgw_s11_teid);
     memset(&gtp_message, 0, sizeof(ogs_gtp2_message_t));
@@ -323,6 +328,11 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
 
     int i = 0;
     ogs_list_for_each(&sess->bearer_list, bearer) {
+        if (NULL == mme_bearer_cycle(bearer)) {
+            ogs_error("Found a invalid bearer in sess->bearer_list");
+            break;
+        }
+        
         ogs_assert(i < OGS_BEARER_PER_UE);
 
         /* Bearer Context : EBI */
@@ -482,8 +492,8 @@ ogs_pkbuf_t *mme_s11_build_modify_bearer_request(
 
         bearer = mme_bearer_cycle(bearer);
         if (NULL == bearer) {
-            ogs_error("There was an invalid bearer in the mme_ue bearer_to_modify_list!");
-            continue;
+            ogs_error("Found a invalid bearer in the mme_ue bearer_to_modify_list!");
+            break;
         }
 
         mme_sess_t *sess = mme_sess_cycle(bearer->sess);
@@ -560,13 +570,19 @@ ogs_pkbuf_t *mme_s11_build_delete_session_request(
     mme_bearer_t *bearer = NULL;
     mme_ue_t *mme_ue = NULL;
 
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
-    bearer = mme_default_bearer_in_sess(sess);
-    ogs_assert(bearer);
-
     ogs_debug("Delete Session Request");
+
+    sess = mme_sess_cycle(sess);
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
+    bearer = sess ? mme_default_bearer_in_sess(sess) : NULL;
+
+    if ((NULL == sess)   ||
+        (NULL == mme_ue) ||
+        (NULL == bearer))
+    {
+        ogs_error("No context");
+        return NULL;
+    }
 
     memset(&gtp_message, 0, sizeof(ogs_gtp2_message_t));
 
@@ -619,13 +635,17 @@ ogs_pkbuf_t *mme_s11_build_create_bearer_response(
     mme_ue_t *mme_ue = NULL;
     sgw_ue_t *sgw_ue = NULL;
 
-    ogs_assert(bearer);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
-
     ogs_debug("Create Bearer Response");
+
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
+    
+    if (NULL == sgw_ue) {
+        ogs_error("Invalid context");
+        return NULL;
+    }
+
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
             mme_ue->mme_s11_teid, sgw_ue->sgw_s11_teid);
 
@@ -726,13 +746,17 @@ ogs_pkbuf_t *mme_s11_build_update_bearer_response(
     mme_ue_t *mme_ue = NULL;
     sgw_ue_t *sgw_ue = NULL;
 
-    ogs_assert(bearer);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
-
     ogs_debug("Update Bearer Response");
+
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
+    
+    if (NULL == sgw_ue) {
+        ogs_error("Invalid context");
+        return NULL;
+    }
+
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
             mme_ue->mme_s11_teid, sgw_ue->sgw_s11_teid);
 
@@ -805,13 +829,17 @@ ogs_pkbuf_t *mme_s11_build_delete_bearer_response(
     mme_ue_t *mme_ue = NULL;
     sgw_ue_t *sgw_ue = NULL;
 
-    ogs_assert(bearer);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
-
     ogs_debug("Delete Bearer Response");
+
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
+    
+    if (NULL == sgw_ue) {
+        ogs_error("Invalid context");
+        return NULL;
+    }
+
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
             mme_ue->mme_s11_teid, sgw_ue->sgw_s11_teid);
 
@@ -1045,15 +1073,18 @@ ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
     mme_sess_t *sess = NULL;
     mme_bearer_t *linked_bearer = NULL;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
-
     ogs_debug("Bearer Resource Command");
+    
+    bearer = mme_bearer_cycle(bearer);
+    sess = bearer ? mme_sess_cycle(bearer->sess) : NULL;
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
+
+    if (NULL == sgw_ue) {
+        ogs_error("Invalid context");
+        return NULL;
+    }
+
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
             mme_ue->mme_s11_teid, sgw_ue->sgw_s11_teid);
 

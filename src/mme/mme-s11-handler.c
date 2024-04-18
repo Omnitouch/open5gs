@@ -1024,11 +1024,11 @@ void mme_s11_handle_update_bearer_request(
     /********************
      * Check ALL Context
      ********************/
-    ogs_assert(mme_ue);
-    ogs_assert(sgw_ue);
+    ogs_assert(mme_ue_cycle(mme_ue));
+    ogs_assert(sgw_ue_cycle(sgw_ue));
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
+    ogs_assert(mme_bearer_cycle(bearer));
+    sess = mme_sess_cycle(bearer->sess);
     ogs_assert(sess);
 
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
@@ -1211,11 +1211,11 @@ void mme_s11_handle_delete_bearer_request(
     /********************
      * Check ALL Context
      ********************/
-    ogs_assert(mme_ue);
-    ogs_assert(sgw_ue);
+    ogs_assert(mme_ue_cycle(mme_ue));
+    ogs_assert(sgw_ue_cycle(sgw_ue));
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
+    ogs_assert(mme_bearer_cycle(bearer));
+    sess = mme_sess_cycle(bearer->sess);
     ogs_assert(sess);
 
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
@@ -1336,7 +1336,17 @@ void mme_s11_handle_release_access_bearers_response(
             mme_ue->mme_s11_teid, sgw_ue->sgw_s11_teid);
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+        
         ogs_list_for_each(&sess->bearer_list, bearer) {
+            if (NULL == mme_bearer_cycle(bearer)) {
+                ogs_error("Found a invalid bearer in sess->bearer_list");
+                break;
+            }
+
             CLEAR_ENB_S1U_PATH(bearer);
         }
     }

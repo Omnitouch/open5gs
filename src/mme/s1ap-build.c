@@ -364,7 +364,16 @@ ogs_pkbuf_t *s1ap_build_initial_context_setup_request(
             mme_ue->ambr.downlink);
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+
         ogs_list_for_each(&sess->bearer_list, bearer) {
+            if (NULL == mme_bearer_cycle(bearer)) {
+                ogs_error("Found a invalid bearer in sess->bearer_list");
+                break;
+            }
 
             S1AP_E_RABToBeSetupItemCtxtSUReqIEs_t *item = NULL;
             S1AP_E_RABToBeSetupItemCtxtSUReq_t *e_rab = NULL;
@@ -945,9 +954,9 @@ ogs_pkbuf_t *s1ap_build_e_rab_setup_request(
     enb_ue_t *enb_ue = NULL;
 
     ogs_assert(esmbuf);
-    ogs_assert(bearer);
 
-    mme_ue = mme_ue_cycle(bearer->mme_ue);
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
     ogs_assert(mme_ue);
     enb_ue = enb_ue_cycle(mme_ue->enb_ue);
     ogs_assert(enb_ue);
@@ -1078,9 +1087,9 @@ ogs_pkbuf_t *s1ap_build_e_rab_modify_request(
     enb_ue_t *enb_ue = NULL;
 
     ogs_assert(esmbuf);
-    ogs_assert(bearer);
 
-    mme_ue = mme_ue_cycle(bearer->mme_ue);
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
     ogs_assert(mme_ue);
     enb_ue = enb_ue_cycle(mme_ue->enb_ue);
     ogs_assert(enb_ue);
@@ -1206,9 +1215,9 @@ ogs_pkbuf_t *s1ap_build_e_rab_release_command(
     enb_ue_t *enb_ue = NULL;
 
     ogs_assert(esmbuf);
-    ogs_assert(bearer);
 
-    mme_ue = mme_ue_cycle(bearer->mme_ue);
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
     ogs_assert(mme_ue);
     enb_ue = enb_ue_cycle(mme_ue->enb_ue);
     ogs_assert(enb_ue);
@@ -1388,7 +1397,17 @@ ogs_pkbuf_t *s1ap_build_e_rab_modification_confirm(mme_ue_t *mme_ue)
     *ENB_UE_S1AP_ID = enb_ue->enb_ue_s1ap_id;
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+
         ogs_list_for_each(&sess->bearer_list, bearer) {
+            if (NULL == mme_bearer_cycle(bearer)) {
+                ogs_error("Found a invalid bearer in sess->bearer_list");
+                break;
+            }
+
             S1AP_E_RABModifyItemBearerModConfIEs_t *item = NULL;
             S1AP_E_RABModifyItemBearerModConf_t *e_rab = NULL;
 
@@ -1670,7 +1689,17 @@ ogs_pkbuf_t *s1ap_build_path_switch_ack(
 
     if (e_rab_to_switched_in_uplink_list == true) {
         ogs_list_for_each(&mme_ue->sess_list, sess) {
+            if (NULL == mme_sess_cycle(sess)) {
+                ogs_error("Found a invalid sess in mme_ue->sess_list");
+                break;
+            }
+
             ogs_list_for_each(&sess->bearer_list, bearer) {
+                if (NULL == mme_bearer_cycle(bearer)) {
+                    ogs_error("Found a invalid bearer in sess->bearer_list");
+                    break;
+                }
+
                 S1AP_E_RABToBeSwitchedULItemIEs_t *item = NULL;
                 S1AP_E_RABToBeSwitchedULItem_t *e_rab = NULL;
 
@@ -1853,7 +1882,16 @@ ogs_pkbuf_t *s1ap_build_handover_command(enb_ue_t *source_ue)
             source_ue->enb_ue_s1ap_id, source_ue->mme_ue_s1ap_id);
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+
         ogs_list_for_each(&sess->bearer_list, bearer) {
+            if (NULL == mme_bearer_cycle(bearer)) {
+                ogs_error("Found a invalid bearer in sess->bearer_list");
+                break;
+            }
 
             S1AP_E_RABDataForwardingItem_t *e_rab = NULL;
 
@@ -2159,17 +2197,16 @@ ogs_pkbuf_t *s1ap_build_handover_request(
             mme_ue->ambr.downlink);
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
-
         if (NULL == mme_sess_cycle(sess)) {
-            ogs_error("Found sess that doesn't exist in mme_ue->sess_list!");
-            continue;
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
         }
 
         ogs_list_for_each(&sess->bearer_list, bearer) {
 
             if (NULL == mme_bearer_cycle(bearer)) {
-                ogs_error("Found bearer that doesn't exist in sess->bearer_list!");
-                continue;
+                ogs_error("Found a invalid bearer in sess->bearer_list!");
+                break;
             }
 
             S1AP_E_RABToBeSetupItemHOReqIEs_t *item = NULL;

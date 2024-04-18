@@ -39,11 +39,14 @@ int esm_handle_pdn_connectivity_request(mme_bearer_t *bearer,
     mme_sess_t *sess = NULL;
     uint8_t security_protected_required = 0;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
+    bearer = mme_bearer_cycle(bearer);
+    sess = bearer ? mme_sess_cycle(bearer->sess) : NULL;
+    mme_ue = sess ? mme_ue_cycle(bearer->mme_ue) : NULL;
+
+    if (NULL == mme_ue) {
+        ogs_error("No context");
+        return OGS_ERROR;
+    }
 
     ogs_assert(req);
 
@@ -190,9 +193,13 @@ int esm_handle_information_response(mme_sess_t *sess,
     int r;
     mme_ue_t *mme_ue = NULL;
 
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
+    sess = mme_sess_cycle(sess);
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
+    
+    if (NULL == mme_ue) {
+        ogs_error("Invalid context");
+        return OGS_ERROR;
+    }
 
     ogs_assert(rsp);
 
@@ -292,11 +299,14 @@ int esm_handle_bearer_resource_allocation_request(
     mme_ue_t *mme_ue = NULL;
     mme_sess_t *sess = NULL;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
+    bearer = mme_bearer_cycle(bearer);
+    sess = bearer ? mme_sess_cycle(bearer->sess) : NULL;
+    mme_ue = sess ? mme_ue_cycle(bearer->mme_ue) : NULL;
+
+    if (NULL == mme_ue) {
+        ogs_error("No context");
+        return OGS_ERROR;
+    }
 
     r = nas_eps_send_bearer_resource_allocation_reject(
             mme_ue, sess->pti, OGS_NAS_ESM_CAUSE_NETWORK_FAILURE);
@@ -311,9 +321,13 @@ int esm_handle_bearer_resource_modification_request(
 {
     mme_ue_t *mme_ue = NULL;
 
-    ogs_assert(bearer);
-    mme_ue = bearer->mme_ue;
-    ogs_assert(mme_ue);
+    bearer = mme_bearer_cycle(bearer);
+    mme_ue = bearer ? mme_ue_cycle(bearer->mme_ue) : NULL;
+    
+    if (NULL == mme_ue) {
+        ogs_error("No context");
+        return OGS_ERROR;
+    }
 
     ogs_assert(OGS_OK ==
         mme_gtp_send_bearer_resource_command(bearer, message));
@@ -329,7 +343,17 @@ static bool has_valid_bearer(mme_ue_t *mme_ue)
     int valid_bearers = 0;
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+
         ogs_list_for_each(&sess->bearer_list, bearer) {
+            if (NULL == mme_bearer_cycle(bearer)) {
+                ogs_error("Found a invalid bearer in sess->bearer_list");
+                break;
+            }
+
             if (bearer_has_sgw_s1u_ip(bearer)) {
                 ++valid_bearers;
             }
@@ -341,7 +365,7 @@ static bool has_valid_bearer(mme_ue_t *mme_ue)
 
 static bool bearer_has_sgw_s1u_ip(mme_bearer_t *bearer)
 {
-    if (NULL == bearer) {
+    if (NULL == mme_bearer_cycle(bearer)) {
         ogs_error("NULL bearer provided");
         return false;
     }

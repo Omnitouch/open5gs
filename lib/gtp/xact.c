@@ -339,6 +339,7 @@ int ogs_gtp_xact_update_tx(ogs_gtp_xact_t *xact,
     ogs_gtp2_header_t *h = NULL;
     int gtp_hlen = 0;
 
+    xact = ogs_gtp_xact_cycle(xact);
     ogs_assert(xact);
     ogs_assert(xact->gnode);
     ogs_assert(hdesc);

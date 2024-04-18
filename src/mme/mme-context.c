@@ -3485,7 +3485,10 @@ void mme_ue_fsm_init(mme_ue_t *mme_ue)
 {
     mme_event_t e;
 
-    ogs_assert(mme_ue);
+    if (NULL == mme_ue_cycle(mme_ue)) {
+        ogs_error("Invalid context");
+        return;
+    }
 
     memset(&e, 0, sizeof(e));
     e.mme_ue = mme_ue;
@@ -3496,7 +3499,10 @@ void mme_ue_fsm_fini(mme_ue_t *mme_ue)
 {
     mme_event_t e;
 
-    ogs_assert(mme_ue);
+    if (NULL == mme_ue_cycle(mme_ue)) {
+        ogs_error("Invalid context");
+        return;
+    }
 
     memset(&e, 0, sizeof(e));
     e.mme_ue = mme_ue;
@@ -3825,7 +3831,17 @@ bool mme_ue_have_indirect_tunnel(mme_ue_t *mme_ue)
     ogs_assert(mme_ue);
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+
         ogs_list_for_each(&sess->bearer_list, bearer) {
+            if (NULL == mme_bearer_cycle(bearer)) {
+                ogs_error("Found a invalid bearer in sess->bearer_list");
+                break;
+            }
+
             if (MME_HAVE_ENB_DL_INDIRECT_TUNNEL(bearer) ||
                 MME_HAVE_ENB_UL_INDIRECT_TUNNEL(bearer) ||
                 MME_HAVE_SGW_DL_INDIRECT_TUNNEL(bearer) ||
@@ -3843,10 +3859,23 @@ void mme_ue_clear_indirect_tunnel(mme_ue_t *mme_ue)
     mme_sess_t *sess = NULL;
     mme_bearer_t *bearer = NULL;
 
-    ogs_assert(mme_ue);
+    if (NULL == mme_ue_cycle(mme_ue)) {
+        ogs_error("Invalid mme_ue");
+        return;
+    }
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+
         ogs_list_for_each(&sess->bearer_list, bearer) {
+            if (NULL == mme_bearer_cycle(bearer)) {
+                ogs_error("Found a invalid bearer in sess->bearer_list");
+                break;
+            }
+
             CLEAR_INDIRECT_TUNNEL(bearer);
         }
     }
@@ -3859,6 +3888,11 @@ bool mme_ue_have_active_eps_bearers(mme_ue_t *mme_ue)
     ogs_assert(mme_ue);
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+
         if (mme_sess_have_active_eps_bearers(sess) == true)
             return true;
     }
@@ -3872,6 +3906,11 @@ bool mme_sess_have_active_eps_bearers(mme_sess_t *sess)
     ogs_assert(sess);
 
     ogs_list_for_each(&sess->bearer_list, bearer) {
+        if (NULL == mme_bearer_cycle(bearer)) {
+            ogs_error("Found a invalid bearer in sess->bearer_list");
+            break;
+        }
+
         if (OGS_FSM_CHECK(&bearer->sm, esm_state_active))
             return true;
     }
@@ -3886,6 +3925,11 @@ bool mme_ue_have_session_release_pending(mme_ue_t *mme_ue)
     ogs_assert(mme_ue);
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+
         if (mme_sess_have_session_release_pending(sess) == true)
             return true;
     }
@@ -3899,6 +3943,11 @@ bool mme_sess_have_session_release_pending(mme_sess_t *sess)
     ogs_assert(sess);
 
     ogs_list_for_each(&sess->bearer_list, bearer) {
+        if (NULL == mme_bearer_cycle(bearer)) {
+            ogs_error("Found a invalid bearer in sess->bearer_list");
+            break;
+        }
+
         if (OGS_FSM_CHECK(&bearer->sm, esm_state_pdn_will_disconnect))
             return true;
     }
@@ -3968,8 +4017,8 @@ bool imsi_is_roaming(ogs_nas_mobile_identity_imsi_t *nas_imsi)
 
 void enb_ue_associate_mme_ue(enb_ue_t *enb_ue, mme_ue_t *mme_ue)
 {
-    ogs_assert(mme_ue);
-    ogs_assert(enb_ue);
+    ogs_assert(mme_ue_cycle(mme_ue));
+    ogs_assert(enb_ue_cycle(enb_ue));
 
     mme_ue->enb_ue = enb_ue;
     enb_ue->mme_ue = mme_ue;
@@ -3977,13 +4026,13 @@ void enb_ue_associate_mme_ue(enb_ue_t *enb_ue, mme_ue_t *mme_ue)
 
 void enb_ue_deassociate(enb_ue_t *enb_ue)
 {
-    ogs_assert(enb_ue);
+    ogs_assert(enb_ue_cycle(enb_ue));
     enb_ue->mme_ue = NULL;
 }
 
 void enb_ue_unlink(mme_ue_t *mme_ue)
 {
-    ogs_assert(mme_ue);
+    ogs_assert(mme_ue_cycle(mme_ue));
     mme_ue->enb_ue = NULL;
 }
 
@@ -3991,9 +4040,9 @@ void enb_ue_source_associate_target(enb_ue_t *source_ue, enb_ue_t *target_ue)
 {
     mme_ue_t *mme_ue = NULL;
 
-    ogs_assert(source_ue);
-    ogs_assert(target_ue);
-    mme_ue = source_ue->mme_ue;
+    ogs_assert(enb_ue_cycle(source_ue));
+    ogs_assert(enb_ue_cycle(target_ue));
+    mme_ue = mme_ue_cycle(source_ue->mme_ue);
     ogs_assert(mme_ue);
 
     target_ue->mme_ue = mme_ue;
@@ -4034,8 +4083,8 @@ void enb_ue_source_deassociate_target(enb_ue_t *enb_ue)
 
 void sgw_ue_associate_mme_ue(sgw_ue_t *sgw_ue, mme_ue_t *mme_ue)
 {
-    ogs_assert(mme_ue);
-    ogs_assert(sgw_ue);
+    ogs_assert(mme_ue_cycle(mme_ue));
+    ogs_assert(sgw_ue_cycle(sgw_ue));
 
     mme_ue->sgw_ue = sgw_ue;
     sgw_ue->mme_ue = mme_ue;
@@ -4043,7 +4092,7 @@ void sgw_ue_associate_mme_ue(sgw_ue_t *sgw_ue, mme_ue_t *mme_ue)
 
 void sgw_ue_deassociate(sgw_ue_t *sgw_ue)
 {
-    ogs_assert(sgw_ue);
+    ogs_assert(sgw_ue_cycle(sgw_ue));
     sgw_ue->mme_ue = NULL;
 }
 
@@ -4057,9 +4106,9 @@ void sgw_ue_source_associate_target(sgw_ue_t *source_ue, sgw_ue_t *target_ue)
 {
     mme_ue_t *mme_ue = NULL;
 
-    ogs_assert(source_ue);
-    ogs_assert(target_ue);
-    mme_ue = source_ue->mme_ue;
+    ogs_assert(sgw_ue_cycle(source_ue));
+    ogs_assert(sgw_ue_cycle(target_ue));
+    mme_ue = mme_ue_cycle(source_ue->mme_ue);
     ogs_assert(mme_ue);
 
     target_ue->mme_ue = mme_ue;
@@ -4097,7 +4146,7 @@ mme_sess_t *mme_sess_add(mme_ue_t *mme_ue, uint8_t pti)
     mme_sess_t *sess = NULL;
     mme_bearer_t *bearer = NULL;
 
-    ogs_assert(mme_ue);
+    ogs_assert(mme_ue_cycle(mme_ue));
     ogs_assert(pti != OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED);
 
     ogs_pool_alloc(&mme_sess_pool, &sess);
@@ -4223,12 +4272,13 @@ mme_sess_t *mme_sess_find_by_apn(mme_ue_t *mme_ue, char *apn)
 
 mme_sess_t *mme_sess_first(mme_ue_t *mme_ue)
 {
-    return ogs_list_first(&mme_ue->sess_list);
+    mme_ue = mme_ue_cycle(mme_ue);
+    return mme_ue ? mme_sess_cycle(ogs_list_first(&mme_ue->sess_list)) : NULL;
 }
 
 mme_sess_t *mme_sess_next(mme_sess_t *sess)
 {
-    return ogs_list_next(sess);
+    return mme_sess_cycle(ogs_list_next(sess));
 }
 
 unsigned int mme_sess_count(mme_ue_t *mme_ue)
@@ -4237,6 +4287,11 @@ unsigned int mme_sess_count(mme_ue_t *mme_ue)
     mme_sess_t *sess = NULL;
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+        
         count++;
     }
 
@@ -4491,8 +4546,8 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
         }
     }
 
-    if (bearer) {
-        sess = bearer->sess;
+    if (mme_bearer_cycle(bearer)) {
+        sess = mme_sess_cycle(bearer->sess);
         ogs_assert(sess);
         sess->pti = pti;
 
@@ -4564,7 +4619,6 @@ mme_bearer_t *mme_bearer_find_or_add_by_message(
 
 mme_bearer_t *mme_default_bearer_in_sess(mme_sess_t *sess)
 {
-    ogs_assert(sess);
     return mme_bearer_first(sess);
 }
 
@@ -4572,24 +4626,22 @@ mme_bearer_t *mme_linked_bearer(mme_bearer_t *bearer)
 {
     mme_sess_t *sess = NULL;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    bearer = mme_bearer_cycle(bearer);
+    sess = bearer ? mme_sess_cycle(bearer->sess) : NULL;
 
-    return mme_default_bearer_in_sess(sess);
+    return sess ? mme_default_bearer_in_sess(sess) : NULL;
 }
 
 mme_bearer_t *mme_bearer_first(mme_sess_t *sess)
 {
-    ogs_assert(sess);
-
-    return ogs_list_first(&sess->bearer_list);
+    sess = mme_sess_cycle(sess);
+    return sess ? mme_bearer_cycle(ogs_list_first(&sess->bearer_list)) : NULL;
 }
 
 mme_bearer_t *mme_bearer_next(mme_bearer_t *bearer)
 {
     ogs_assert(bearer);
-    return ogs_list_next(bearer);
+    return mme_bearer_cycle(ogs_list_next(bearer));
 }
 
 mme_bearer_t *mme_bearer_cycle(mme_bearer_t *bearer)

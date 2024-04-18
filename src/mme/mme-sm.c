@@ -461,7 +461,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
             CLEAR_MME_UE_TIMER(mme_ue->t_mobile_reachable);
         }
 
-        ogs_assert(mme_ue);
+        ogs_assert(mme_ue_cycle(mme_ue));
         ogs_assert(OGS_FSM_STATE(&mme_ue->sm));
 
         e->mme_ue = mme_ue;
@@ -511,7 +511,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
             break;
         }
 
-        sess = bearer->sess;
+        sess = mme_sess_cycle(bearer->sess);
         ogs_assert(sess);
         default_bearer = mme_default_bearer_in_sess(sess);
         ogs_assert(default_bearer);
@@ -836,6 +836,10 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
                     GTP_COUNTER_DELETE_SESSION_BY_PATH_SWITCH);
 
             ogs_list_for_each(&mme_ue->sess_list, sess) {
+                if (NULL == mme_sess_cycle(sess)) {
+                    ogs_error("Found a invalid sess in mme_ue->sess_list");
+                    break;
+                }
 
                 GTP_COUNTER_INCREMENT(
                     mme_ue, GTP_COUNTER_DELETE_SESSION_BY_PATH_SWITCH);

@@ -355,7 +355,7 @@ void esm_state_active(ogs_fsm_t *s, mme_event_t *e)
             ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",
                     mme_ue->imsi_bcd, sess->pti, bearer->ebi);
 
-            ogs_assert(OGS_OK ==
+            ogs_expect(OGS_OK ==
                 mme_gtp_send_update_bearer_response(
                     bearer, OGS_GTP2_CAUSE_REQUEST_ACCEPTED));
             break;

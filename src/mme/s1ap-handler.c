@@ -545,7 +545,8 @@ void s1ap_handle_uplink_nas_transport(
 
     /* Copy Stream-No/TAI/ECGI from enb_ue */
     if (enb_ue->mme_ue) {
-        mme_ue_t *mme_ue = enb_ue->mme_ue;
+        mme_ue_t *mme_ue = mme_ue_cycle(enb_ue->mme_ue);
+        ogs_assert(mme_ue);
 
         memcpy(&mme_ue->tai, &enb_ue->saved.tai, sizeof(ogs_eps_tai_t));
         memcpy(&mme_ue->e_cgi, &enb_ue->saved.e_cgi, sizeof(ogs_e_cgi_t));
@@ -730,7 +731,7 @@ void s1ap_handle_initial_context_setup_response(
     ogs_debug("    ENB_UE_S1AP_ID[%d] MME_UE_S1AP_ID[%d]",
             enb_ue->enb_ue_s1ap_id, enb_ue->mme_ue_s1ap_id);
 
-    mme_ue = enb_ue->mme_ue;
+    mme_ue = mme_ue_cycle(enb_ue->mme_ue);
     if (!mme_ue) {
         ogs_error("No UE(mme-ue) context");
         return;
@@ -913,7 +914,7 @@ void s1ap_handle_initial_context_setup_failure(
     ogs_debug("    Cause[Group:%d Cause:%d]",
             Cause->present, (int)Cause->choice.radioNetwork);
 
-    mme_ue = enb_ue->mme_ue;
+    mme_ue = mme_ue_cycle(enb_ue->mme_ue);
 
     if (mme_ue) {
         /*
@@ -1016,7 +1017,7 @@ void s1ap_handle_ue_context_modification_response(
     ogs_debug("    ENB_UE_S1AP_ID[%d] MME_UE_S1AP_ID[%d]",
             enb_ue->enb_ue_s1ap_id, enb_ue->mme_ue_s1ap_id);
 
-    mme_ue = enb_ue->mme_ue;
+    mme_ue = mme_ue_cycle(enb_ue->mme_ue);
     if (!mme_ue) {
         ogs_error("No UE(mme-ue) context");
         return;
@@ -1119,7 +1120,7 @@ void s1ap_handle_ue_context_modification_failure(
     ogs_debug("    Cause[Group:%d Cause:%d]",
             Cause->present, (int)Cause->choice.radioNetwork);
 
-    mme_ue = enb_ue->mme_ue;
+    mme_ue = mme_ue_cycle(enb_ue->mme_ue);
     if (!mme_ue) {
         ogs_error("No UE(mme-ue) context");
         return;
@@ -1220,7 +1221,7 @@ void s1ap_handle_e_rab_setup_response(
     ogs_debug("    ENB_UE_S1AP_ID[%d] MME_UE_S1AP_ID[%d]",
         enb_ue->enb_ue_s1ap_id, enb_ue->mme_ue_s1ap_id);
 
-    mme_ue = enb_ue->mme_ue;
+    mme_ue = mme_ue_cycle(enb_ue->mme_ue);
     if (!mme_ue) {
         ogs_error("No UE(mme-ue) context");
         return;
@@ -1535,7 +1536,7 @@ void s1ap_handle_ue_context_release_action(enb_ue_t *enb_ue)
         return;
     }
 
-    mme_ue = enb_ue->mme_ue;
+    mme_ue = mme_ue_cycle(enb_ue->mme_ue);
 
     ogs_info("UE Context Release [Action:%d]", enb_ue->ue_ctx_rel_action);
     ogs_info("    ENB_UE_S1AP_ID[%d] MME_UE_S1AP_ID[%d]",
@@ -1765,7 +1766,7 @@ void s1ap_handle_e_rab_modification_indication(
         return;
     }
 
-    mme_ue = enb_ue->mme_ue;
+    mme_ue = mme_ue_cycle(enb_ue->mme_ue);
     if (!mme_ue) {
         ogs_error("No UE(mme-ue) context");
         return;
@@ -2139,6 +2140,11 @@ void s1ap_handle_path_switch_request(
         mme_sess_t *sess = NULL;
 
         ogs_list_for_each(&mme_ue->sess_list, sess) {
+            if (NULL == mme_sess_cycle(sess)) {
+                ogs_error("Found a invalid sess in mme_ue->sess_list");
+                break;
+            }
+
             GTP_COUNTER_INCREMENT(
                 mme_ue, GTP_COUNTER_CREATE_SESSION_BY_PATH_SWITCH);
 
@@ -2542,7 +2548,7 @@ void s1ap_handle_handover_request_ack(
         return;
     }
 
-    mme_ue = source_ue->mme_ue;
+    mme_ue = mme_ue_cycle(source_ue->mme_ue);
     if (!mme_ue) {
         ogs_error("No UE(mme-ue) context");
         return;
@@ -3166,7 +3172,17 @@ void s1ap_handle_handover_notification(
     ogs_list_init(&mme_ue->bearer_to_modify_list);
 
     ogs_list_for_each(&mme_ue->sess_list, sess) {
+        if (NULL == mme_sess_cycle(sess)) {
+            ogs_error("Found a invalid sess in mme_ue->sess_list");
+            break;
+        }
+        
         ogs_list_for_each(&sess->bearer_list, bearer) {
+            if (NULL == mme_bearer_cycle(bearer)) {
+                ogs_error("Found a invalid bearer in sess->bearer_list");
+                break;
+            }
+
             bearer->enb_s1u_teid = bearer->target_s1u_teid;
             memcpy(&bearer->enb_s1u_ip, &bearer->target_s1u_ip,
                     sizeof(ogs_ip_t));
@@ -3331,7 +3347,7 @@ void s1ap_handle_s1_reset(
             /* ENB_UE Context where PartOfS1_interface was requested */
             enb_ue->part_of_s1_reset_requested = true;
 
-            mme_ue = enb_ue->mme_ue;
+            mme_ue = mme_ue_cycle(enb_ue->mme_ue);
             if (mme_ue && mme_ue->sgw_ue) {
                 ogs_assert(OGS_OK ==
                     mme_gtp_send_release_access_bearers_request(mme_ue,
