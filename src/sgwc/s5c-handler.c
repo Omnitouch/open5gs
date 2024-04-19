@@ -21,6 +21,7 @@
 #include "pfcp-path.h"
 
 #include "s5c-handler.h"
+#include "sgwc-usage-logger.h"
 
 static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
 {
@@ -259,6 +260,7 @@ void sgwc_s5c_handle_create_session_response(
         bearer = sgwc_bearer_find_by_sess_ebi(sess,
                     rsp->bearer_contexts_created[i].eps_bearer_id.u8);
         if (!bearer) {
+            ogs_error("Bearer doesn't exist");
             ogs_gtp_send_error_message(
                     s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                     OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE,
@@ -296,9 +298,15 @@ void sgwc_s5c_handle_create_session_response(
                 &far->outer_header_creation, &far->outer_header_creation_len));
         far->outer_header_creation.teid = ul_tunnel->remote_teid;
 
-        /* Set the charging id to be used for CDR (See log_start_usage_reports in sxa-handler.c) */
         if (rsp->bearer_contexts_created[i].charging_id.presence) {
             bearer->charging_id = rsp->bearer_contexts_created[i].charging_id.u32;
+        } else {
+            ogs_error("bearer_contexts_created does not have a charging_id");
+        }
+
+        /* Start a logging record for each bearer created */
+        if (ogs_pfcp_self()->usageLoggerState.enabled) {
+            log_start_usage_reports(bearer);
         }
     }
 

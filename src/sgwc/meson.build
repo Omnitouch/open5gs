@@ -28,6 +28,7 @@ libsgwc_sources = files('''
     pfcp-path.h
     sgwc-sm.h
     metrics.h
+    sgwc-usage-logger.h
 
     init.c
     event.c
@@ -43,6 +44,7 @@ libsgwc_sources = files('''
     pfcp-sm.c
     sgwc-sm.c
     metrics.c
+    sgwc-usage-logger.c
 '''.split())
 
 libsgwc = static_library('sgwc',
