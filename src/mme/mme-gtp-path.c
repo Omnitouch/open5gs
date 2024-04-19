@@ -221,8 +221,7 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
 
     if ((NULL == sess)    ||
         (NULL == mme_ue)  ||
-        (NULL == session) ||
-        (NULL == sgw_ue))
+        (NULL == session))
     {
         ogs_error("Invalid context");
         return OGS_ERROR;

@@ -33,7 +33,7 @@ ogs_pkbuf_t *esm_build_pdn_connectivity_reject(
             &message.esm.pdn_connectivity_reject;
 
     sess = mme_sess_cycle(sess);
-    mme_ue = mme_ue_cycle(sess->mme_ue);
+    mme_ue = sess ? mme_ue_cycle(sess->mme_ue) : NULL;
     
     if (NULL == mme_ue) {
         ogs_error("Invalid context");
