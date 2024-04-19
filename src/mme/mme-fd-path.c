@@ -63,9 +63,14 @@ static int mme_s6a_subscription_data_from_avp(struct avp *avp,
     struct avp_hdr *hdr;
     ogs_sockaddr_t addr;
 
+    mme_ue = mme_ue_cycle(mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("mme_ue is invalid");
+        return 1;
+    }
+    
     ogs_assert(avp);
     ogs_assert(subscription_data);
-    ogs_assert(mme_ue);
     ogs_assert(subdatamask);
 
     /* AVP: 'MSISDN'( 701 )
@@ -690,7 +695,11 @@ void mme_s6a_send_air(mme_ue_t *mme_ue,
 
     uint8_t resync[OGS_AUTS_LEN + OGS_RAND_LEN];
 
-    ogs_assert(mme_ue_cycle(mme_ue));
+    mme_ue = mme_ue_cycle(mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("mme_ue is invalid");
+        return;
+    }
 
     ogs_debug("[MME] Authentication-Information-Request");
 
@@ -1108,9 +1117,13 @@ void mme_s6a_send_ulr(mme_ue_t *mme_ue)
     struct session *session = NULL;
     ogs_nas_plmn_id_t nas_plmn_id;
 
-    ogs_assert(mme_ue_cycle(mme_ue));
-
     ogs_debug("[MME] Update-Location-Request");
+
+    mme_ue = mme_ue_cycle(mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("mme_ue is invalid");
+        return;
+    }
 
     /* Create the random value to store with the session */
     sess_data = ogs_calloc(1, sizeof(*sess_data));
@@ -1273,10 +1286,13 @@ void mme_s6a_send_pur(mme_ue_t *mme_ue)
     struct sess_state *sess_data = NULL, *svg;
     struct session *session = NULL;
 
-    ogs_assert(mme_ue_cycle(mme_ue));
-
     ogs_debug("[MME] Purge-UE-Request");
 
+    mme_ue = mme_ue_cycle(mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("mme_ue is invalid");
+        return;
+    }
     /* Create the random value to store with the session */
     sess_data = ogs_calloc(1, sizeof(*sess_data));
     ogs_assert(sess_data);
@@ -1413,7 +1429,10 @@ static void mme_s6a_ula_cb(void *data, struct msg **msg)
     }
 
     mme_ue = mme_ue_cycle(sess_data->mme_ue);
-    ogs_assert(mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("sess_data->mme_ue is invalid");
+        return;
+    }
 
     /* Set Update-Location Command */
     s6a_message = ogs_calloc(1, sizeof(ogs_diam_s6a_message_t));
@@ -1679,7 +1698,10 @@ static void mme_s6a_pua_cb(void *data, struct msg **msg)
     }
 
     mme_ue = mme_ue_cycle(sess_data->mme_ue);
-    ogs_assert(mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("sess_data->mme_ue is invalid");
+        return;
+    }
 
     /* Set Purge-UE Command */
     s6a_message = ogs_calloc(1, sizeof(ogs_diam_s6a_message_t));
@@ -2241,9 +2263,13 @@ void mme_s13_send_ecr(mme_ue_t *mme_ue)
     struct sess_state *sess_data = NULL, *svg;
     struct session *session = NULL;
 
-    ogs_assert(mme_ue_cycle(mme_ue));
-
     ogs_debug("[MME] ME-Identity-Check-Request");
+
+    mme_ue = mme_ue_cycle(mme_ue);
+    if (NULL == mme_ue) {
+        ogs_error("mme_ue is invalid");
+        return;
+    }
 
     /* Create the random value to store with the session */
     sess_data = ogs_calloc(1, sizeof (*sess_data));
@@ -2400,8 +2426,10 @@ static void mme_s13_eca_cb(void *data, struct msg **msg)
     }
 
     mme_ue = mme_ue_cycle(sess_data->mme_ue);
-    ogs_assert(mme_ue);
-
+    if (NULL == mme_ue) {
+        ogs_error("sess_data->mme_ue is invalid");
+        return;
+    }
     /* Set ME-Identity-Check Command */
     s13_message = ogs_calloc(1, sizeof(ogs_diam_s13_message_t));
     ogs_assert(s13_message);
