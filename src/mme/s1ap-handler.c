@@ -544,10 +544,8 @@ void s1ap_handle_uplink_nas_transport(
         enb_ue->saved.tai.tac, enb_ue->saved.e_cgi.cell_id);
 
     /* Copy Stream-No/TAI/ECGI from enb_ue */
-    if (enb_ue->mme_ue) {
-        mme_ue_t *mme_ue = mme_ue_cycle(enb_ue->mme_ue);
-        ogs_assert(mme_ue);
-
+    mme_ue_t *mme_ue = mme_ue_cycle(enb_ue->mme_ue);
+    if (NULL != mme_ue) {
         memcpy(&mme_ue->tai, &enb_ue->saved.tai, sizeof(ogs_eps_tai_t));
         memcpy(&mme_ue->e_cgi, &enb_ue->saved.e_cgi, sizeof(ogs_e_cgi_t));
         mme_ue->ue_location_timestamp = ogs_time_now();
