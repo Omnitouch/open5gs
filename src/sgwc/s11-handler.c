@@ -773,9 +773,12 @@ void sgwc_s11_handle_create_bearer_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(s11_xact);
-    s5c_xact = s11_xact->assoc_xact;
-    ogs_assert(s5c_xact);
+    s11_xact = ogs_gtp_xact_cycle(s11_xact);
+    s5c_xact = s11_xact ? ogs_gtp_xact_cycle(s11_xact->assoc_xact) : NULL;
+    if (NULL == s5c_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
 
     if (s11_xact->xid & OGS_GTP_CMD_XACT_ID)
         /* MME received Bearer Resource Modification Request */
