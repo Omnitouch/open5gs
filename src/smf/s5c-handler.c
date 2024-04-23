@@ -632,10 +632,9 @@ void smf_s5c_handle_create_bearer_response(
     smf_bearer_t *bearer = NULL;
     ogs_pfcp_far_t *dl_far = NULL;
 
-    ogs_assert(sess);
-    ogs_assert(rsp);
-
     ogs_debug("Create Bearer Response");
+
+    ogs_assert(rsp);
 
     /********************
      * Check Transaction
@@ -644,9 +643,10 @@ void smf_s5c_handle_create_bearer_response(
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
 
+    sess = smf_sess_cycle(sess);
     bearer = smf_bearer_cycle(xact->data);
-    if (NULL == bearer) {
-        ogs_error("Bearer does not exist");
+    if ((NULL == bearer) || (NULL == sess)) {
+        ogs_error("No context");
         return;
     }
     
