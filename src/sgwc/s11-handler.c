@@ -28,7 +28,12 @@ static void gtp_sess_timeout(ogs_gtp_xact_t *xact, void *data)
     sgwc_ue_t *sgwc_ue = NULL;
     uint8_t type = 0;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
+
     if (NULL == sess) {
         ogs_error("Received a sess timeout for a sess that doesn't exist anymore!");
         return;
@@ -66,7 +71,12 @@ static void gtp_bearer_timeout(ogs_gtp_xact_t *xact, void *data)
     sgwc_ue_t *sgwc_ue = NULL;
     uint8_t type = 0;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
+
     if (NULL == bearer) {
         ogs_error("Received a bearer timeout for a bearer that doesn't exist anymore!");
         return;

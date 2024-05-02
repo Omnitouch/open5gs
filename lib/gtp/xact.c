@@ -238,7 +238,11 @@ int ogs_gtp1_xact_update_tx(ogs_gtp_xact_t *xact,
     ogs_gtp1_header_t *h = NULL;
     int gtp_hlen = 0;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
     ogs_assert(xact->gnode);
     ogs_assert(hdesc);
     ogs_assert(pkbuf);
@@ -340,7 +344,9 @@ int ogs_gtp_xact_update_tx(ogs_gtp_xact_t *xact,
     int gtp_hlen = 0;
 
     xact = ogs_gtp_xact_cycle(xact);
-    ogs_assert(xact);
+    if (NULL == xact) {
+        return OGS_ERROR;
+    }
     ogs_assert(xact->gnode);
     ogs_assert(hdesc);
     ogs_assert(pkbuf);
@@ -624,7 +630,11 @@ int ogs_gtp_xact_commit(ogs_gtp_xact_t *xact)
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_gtp_xact_stage_t stage;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
     ogs_assert(xact->gnode);
 
     ogs_debug("[%d] %s Commit  peer [%s]:%d",
@@ -733,7 +743,12 @@ static void response_timeout(void *data)
     char buf[OGS_ADDRSTRLEN];
     ogs_gtp_xact_t *xact = data;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
+
     ogs_assert(xact->gnode);
 
     ogs_debug("[%d] %s Response Timeout "
@@ -776,7 +791,12 @@ static void holding_timeout(void *data)
     char buf[OGS_ADDRSTRLEN];
     ogs_gtp_xact_t *xact = data;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
+
     ogs_assert(xact->gnode);
 
     ogs_debug("[%d] %s Holding Timeout "
@@ -1130,7 +1150,12 @@ static int ogs_gtp_xact_delete(ogs_gtp_xact_t *xact)
 {
     char buf[OGS_ADDRSTRLEN];
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
+    
     ogs_assert(xact->gnode);
 
     ogs_debug("[%d] %s Delete  peer [%s]:%d",

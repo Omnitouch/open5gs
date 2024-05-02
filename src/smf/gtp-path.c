@@ -324,7 +324,11 @@ int smf_gtp1_send_create_pdp_context_response(
     ogs_pkbuf_t *pkbuf = NULL;
 
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp1_header_t));
     h.type = OGS_GTP1_CREATE_PDP_CONTEXT_RESPONSE_TYPE;
@@ -356,7 +360,11 @@ int smf_gtp1_send_delete_pdp_context_response(
     ogs_pkbuf_t *pkbuf = NULL;
 
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp1_header_t));
     h.type = OGS_GTP1_DELETE_PDP_CONTEXT_RESPONSE_TYPE;
@@ -432,7 +440,11 @@ int smf_gtp1_send_update_pdp_context_response(
     smf_sess_t *sess = NULL;
 
     ogs_assert(bearer);
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
     sess = bearer->sess;
     ogs_assert(sess);
 
@@ -467,7 +479,11 @@ int smf_gtp2_send_create_session_response(
     ogs_pkbuf_t *pkbuf = NULL;
 
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE;
@@ -500,7 +516,11 @@ int smf_gtp2_send_modify_bearer_response(
     ogs_pkbuf_t *pkbuf = NULL;
 
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
     ogs_assert(req);
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
@@ -533,7 +553,11 @@ int smf_gtp2_send_delete_session_response(
     ogs_gtp2_header_t h;
     ogs_pkbuf_t *pkbuf = NULL;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
     ogs_assert(sess);
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));

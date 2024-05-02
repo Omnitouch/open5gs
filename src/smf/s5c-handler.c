@@ -53,7 +53,11 @@ static void pfcp_sess_timeout(ogs_pfcp_xact_t *xact, void *data)
 void smf_s5c_handle_echo_request(
         ogs_gtp_xact_t *xact, ogs_gtp2_echo_request_t *req)
 {
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("[PGW] Receiving Echo Request");
@@ -90,7 +94,11 @@ uint8_t smf_s5c_handle_create_session_request(
     uint16_t decoded = 0;
 
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+    }
     ogs_assert(req);
 
     ogs_debug("Create Session Request");
@@ -403,7 +411,11 @@ uint8_t smf_s5c_handle_delete_session_request(
 {
     ogs_debug("Delete Session Request");
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+    }
     ogs_assert(req);
 
     if (!ogs_diam_app_connected(OGS_DIAM_GX_APPLICATION_ID)) {
@@ -817,7 +829,11 @@ void smf_s5c_handle_update_bearer_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     gtp_flags = xact->update_flags;
     ogs_assert(gtp_flags);
     bearer = xact->data;
@@ -921,7 +937,11 @@ bool smf_s5c_handle_delete_bearer_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return true;
+    }
     bearer = xact->data;
     ogs_assert(bearer);
 
@@ -1129,7 +1149,11 @@ void smf_s5c_handle_bearer_resource_command(
     int qos_update = 0;
     int tft_delete = 0;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(cmd);
 
     ogs_debug("Bearer Resource Command");

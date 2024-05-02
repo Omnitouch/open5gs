@@ -177,8 +177,11 @@ void ogs_gtp1_send_echo_response(ogs_gtp_xact_t *xact, uint8_t recovery)
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_gtp1_header_t h;
 
-    ogs_assert(xact);
-
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_debug("[GTP] Sending Echo Response");
 
     memset(&h, 0, sizeof(ogs_gtp1_header_t));

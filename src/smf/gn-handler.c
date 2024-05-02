@@ -32,7 +32,11 @@
 void smf_gn_handle_echo_request(
         ogs_gtp_xact_t *xact, ogs_gtp1_echo_request_t *req)
 {
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("[PGW] Receiving Echo Request");
@@ -66,7 +70,11 @@ uint8_t smf_gn_handle_create_pdp_context_request(
     uint8_t qci = 9;
 
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+    }
     ogs_assert(req);
 
     ogs_debug("Create PDP Context Request");
@@ -347,7 +355,11 @@ void smf_gn_handle_update_pdp_context_request(
 
     ogs_debug("Update PDP Context Request");
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     if (req->nsapi.presence == 0) {

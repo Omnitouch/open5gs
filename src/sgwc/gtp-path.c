@@ -172,7 +172,11 @@ static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
     sgwc_ue_t *sgwc_ue = NULL;
     uint8_t type = 0;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     bearer = sgwc_bearer_cycle(bearer);    
     if (NULL == bearer) {
         ogs_error("Got a bearer timeout for a bearer that dosn't exist anymore!");
@@ -216,7 +220,11 @@ int sgwc_gtp_send_create_session_response(
     ogs_assert(sess);
     sgwc_ue = sess->sgwc_ue;
     ogs_assert(sgwc_ue);
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE;

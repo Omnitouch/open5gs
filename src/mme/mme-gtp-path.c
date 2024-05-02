@@ -88,7 +88,11 @@ static void timeout(ogs_gtp_xact_t *xact, void *data)
     mme_bearer_t *bearer = NULL;
     uint8_t type = 0;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     type = xact->seq[0].type;
 
     switch (type) {

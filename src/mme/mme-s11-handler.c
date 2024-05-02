@@ -62,7 +62,11 @@ static uint8_t esm_cause_from_gtp(uint8_t gtp_cause)
 void mme_s11_handle_echo_request(
         ogs_gtp_xact_t *xact, ogs_gtp2_echo_request_t *req)
 {
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("Receiving Echo Request");
@@ -107,7 +111,11 @@ void mme_s11_handle_create_session_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     create_action = xact->create_action;
     sess = mme_sess_cycle(xact->data);
     ogs_expect(sess);
@@ -474,7 +482,11 @@ void mme_s11_handle_modify_bearer_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     modify_action = xact->modify_action;
     mme_ue = mme_ue_cycle(xact->data);
 
@@ -585,7 +597,11 @@ void mme_s11_handle_delete_session_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     action = xact->delete_action;
     ogs_assert(action);
     sess = mme_sess_cycle(xact->data);
@@ -774,7 +790,11 @@ void mme_s11_handle_create_bearer_request(
     ogs_gtp2_f_teid_t *pgw_s5u_teid = NULL;
     ogs_gtp2_bearer_qos_t bearer_qos;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("Create Bearer Response");
@@ -979,7 +999,11 @@ void mme_s11_handle_update_bearer_request(
     sgw_ue_t *sgw_ue = NULL;
     ogs_gtp2_bearer_qos_t bearer_qos;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("Update Bearer Request");
@@ -1143,7 +1167,11 @@ void mme_s11_handle_delete_bearer_request(
     mme_sess_t *sess = NULL;
     sgw_ue_t *sgw_ue = NULL;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("Delete Bearer Request");
@@ -1289,7 +1317,11 @@ void mme_s11_handle_release_access_bearers_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     action = xact->release_action;
     ogs_assert(action);
     mme_ue = mme_ue_cycle(xact->data);
@@ -1464,7 +1496,11 @@ void mme_s11_handle_downlink_data_notification(
     mme_bearer_t *bearer = NULL;
     sgw_ue_t *sgw_ue = NULL;
 
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(noti);
 
     ogs_debug("Downlink Data Notification");
@@ -1639,7 +1675,11 @@ void mme_s11_handle_create_indirect_data_forwarding_tunnel_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     mme_ue = mme_ue_cycle(xact->data);
 
     rv = ogs_gtp_xact_commit(xact);
@@ -1772,7 +1812,11 @@ void mme_s11_handle_delete_indirect_data_forwarding_tunnel_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     action = xact->delete_indirect_action;
     ogs_assert(action);
     mme_ue = mme_ue_cycle(xact->data);
@@ -1881,7 +1925,11 @@ void mme_s11_handle_bearer_resource_failure_indication(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(xact);
+    xact = ogs_gtp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     
     bearer = mme_bearer_cycle(xact->data);
     ogs_expect(bearer);
