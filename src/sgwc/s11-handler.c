@@ -104,7 +104,11 @@ static void pfcp_sess_timeout(ogs_pfcp_xact_t *xact, void *data)
 {
     uint8_t type;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     type = xact->seq[0].type;
 
     switch (type) {

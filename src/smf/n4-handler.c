@@ -156,8 +156,11 @@ uint8_t smf_5gc_n4_handle_session_establishment_response(
     ogs_pfcp_pdr_t *pdr = NULL;
     ogs_pfcp_far_t *far = NULL;
 
-    ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_PFCP_CAUSE_SYSTEM_FAILURE;
+    }
     ogs_assert(rsp);
 
     ogs_debug("Session Establishment Response [5gc]");
@@ -256,7 +259,11 @@ void smf_5gc_n4_handle_session_modification_response(
 
     ogs_debug("Session Modification Response [5gc]");
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(rsp);
 
     flags = xact->modify_flags;
@@ -737,7 +744,11 @@ uint8_t smf_epc_n4_handle_session_establishment_response(
     ogs_pfcp_f_seid_t *up_f_seid = NULL;
 
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_PFCP_CAUSE_SYSTEM_FAILURE;
+    }
     ogs_assert(rsp);
 
     ogs_debug("Session Establishment Response [epc]");
@@ -855,7 +866,11 @@ void smf_epc_n4_handle_session_modification_response(
 
     OGS_LIST(pdr_to_create_list);
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(rsp);
 
     ogs_debug("Session Modification Response [epc]");
@@ -1109,7 +1124,11 @@ uint8_t smf_epc_n4_handle_session_deletion_response(
     unsigned int i;
 
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_PFCP_CAUSE_SYSTEM_FAILURE;
+    }
     ogs_assert(rsp);
 
     ogs_debug("Session Deletion Response [epc]");

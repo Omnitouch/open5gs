@@ -174,7 +174,11 @@ int upf_pfcp_send_session_establishment_response(
     ogs_pkbuf_t *n4buf = NULL;
     ogs_pfcp_header_t h;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_pfcp_header_t));
     h.type = OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE;
@@ -207,7 +211,11 @@ int upf_pfcp_send_session_modification_response(
     ogs_pkbuf_t *n4buf = NULL;
     ogs_pfcp_header_t h;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_pfcp_header_t));
     h.type = OGS_PFCP_SESSION_MODIFICATION_RESPONSE_TYPE;
@@ -239,7 +247,11 @@ int upf_pfcp_send_session_deletion_response(ogs_pfcp_xact_t *xact,
     ogs_pkbuf_t *n4buf = NULL;
     ogs_pfcp_header_t h;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_pfcp_header_t));
     h.type = OGS_PFCP_SESSION_DELETION_RESPONSE_TYPE;
@@ -267,7 +279,11 @@ static void sess_timeout(ogs_pfcp_xact_t *xact, void *data)
 {
     uint8_t type;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     type = xact->seq[0].type;
 
     switch (type) {

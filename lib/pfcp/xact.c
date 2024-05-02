@@ -79,7 +79,11 @@ ogs_pfcp_xact_t *ogs_pfcp_xact_local_create(ogs_pfcp_node_t *node,
     }
 
     ogs_pool_alloc(&pool, &xact);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return NULL;
+    }
     memset(xact, 0, sizeof *xact);
     xact->index = ogs_pool_index(&pool, xact);
 
@@ -126,7 +130,11 @@ static ogs_pfcp_xact_t *ogs_pfcp_xact_remote_create(
     ogs_assert(node);
 
     ogs_pool_alloc(&pool, &xact);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return NULL;
+    }
     memset(xact, 0, sizeof *xact);
     xact->index = ogs_pool_index(&pool, xact);
 
@@ -188,7 +196,11 @@ int ogs_pfcp_xact_update_tx(ogs_pfcp_xact_t *xact,
     ogs_pfcp_header_t *h = NULL;
     int pfcp_hlen = 0;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
     ogs_assert(xact->node);
     ogs_assert(hdesc);
     ogs_assert(pkbuf);
@@ -466,7 +478,11 @@ int ogs_pfcp_xact_commit(ogs_pfcp_xact_t *xact)
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_pfcp_xact_stage_t stage;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
     ogs_assert(xact->node);
 
     ogs_debug("[%d] %s Commit  peer [%s]:%d",
@@ -569,7 +585,11 @@ int ogs_pfcp_xact_commit(ogs_pfcp_xact_t *xact)
 
 void ogs_pfcp_xact_delayed_commit(ogs_pfcp_xact_t *xact, ogs_time_t duration)
 {
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(duration);
     ogs_assert(xact->tm_delayed_commit);
 
@@ -581,7 +601,11 @@ static void response_timeout(void *data)
     char buf[OGS_ADDRSTRLEN];
     ogs_pfcp_xact_t *xact = data;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(xact->node);
 
     ogs_debug("[%d] %s Response Timeout "
@@ -624,7 +648,11 @@ static void holding_timeout(void *data)
     char buf[OGS_ADDRSTRLEN];
     ogs_pfcp_xact_t *xact = data;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(xact->node);
 
     ogs_debug("[%d] %s Holding Timeout "
@@ -656,7 +684,11 @@ static void delayed_commit_timeout(void *data)
     char buf[OGS_ADDRSTRLEN];
     ogs_pfcp_xact_t *xact = data;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(xact->node);
 
     ogs_debug("[%d] %s Delayed Send Timeout "
@@ -783,7 +815,10 @@ int ogs_pfcp_xact_delete(ogs_pfcp_xact_t *xact)
 {
     char buf[OGS_ADDRSTRLEN];
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        return OGS_OK;
+    }
     ogs_assert(xact->node);
 
     ogs_debug("[%d] %s Delete  peer [%s]:%d",

@@ -123,7 +123,11 @@ void upf_pfcp_state_will_associate(ogs_fsm_t *s, upf_event_t *e)
         message = e->pfcp_message;
         ogs_assert(message);
         xact = e->pfcp_xact;
-        ogs_assert(xact);
+        xact = ogs_pfcp_xact_cycle(xact);
+        if (NULL == xact) {
+            ogs_error("xact no longer valid");
+            break;
+        }
 
         switch (message->h.type) {
         case OGS_PFCP_HEARTBEAT_REQUEST_TYPE:
@@ -251,7 +255,11 @@ void upf_pfcp_state_associated(ogs_fsm_t *s, upf_event_t *e)
         message = e->pfcp_message;
         ogs_assert(message);
         xact = e->pfcp_xact;
-        ogs_assert(xact);
+        xact = ogs_pfcp_xact_cycle(xact);
+        if (NULL == xact) {
+            ogs_error("xact no longer valid");
+            break;
+        }
 
         if (message->h.seid_presence && message->h.seid != 0)
             sess = upf_sess_find_by_upf_n4_seid(message->h.seid);
@@ -424,7 +432,11 @@ static void node_timeout(ogs_pfcp_xact_t *xact, void *data)
     upf_event_t *e = NULL;
     uint8_t type;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     type = xact->seq[0].type;
 
     switch (type) {

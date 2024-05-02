@@ -224,7 +224,11 @@ static void sess_5gc_timeout(ogs_pfcp_xact_t *xact, void *data)
     int trigger;
     char *strerror = NULL;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(data);
 
     sess = data;
@@ -294,7 +298,11 @@ static void sess_epc_timeout(ogs_pfcp_xact_t *xact, void *data)
 {
     uint8_t type;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     type = xact->seq[0].type;
 
     switch (type) {
@@ -317,7 +325,11 @@ static void bearer_epc_timeout(ogs_pfcp_xact_t *xact, void *data)
 {
     uint8_t type;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     type = xact->seq[0].type;
 
     switch (type) {
@@ -341,7 +353,11 @@ int smf_pfcp_send_modify_list(
     ogs_pfcp_header_t h;
 
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     xact->local_seid = sess->smf_n4_seid;
 

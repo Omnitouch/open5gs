@@ -137,7 +137,11 @@ void smf_pfcp_state_will_associate(ogs_fsm_t *s, smf_event_t *e)
         message = e->pfcp_message;
         ogs_assert(message);
         xact = e->pfcp_xact;
-        ogs_assert(xact);
+        xact = ogs_pfcp_xact_cycle(xact);
+        if (NULL == xact) {
+            ogs_error("xact no longer valid");
+            break;
+        }
 
         ogs_debug("SMF_EVT_N4_MESSAGE %i", message->h.type);
 
@@ -224,7 +228,11 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
         message = e->pfcp_message;
         ogs_assert(message);
         xact = e->pfcp_xact;
-        ogs_assert(xact);
+        xact = ogs_pfcp_xact_cycle(xact);
+        if (NULL == xact) {
+            ogs_error("xact no longer valid");
+            break;
+        }
 
         ogs_debug("SMF_EVT_N4_MESSAGE %i", message->h.type);
 
@@ -564,7 +572,11 @@ static void node_timeout(ogs_pfcp_xact_t *xact, void *data)
     smf_event_t *e = NULL;
     uint8_t type;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     type = xact->seq[0].type;
 
     if (NULL == pfcp_node_cycle(data)) {

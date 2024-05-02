@@ -38,7 +38,11 @@ void sgwu_sxa_handle_session_establishment_request(
     ogs_pfcp_sereq_flags_t sereq_flags;
     bool restoration_indication = false;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("Session Establishment Request");
@@ -184,7 +188,11 @@ void sgwu_sxa_handle_session_modification_request(
     uint8_t offending_ie_value = 0;
     int i;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("Session Modification Request");
@@ -403,7 +411,11 @@ void sgwu_sxa_handle_session_deletion_request(
         sgwu_sess_t *sess, ogs_pfcp_xact_t *xact,
         ogs_pfcp_session_deletion_request_t *req)
 {
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("Session Deletion Request");
@@ -429,7 +441,11 @@ void sgwu_sxa_handle_session_report_response(
 {
     uint8_t cause_value = 0;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(rsp);
 
     ogs_pfcp_xact_commit(xact);

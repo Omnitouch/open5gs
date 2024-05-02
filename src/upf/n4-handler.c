@@ -60,7 +60,11 @@ void upf_n4_handle_session_establishment_request(
 
     upf_metrics_inst_global_inc(UPF_METR_GLOB_CTR_SM_N4SESSIONESTABREQ);
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("Session Establishment Request");
@@ -242,7 +246,11 @@ void upf_n4_handle_session_modification_request(
     uint8_t offending_ie_value = 0;
     int i;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("Session Modification Request");
@@ -455,7 +463,11 @@ void upf_n4_handle_session_deletion_request(
     ogs_pfcp_pdr_t *pdr = NULL;
     ogs_pfcp_qer_t *qer = NULL;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(req);
 
     ogs_debug("Session Deletion Request");
@@ -494,7 +506,11 @@ void upf_n4_handle_session_report_response(
 {
     uint8_t cause_value = 0;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
     ogs_assert(rsp);
 
     ogs_pfcp_xact_commit(xact);

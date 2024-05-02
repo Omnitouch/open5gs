@@ -176,7 +176,11 @@ int ogs_pfcp_send_heartbeat_response(ogs_pfcp_xact_t *xact)
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_pfcp_header_t h;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_pfcp_header_t));
     h.type = OGS_PFCP_HEARTBEAT_RESPONSE_TYPE;
@@ -254,7 +258,11 @@ int ogs_pfcp_cp_send_association_setup_response(ogs_pfcp_xact_t *xact,
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_pfcp_header_t h;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_pfcp_header_t));
     h.type = OGS_PFCP_ASSOCIATION_SETUP_RESPONSE_TYPE;
@@ -323,7 +331,11 @@ int ogs_pfcp_up_send_association_setup_response(ogs_pfcp_xact_t *xact,
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_pfcp_header_t h;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_pfcp_header_t));
     h.type = OGS_PFCP_ASSOCIATION_SETUP_RESPONSE_TYPE;
@@ -461,7 +473,11 @@ void ogs_pfcp_send_error_message(
     ogs_pfcp_tlv_offending_ie_t *offending_ie = NULL;
     ogs_pkbuf_t *pkbuf = NULL;
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return;
+    }
 
     memset(&errmsg, 0, sizeof(ogs_pfcp_message_t));
     errmsg.h.seid = seid;

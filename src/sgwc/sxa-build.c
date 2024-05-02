@@ -158,7 +158,11 @@ ogs_pkbuf_t *sgwc_sxa_build_bearer_to_modify_list(
     ogs_debug("Session Modification Request");
 
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return NULL;
+    }
     modify_flags = xact->modify_flags;
     ogs_assert(modify_flags);
 

@@ -25,7 +25,11 @@ bool ogs_pfcp_handle_heartbeat_request(
 {
     int rv;
     ogs_assert(node);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return false;
+    }
     ogs_assert(req);
 
     if (req->recovery_time_stamp.presence == 0) {
@@ -60,7 +64,11 @@ bool ogs_pfcp_handle_heartbeat_response(
         ogs_pfcp_heartbeat_response_t *rsp)
 {
     ogs_assert(node);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return false;
+    }
     ogs_assert(rsp);
 
     ogs_pfcp_xact_commit(xact);
@@ -97,7 +105,11 @@ bool ogs_pfcp_cp_handle_association_setup_request(
 
     ogs_debug("ogs_pfcp_cp_handle_association_setup_request");
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return false;
+    }
     ogs_assert(node);
     ogs_assert(req);
 
@@ -148,7 +160,11 @@ bool ogs_pfcp_cp_handle_association_setup_response(
 
     ogs_debug("ogs_pfcp_cp_handle_association_setup_response");
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return false;
+    }
     ogs_pfcp_xact_commit(xact);
 
     ogs_assert(node);
@@ -196,7 +212,11 @@ bool ogs_pfcp_up_handle_association_setup_request(
 {
     ogs_debug("ogs_pfcp_up_handle_association_setup_request");
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return false;
+    }
     ogs_pfcp_up_send_association_setup_response(
             xact, OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
 
@@ -214,7 +234,11 @@ bool ogs_pfcp_up_handle_association_setup_response(
 {
     ogs_debug("ogs_pfcp_up_handle_association_setup_response");
 
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return false;
+    }
     ogs_pfcp_xact_commit(xact);
 
     if (rsp->cp_function_features.presence) {

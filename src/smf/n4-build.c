@@ -46,7 +46,11 @@ ogs_pkbuf_t *smf_n4_build_session_establishment_request(
     ogs_assert(sess);
     smf_ue = sess->smf_ue;
     ogs_assert(smf_ue);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return NULL;
+    }
 
     pfcp_message = ogs_calloc(1, sizeof(*pfcp_message));
     if (!pfcp_message) {
@@ -221,7 +225,11 @@ ogs_pkbuf_t *smf_n4_build_pdr_to_modify_list(
 
     ogs_debug("Session Modification Request");
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return NULL;
+    }
     modify_flags = xact->modify_flags;
     ogs_assert(modify_flags);
 
@@ -365,7 +373,11 @@ ogs_pkbuf_t *smf_n4_build_qos_flow_to_modify_list(
     ogs_debug("Bearer Modification Request");
 
     ogs_assert(sess);
-    ogs_assert(xact);
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return NULL;
+    }
     modify_flags = xact->modify_flags;
     ogs_assert(modify_flags);
 
