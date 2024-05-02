@@ -1008,7 +1008,7 @@ bool smf_s5c_handle_delete_bearer_response(
     ogs_debug("Delete Bearer Response : SGW[0x%x] --> SMF[0x%x]",
             sess->sgw_s5c_teid, sess->smf_n4_teid);
 
-    ogs_assert(OGS_OK ==
+    ogs_expect(OGS_OK ==
         smf_epc_pfcp_send_one_bearer_modification_request(
             bearer, NULL, OGS_PFCP_MODIFY_REMOVE,
             OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED,
