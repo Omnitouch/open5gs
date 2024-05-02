@@ -55,7 +55,9 @@ static int decode_ipv6_header(
         uint32_t jp_len = 0;
         struct ip6_opt_jumbo *jumbo = NULL;
 
-        ogs_assert(nxt == 0);
+        if (0 != nxt) {
+            return OGS_ERROR;
+        }
 
         jumbo = (struct ip6_opt_jumbo *)jp;
         memcpy(&jp_len, jumbo->ip6oj_jumbo_len, sizeof(jp_len));
@@ -150,7 +152,10 @@ ogs_pfcp_rule_t *ogs_pfcp_pdr_rule_find_by_packet(
             ip_h = NULL;
             ip6_h = (struct ip6_hdr *)pkbuf->data;
 
-            decode_ipv6_header(ip6_h, &proto, &ip_hlen);
+            if (OGS_OK != decode_ipv6_header(ip6_h, &proto, &ip_hlen)) {
+                ogs_error("Error when decoding IPv6 header");
+                return NULL;
+            }
 
             src_addr = (void *)ip6_h->ip6_src.s6_addr;
             dst_addr = (void *)ip6_h->ip6_dst.s6_addr;
