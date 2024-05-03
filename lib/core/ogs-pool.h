@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-#if OGS_USE_TALLOC == 1
+#if OGS_USE_TALLOC == 0
 #define ogs_pool_create ogs_malloc
 #define ogs_pool_destroy ogs_free
 #else
