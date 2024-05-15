@@ -143,7 +143,7 @@ int esm_handle_pdn_connectivity_request(mme_bearer_t *bearer,
         sess->session = mme_default_session(mme_ue);
     }
 
-    if (sess->session) {
+    if ((NULL != sess->session) && (NULL != sess->session->name)) {
         mme_bearer_t *default_bearer = NULL;
         mme_bearer_t *dedicated_bearer = NULL, *next_dedicated_bearer = NULL;
 
