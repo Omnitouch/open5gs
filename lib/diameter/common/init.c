@@ -122,7 +122,7 @@ static void diam_log_func(int printlevel, const char *format, va_list ap)
         diam_log_printf(OGS_LOG_TRACE, "[%d] %s\n", printlevel, buffer);
         break;  
     case FD_LOG_DEBUG:
-        diam_log_printf(OGS_LOG_TRACE, "[%d] %s\n", printlevel, buffer);
+        diam_log_printf(OGS_LOG_DEBUG, "[%d] %s\n", printlevel, buffer);
         break;  
     case FD_LOG_INFO:
         diam_log_printf(OGS_LOG_TRACE, "[%d] %s\n", printlevel, buffer);
