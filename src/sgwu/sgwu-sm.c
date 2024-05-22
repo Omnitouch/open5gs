@@ -58,7 +58,7 @@ void sgwu_state_operational(ogs_fsm_t *s, sgwu_event_t *e)
         ogs_assert(e);
         recvbuf = e->pkbuf;
         ogs_assert(recvbuf);
-        node = e->pfcp_node;
+        node = pfcp_node_cycle(e->pfcp_node);
         ogs_assert(node);
 
         /*
@@ -93,7 +93,7 @@ void sgwu_state_operational(ogs_fsm_t *s, sgwu_event_t *e)
         break;
     case SGWU_EVT_SXA_TIMER:
     case SGWU_EVT_SXA_NO_HEARTBEAT:
-        node = e->pfcp_node;
+        node = pfcp_node_cycle(e->pfcp_node);
         ogs_assert(node);
         ogs_assert(OGS_FSM_STATE(&node->sm));
 

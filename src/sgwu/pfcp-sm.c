@@ -33,7 +33,7 @@ void sgwu_pfcp_state_initial(ogs_fsm_t *s, sgwu_event_t *e)
 
     sgwu_sm_debug(e);
 
-    node = e->pfcp_node;
+    node = pfcp_node_cycle(e->pfcp_node);
     ogs_assert(node);
 
     rv = ogs_pfcp_connect(
@@ -57,7 +57,7 @@ void sgwu_pfcp_state_final(ogs_fsm_t *s, sgwu_event_t *e)
 
     sgwu_sm_debug(e);
 
-    node = e->pfcp_node;
+    node = pfcp_node_cycle(e->pfcp_node);
     ogs_assert(node);
 
     ogs_timer_delete(node->t_no_heartbeat);
@@ -76,7 +76,7 @@ void sgwu_pfcp_state_will_associate(ogs_fsm_t *s, sgwu_event_t *e)
 
     sgwu_sm_debug(e);
 
-    node = e->pfcp_node;
+    node = pfcp_node_cycle(e->pfcp_node);
     ogs_assert(node);
 
     switch (e->id) {
@@ -317,7 +317,7 @@ void sgwu_pfcp_state_associated(ogs_fsm_t *s, sgwu_event_t *e)
     case SGWU_EVT_SXA_TIMER:
         switch(e->timer_id) {
         case SGWU_TIMER_NO_HEARTBEAT:
-            node = e->pfcp_node;
+            node = pfcp_node_cycle(e->pfcp_node);
             ogs_assert(node);
 
             ogs_assert(OGS_OK ==
