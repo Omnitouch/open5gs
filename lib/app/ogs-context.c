@@ -72,7 +72,7 @@ static void recalculate_pool_size(void)
     self.pool.tunnel = self.pool.bearer * MAX_NUM_OF_TUNNEL;
 
 #define POOL_NUM_PER_UE 16
-    self.pool.timer = self.max.ue * POOL_NUM_PER_UE;
+    self.pool.timer = self.max.ue * POOL_NUM_PER_UE * 2;
     self.pool.message = self.max.ue * POOL_NUM_PER_UE;
     self.pool.event = self.max.ue * POOL_NUM_PER_UE;
     self.pool.socket = self.max.ue * POOL_NUM_PER_UE;
