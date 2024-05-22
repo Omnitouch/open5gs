@@ -532,7 +532,7 @@ void sgwu_sess_urr_acc_timers_setup(sgwu_sess_t *sess, ogs_pfcp_urr_t *urr)
 static void sgwu_sess_urr_acc_remove_all(sgwu_sess_t *sess)
 {
     unsigned int i;
-    for (i = 0; i < OGS_ARRAY_SIZE(sess->urr_acc); i++) {
+    for (i = 0; i < OGS_MAX_NUM_OF_URR; i++) {
         /* If we added the timer make sure to delete it */
         if (NULL != sess->urr_acc[i].t_validity_time) {
             ogs_timer_delete(sess->urr_acc[i].t_validity_time);
