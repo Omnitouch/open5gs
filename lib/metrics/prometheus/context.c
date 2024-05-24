@@ -206,6 +206,32 @@ static _MHD_Result mhd_server_access_handler(void *cls, struct MHD_Connection *c
         MHD_destroy_response(rsp);
         return ret;
     }
+    if (strcmp(url, "/log_metrics") == 0) {
+        FILE *fptr;
+        char log_file[] = "/var/OmniDump/metrics.txt";
+        char response[256] = "";
+        
+        buf = prom_collector_registry_bridge(PROM_COLLECTOR_REGISTRY_DEFAULT);
+        fptr = fopen(log_file, "w");
+
+        if (NULL != fptr) {
+            fprintf(fptr, "%s", buf);
+            fclose(fptr);
+
+            sprintf(response, "Metrics have been logged to '%s'", log_file);
+            rsp = MHD_create_response_from_buffer(strlen(response), (void *)response, MHD_RESPMEM_MUST_COPY);
+            ret = MHD_queue_response(connection, MHD_HTTP_OK, rsp);
+        } else {
+            ogs_error("Failed to open the metrics file '%s' for writing!", log_file);
+
+            sprintf(response, "Failed to log metrics to '%s'", log_file);
+            rsp = MHD_create_response_from_buffer(strlen(response), (void *)response, MHD_RESPMEM_MUST_COPY);
+            ret = MHD_queue_response(connection, MHD_HTTP_BAD_REQUEST, rsp);
+        }
+
+        MHD_destroy_response(rsp);
+        return ret;
+    }
     if (strcmp(url, "/metrics") == 0) {
         buf = prom_collector_registry_bridge(PROM_COLLECTOR_REGISTRY_DEFAULT);
         rsp = MHD_create_response_from_buffer(strlen(buf), (void *)buf, MHD_RESPMEM_MUST_FREE);
