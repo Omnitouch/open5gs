@@ -299,6 +299,15 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
     ogs_assert(pkbuf);
     ogs_assert(pkbuf->len);
 
+    if (pkbuf->len < sizeof(ogs_gtp2_header_t)) {
+        ogs_error(
+            "Received a packet with only %u bytes! Thats less than whats needed to make a gtp2_header (%zu bytes) so something must have gone wrong!",
+            pkbuf->len,
+            sizeof(ogs_gtp2_header_t)
+        );
+        goto cleanup;
+    }
+
     gtp_h = (ogs_gtp2_header_t *)pkbuf->data;
     if (gtp_h->version != OGS_GTP2_VERSION_1) {
         ogs_error("[DROP] Invalid GTPU version [%d]", gtp_h->version);

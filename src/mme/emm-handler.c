@@ -59,7 +59,10 @@ int emm_handle_attach_request(mme_ue_t *mme_ue,
 
     ogs_assert(mme_ue);
     enb_ue = enb_ue_cycle(mme_ue->enb_ue);
-    ogs_assert(enb_ue);
+    if (NULL == enb_ue) {
+        ogs_error("mme_ue->enb_ue is invalid!");
+        return OGS_ERROR;
+    }
 
     ogs_assert(esm_message_container);
     if (!esm_message_container->length) {
