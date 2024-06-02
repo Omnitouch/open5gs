@@ -1378,7 +1378,7 @@ void sgwc_sxa_handle_session_deletion_response(
         cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
     }
 
-    gtp_xact = pfcp_xact->assoc_xact;
+    gtp_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
 
     ogs_pfcp_xact_commit(pfcp_xact);
 

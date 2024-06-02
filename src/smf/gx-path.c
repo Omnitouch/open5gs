@@ -797,7 +797,7 @@ static void smf_gx_cca_cb(void *data, struct msg **msg)
 
     ogs_debug("    CC-Request-Number[%d]", cc_request_number);
 
-    xact = sess_data->xact[cc_request_number];
+    xact = ogs_gtp_xact_cycle(sess_data->xact[cc_request_number]);
     sess = sess_data->sess;
     ogs_assert(sess);
 

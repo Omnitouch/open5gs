@@ -323,7 +323,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
             if (!message->h.seid_presence) ogs_error("No SEID");
 
             if (!sess) {
-                ogs_gtp_xact_t *gtp_xact = xact->assoc_xact;
+                ogs_gtp_xact_t *gtp_xact = ogs_gtp_xact_cycle(xact->assoc_xact);
                 ogs_error("No Session");
                 if (!gtp_xact) {
                     ogs_error("No associated GTP transaction");
@@ -358,7 +358,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
             if (!message->h.seid_presence) ogs_error("No SEID");
 
             if (!sess) {
-                ogs_gtp_xact_t *gtp_xact = xact->assoc_xact;
+                ogs_gtp_xact_t *gtp_xact = ogs_gtp_xact_cycle(xact->assoc_xact);
                 ogs_error("No Session");
                 if (!gtp_xact) {
                     ogs_error("No associated GTP transaction");

@@ -109,7 +109,8 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         e->gtp2_message = &gtp2_message;
 
         rv = ogs_gtp_xact_receive(smf_gnode->gnode, &gtp2_message.h, &gtp_xact);
-        if (rv != OGS_OK) {
+        gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
+        if ((rv != OGS_OK) || (NULL == gtp_xact)) {
             ogs_pkbuf_free(recvbuf);
             break;
         }
@@ -229,7 +230,8 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         }
 
         rv = ogs_gtp1_xact_receive(smf_gnode->gnode, &gtp1_message.h, &gtp_xact);
-        if (rv != OGS_OK) {
+        gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
+        if ((rv != OGS_OK) || (NULL == gtp_xact)) {
             ogs_pkbuf_free(recvbuf);
             break;
         }
@@ -414,7 +416,8 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         }
 
         rv = ogs_pfcp_xact_receive(pfcp_node, &pfcp_message->h, &pfcp_xact);
-        if (rv != OGS_OK) {
+        pfcp_xact = ogs_pfcp_xact_cycle(pfcp_xact);
+        if ((rv != OGS_OK) || (NULL == pfcp_xact)) {
             ogs_pkbuf_free(recvbuf);
             ogs_pfcp_message_free(pfcp_message);
             break;

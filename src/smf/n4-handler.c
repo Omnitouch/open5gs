@@ -889,7 +889,7 @@ void smf_epc_n4_handle_session_modification_response(
        PFCP Session Report Request, xact->assoc_xact is not a gtp_xact. No
        need to do anything. */
     if (!(flags & OGS_PFCP_MODIFY_URR)) {
-        gtp_xact = xact->assoc_xact;
+        gtp_xact = ogs_gtp_xact_cycle(xact->assoc_xact);
         gtp_pti = xact->gtp_pti;
         gtp_cause = xact->gtp_cause;
     }

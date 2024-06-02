@@ -111,7 +111,8 @@ void sgwc_state_operational(ogs_fsm_t *s, sgwc_event_t *e)
         }
 
         rv = ogs_pfcp_xact_receive(pfcp_node, &pfcp_message->h, &pfcp_xact);
-        if (rv != OGS_OK) {
+        pfcp_xact = ogs_pfcp_xact_cycle(pfcp_xact);
+        if ((rv != OGS_OK) || (NULL == pfcp_xact)) {
             ogs_pkbuf_free(recvbuf);
             ogs_pfcp_message_free(pfcp_message);
             break;

@@ -1108,10 +1108,10 @@ out:
         e->gy_message = gy_message;
         if (gy_message->cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_UPDATE_REQUEST) {
             ogs_assert(sess_data->xact_data[sess_data->cc_request_number].pfcp == true);
-            e->pfcp_xact = xact;
+            e->pfcp_xact = ogs_pfcp_xact_cycle(xact);
         } else {
             ogs_assert(sess_data->xact_data[sess_data->cc_request_number].pfcp == false);
-            e->gtp_xact = xact;
+            e->gtp_xact = ogs_gtp_xact_cycle(xact);
         }
         rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {

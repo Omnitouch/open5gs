@@ -668,29 +668,31 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
 
     switch (e->h.id) {
     case SMF_EVT_N4_MESSAGE:
-        pfcp_xact = e->pfcp_xact;
-        ogs_assert(pfcp_xact);
+        pfcp_xact = ogs_pfcp_xact_cycle(e->pfcp_xact);
+        if (NULL == pfcp_xact) {
+            ogs_error("pfcp_xact doesn't exist!");
+            break;
+        }
         pfcp_message = e->pfcp_message;
         ogs_assert(pfcp_message);
 
         switch (pfcp_message->h.type) {
         case OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE:
             if (pfcp_xact->epc) {
-                ogs_gtp_xact_t *gtp_xact = pfcp_xact->assoc_xact;
-                ogs_assert(gtp_xact);
+                ogs_gtp_xact_t *gtp_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
 
                 pfcp_cause = smf_epc_n4_handle_session_establishment_response(
                         sess, pfcp_xact,
                         &pfcp_message->pfcp_session_establishment_response);
                 if (pfcp_cause != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
                     /* FIXME: tear down Gy and Gx */
+                    ogs_assert(gtp_xact);
                     gtp_cause = gtp_cause_from_pfcp(
                                     pfcp_cause, gtp_xact->gtp_version);
                     send_gtp_create_err_msg(sess, e->gtp_xact, gtp_cause);
                     return;
                 }
 
-                gtp_xact = pfcp_xact->assoc_xact;
                 if (gtp_xact) {
                     switch (gtp_xact->gtp_version) {
                     case 1:
@@ -879,8 +881,11 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
         break;
 
     case SMF_EVT_N4_MESSAGE:
-        pfcp_xact = e->pfcp_xact;
-        ogs_assert(pfcp_xact);
+        pfcp_xact = ogs_pfcp_xact_cycle(e->pfcp_xact);
+        if (NULL == pfcp_xact) {
+            ogs_error("pfcp_xact doesn't exist!");
+            break;
+        }
         pfcp_message = e->pfcp_message;
         ogs_assert(pfcp_message);
 
@@ -1328,15 +1333,18 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
         break; /* ignore */
 
     case SMF_EVT_N4_MESSAGE:
-        pfcp_xact = e->pfcp_xact;
-        ogs_assert(pfcp_xact);
+        pfcp_xact = ogs_pfcp_xact_cycle(e->pfcp_xact);
+        if (NULL == pfcp_xact) {
+            ogs_error("pfcp_xact doesn't exist!");
+            break;
+        }
         pfcp_message = e->pfcp_message;
         ogs_assert(pfcp_message);
 
         switch (pfcp_message->h.type) {
         case OGS_PFCP_SESSION_DELETION_RESPONSE_TYPE:
             if (pfcp_xact->epc) {
-                gtp_xact = pfcp_xact->assoc_xact;
+                gtp_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
 
                 pfcp_cause = smf_epc_n4_handle_session_deletion_response(
                             sess, pfcp_xact,

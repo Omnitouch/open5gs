@@ -80,6 +80,7 @@ void upf_state_operational(ogs_fsm_t *s, upf_event_t *e)
         }
 
         rv = ogs_pfcp_xact_receive(node, &pfcp_message->h, &xact);
+        xact = ogs_pfcp_xact_cycle(xact);
         if (rv != OGS_OK) {
             ogs_pkbuf_free(recvbuf);
             ogs_pfcp_message_free(pfcp_message);
