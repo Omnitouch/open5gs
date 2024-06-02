@@ -500,8 +500,12 @@ void mme_s11_handle_modify_bearer_response(
         ogs_error("MME-UE Context has already been removed");
         return;
     }
+    
     sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
-    ogs_assert(sgw_ue);
+    if (NULL == sgw_ue) {
+        ogs_error("MME-UE context exists but SGW-UE context does not!");
+        return;
+    }
 
     /************************
      * Getting Cause Value
