@@ -342,6 +342,10 @@ void sgwc_sxa_handle_session_establishment_response(
         pgw = ogs_gtp_node_add_by_f_teid(
                 &sgwc_self()->pgw_s5c_list,
                 pgw_s5c_teid, ogs_gtp_self()->gtpc_port);
+        ogs_list_t l = sgwc_self()->pgw_s5c_list;
+        ogs_gtp_node_t *node = ogs_list_first(&l);
+        ogs_assert(node); // keep pointer here so we can explore in gdb
+
         ogs_assert(pgw);
 
         rv = ogs_gtp_connect(

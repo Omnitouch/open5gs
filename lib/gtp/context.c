@@ -531,7 +531,7 @@ ogs_gtp_node_t *ogs_gtp_node_new(ogs_sockaddr_t *sa_list)
 
     ogs_pool_alloc(&pool, &node);
     if (!node) {
-        ogs_error("ogs_pool_alloc() failed");
+        ogs_error("ogs_pool_alloc() failed. Number of available over total is %d/%d", pool.avail, pool.size);
         return NULL;
     }
     memset(node, 0, sizeof(ogs_gtp_node_t));
@@ -589,6 +589,28 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_f_teid(
     node = ogs_gtp_node_new(addr);
     if (!node) {
         ogs_error("ogs_gtp_node_new() failed");
+        ogs_error("dumping node list");
+
+        ogs_ip_t ip = {};
+        rv = ogs_gtp2_f_teid_to_ip(f_teid, &ip);
+        ogs_assert(rv == OGS_OK);
+
+        int same_ipv4 = 0;
+        int same_ipv6 = 0;
+        ogs_list_for_each(list, node) {
+            ogs_error("ip.ipv4 = %d !=? %d", ip.ipv4, node->ip.ipv4);
+            ogs_error("ip.ipv6 = %d !=? %d", ip.ipv6, node->ip.ipv6);
+            ogs_error("ip.addr = %d !=? %d", ip.addr, node->ip.addr);
+            if ((1 == ip.ipv4) && (1 == node->ip.ipv4)) {
+                same_ipv4++;
+            }
+            if ((1 == ip.ipv6) && (1 == node->ip.ipv6)) {
+                same_ipv6++;
+            }
+        }
+        ogs_error("there existed %d nodes with the same ipv4 address...", same_ipv4);
+        ogs_error("there existed %d nodes with the same ipv6 address...", same_ipv6);
+
         ogs_freeaddrinfo(addr);
         return NULL;
     }
