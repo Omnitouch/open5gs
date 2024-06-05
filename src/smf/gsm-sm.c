@@ -415,7 +415,10 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
         case OGS_DIAM_GX_CMD_CODE_CREDIT_CONTROL:
             switch(gx_message->cc_request_type) {
             case OGS_DIAM_GX_CC_REQUEST_TYPE_INITIAL_REQUEST:
-                ogs_assert(e->gtp_xact);
+                if (NULL == ogs_gtp_xact_cycle(e->gtp_xact)) {
+                    ogs_error("Just got an event with a NULL xact");
+                    return;
+                }
                 diam_err = smf_gx_handle_cca_initial_request(sess,
                                 gx_message, e->gtp_xact);
                 sess->sm_data.gx_ccr_init_in_flight = false;
@@ -434,7 +437,10 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
         case OGS_DIAM_GY_CMD_CODE_CREDIT_CONTROL:
             switch(gy_message->cc_request_type) {
             case OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST:
-                ogs_assert(e->gtp_xact);
+                if (NULL == ogs_gtp_xact_cycle(e->gtp_xact)) {
+                    ogs_error("Just got an event with a NULL xact");
+                    return;
+                }
                 diam_err = smf_gy_handle_cca_initial_request(sess,
                                 gy_message, e->gtp_xact);
                 sess->sm_data.gy_ccr_init_in_flight = false;
@@ -1478,7 +1484,10 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
         case OGS_DIAM_GY_CMD_CODE_CREDIT_CONTROL:
             switch(gy_message->cc_request_type) {
             case OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST:
-                ogs_assert(e->gtp_xact);
+                if (NULL == ogs_gtp_xact_cycle(e->gtp_xact)) {
+                    ogs_error("Just got an event with a NULL xact");
+                    return;
+                }
                 diam_err = smf_gy_handle_cca_termination_request(sess,
                                 gy_message, e->gtp_xact);
                 sess->sm_data.gy_ccr_term_in_flight = false;

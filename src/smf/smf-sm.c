@@ -346,6 +346,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 break;
             case OGS_DIAM_GY_CC_REQUEST_TYPE_UPDATE_REQUEST:
                 ogs_assert(e->pfcp_xact);
+                if (NULL == ogs_pfcp_xact_cycle(e->pfcp_xact)) {
+                    ogs_error("Just got an event with a NULL xact");
+                    return;
+                }
                 smf_gy_handle_cca_update_request(
                         sess, gy_message, e->pfcp_xact);
             break;
