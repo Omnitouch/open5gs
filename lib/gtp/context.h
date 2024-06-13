@@ -116,6 +116,8 @@ void ogs_gtpu_resource_remove(ogs_list_t *list,
         ogs_gtpu_resource_t *resource);
 void ogs_gtpu_resource_remove_all(ogs_list_t *list);
 
+ogs_gtp_node_t *gtp_node_cycle(ogs_gtp_node_t *node);
+
 #ifdef __cplusplus
 }
 #endif

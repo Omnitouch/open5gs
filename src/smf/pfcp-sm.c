@@ -468,7 +468,7 @@ static void pfcp_restoration(ogs_pfcp_node_t *node)
 
             if (node == sess->pfcp_node) {
                 if (NULL == pfcp_node_cycle(sess->pfcp_node)) {
-                    ogs_error("Found a node that doesn't exist");
+                    ogs_error("Found a node that doesn't exist in list");
                     break;
                 }
 

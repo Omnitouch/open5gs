@@ -353,6 +353,7 @@ void sgwc_sxa_handle_session_establishment_response(
 
         if (rv != OGS_OK) {
             ogs_error("Failed to connect to PGW!");
+            ogs_gtp_node_free(pgw);
             return;
         }
     }

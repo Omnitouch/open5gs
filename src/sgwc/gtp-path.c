@@ -101,11 +101,14 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
         gnode->sock = data;
     }
 
+    /* If we found the node, it must have been from a PGW */
     if (gnode) {
         e = sgwc_event_new(SGWC_EVT_S5C_MESSAGE);
         ogs_assert(e);
         e->gnode = gnode;
-    } else {
+    }
+    /* This has to be a message from the MME */
+    else {
         e = sgwc_event_new(SGWC_EVT_S11_MESSAGE);
         gnode = ogs_gtp_node_find_by_addr(&sgwc_self()->mme_s11_list, &from);
         if (!gnode) {

@@ -546,7 +546,10 @@ ogs_gtp_node_t *ogs_gtp_node_new(ogs_sockaddr_t *sa_list)
 
 void ogs_gtp_node_free(ogs_gtp_node_t *node)
 {
-    ogs_assert(node);
+    if (NULL == gtp_node_cycle(node)) {
+        ogs_warn("Tried to free a node that doesn't exist");
+        return;
+    }
 
     ogs_gtp_xact_delete_all(node);
 
@@ -597,19 +600,29 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_f_teid(
 
         int same_ipv4 = 0;
         int same_ipv6 = 0;
-        ogs_list_for_each(list, node) {
-            ogs_error("ip.ipv4 = %d !=? %d", ip.ipv4, node->ip.ipv4);
-            ogs_error("ip.ipv6 = %d !=? %d", ip.ipv6, node->ip.ipv6);
-            ogs_error("ip.addr = %d !=? %d", ip.addr, node->ip.addr);
-            if ((1 == ip.ipv4) && (1 == node->ip.ipv4)) {
-                same_ipv4++;
+        int same_addr = 0;
+        ogs_gtp_node_t *comp_node = NULL;
+        ogs_list_for_each(list, comp_node) {
+            ogs_error("ip.ipv4 = %d !=? %d", ip.ipv4, comp_node->ip.ipv4);
+            ogs_error("ip.ipv6 = %d !=? %d", ip.ipv6, comp_node->ip.ipv6);
+            ogs_error("ip.addr = %d !=? %d", ip.addr, comp_node->ip.addr);
+            if ((1 == ip.ipv4) && (1 == comp_node->ip.ipv4)) {
+                if (ip.addr == comp_node->ip.addr) {
+                    same_ipv4++;
+                }
             }
-            if ((1 == ip.ipv6) && (1 == node->ip.ipv6)) {
-                same_ipv6++;
+            if ((1 == ip.ipv6) && (1 == comp_node->ip.ipv6)) {
+                if (0 == memcmp(ip.addr6, comp_node->ip.addr6, OGS_IPV6_LEN)) {
+                    same_ipv6++;
+                }
+            }
+            if (ogs_sockaddr_is_equal_addr_only(&comp_node->addr, addr)) {
+                same_addr++;
             }
         }
         ogs_error("there existed %d nodes with the same ipv4 address...", same_ipv4);
         ogs_error("there existed %d nodes with the same ipv6 address...", same_ipv6);
+        ogs_error("there existed %d nodes with the same addr address...", same_addr);
 
         ogs_freeaddrinfo(addr);
         return NULL;
@@ -619,6 +632,7 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_f_teid(
     if (rv != OGS_OK) {
         ogs_error("ogs_gtp2_f_teid_to_ip() failed");
         ogs_freeaddrinfo(addr);
+        ogs_gtp_node_free(node);
         return NULL;
     }
 
@@ -643,7 +657,7 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_addr(ogs_list_t *list, ogs_sockaddr_t *addr)
         return NULL;
     }
 
-    memcpy(&gnode->addr, new, sizeof gnode->addr);
+    memcpy(&gnode->addr, new, sizeof(gnode->addr));
 
     ogs_list_add(list, gnode);
 
@@ -652,7 +666,10 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_addr(ogs_list_t *list, ogs_sockaddr_t *addr)
 
 void ogs_gtp_node_remove(ogs_list_t *list, ogs_gtp_node_t *node)
 {
-    ogs_assert(node);
+    if (NULL == gtp_node_cycle(node)) {
+        ogs_warn("Trying to remove a node that doesn't exist");
+        return;
+    }
 
     ogs_list_remove(list, node);
 
@@ -663,8 +680,14 @@ void ogs_gtp_node_remove_all(ogs_list_t *list)
 {
     ogs_gtp_node_t *node = NULL, *next_node = NULL;
 
-    ogs_list_for_each_safe(list, next_node, node)
+    ogs_list_for_each_safe(list, next_node, node) {
+        if (NULL == gtp_node_cycle(node)) {
+            ogs_error("Found a node that doesn't exist in list");
+            return;
+        }
+
         ogs_gtp_node_remove(list, node);
+    }
 }
 
 ogs_gtp_node_t *ogs_gtp_node_find_by_addr(
@@ -676,6 +699,11 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_addr(
     ogs_assert(addr);
 
     ogs_list_for_each(list, node) {
+        if (NULL == gtp_node_cycle(node)) {
+            ogs_error("Found a node that doesn't exist in list");
+            return NULL;
+        }
+
         if (ogs_sockaddr_is_equal(&node->addr, addr) == true)
             break;
     }
@@ -692,6 +720,11 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_addr_only(
     ogs_assert(addr);
 
     ogs_list_for_each(list, node) {
+        if (NULL == gtp_node_cycle(node)) {
+            ogs_error("Found a node that doesn't exist in list");
+            return NULL;
+        }
+
         if (ogs_sockaddr_is_equal_addr_only(&node->addr, addr) == true)
             break;
     }
@@ -713,6 +746,13 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_f_teid(
     ogs_assert(rv == OGS_OK);
 
     ogs_list_for_each(list, node) {
+        node = gtp_node_cycle(node);
+
+        if (NULL == node) {
+            ogs_error("Found a node that doesn't exist in list");
+            break;
+        }
+
         if (memcmp(&node->ip, &ip, sizeof(ip)) == 0)
             break;
 
@@ -790,6 +830,11 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_ip(ogs_list_t *list, ogs_ip_t *ip)
     ogs_assert(ip);
 
     ogs_list_for_each(list, node) {
+        if (NULL == gtp_node_cycle(node)) {
+            ogs_error("Found a node that doesn't exist in list");
+            return NULL;
+        }
+
         if (memcmp(&node->ip, ip, sizeof(*ip)) == 0)
             break;
     }
@@ -834,4 +879,9 @@ void ogs_gtpu_resource_remove_all(ogs_list_t *list)
 
     ogs_list_for_each_safe(list, next_resource, resource)
         ogs_gtpu_resource_remove(list, resource);
+}
+
+ogs_gtp_node_t *gtp_node_cycle(ogs_gtp_node_t *node)
+{
+    return ogs_pool_cycle(&pool, node);
 }
