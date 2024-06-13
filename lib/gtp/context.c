@@ -606,6 +606,10 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_f_teid(
             ogs_error("ip.ipv4 = %d !=? %d", ip.ipv4, comp_node->ip.ipv4);
             ogs_error("ip.ipv6 = %d !=? %d", ip.ipv6, comp_node->ip.ipv6);
             ogs_error("ip.addr = %d !=? %d", ip.addr, comp_node->ip.addr);
+            ogs_error("ip.addr = %d !=? %d", ip.addr, comp_node->ip.addr);
+            ogs_error("port4 = %d !=? %d", addr->sin.sin_port, comp_node->addr.sin.sin_port);
+            ogs_error("port6 = %d !=? %d", addr->sin6.sin6_port, comp_node->addr.sin6.sin6_port);
+
             if ((1 == ip.ipv4) && (1 == comp_node->ip.ipv4)) {
                 if (ip.addr == comp_node->ip.addr) {
                     same_ipv4++;
