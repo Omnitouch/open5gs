@@ -1357,10 +1357,13 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
                             &pfcp_message->pfcp_session_deletion_response);
                 if (pfcp_cause != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
                     /* FIXME: tear down Gy and Gx */
-                    ogs_assert(gtp_xact);
-                    gtp_cause = gtp_cause_from_pfcp(
-                            pfcp_cause, gtp_xact->gtp_version);
-                    send_gtp_delete_err_msg(sess, gtp_xact, gtp_cause);
+                    if (NULL != gtp_xact) {
+                        gtp_cause = gtp_cause_from_pfcp(
+                                pfcp_cause, gtp_xact->gtp_version);
+                        send_gtp_delete_err_msg(sess, gtp_xact, gtp_cause);
+                    } else {
+                        ogs_error("Cannot send gtp_delete_err_msg as gtp_xact was NULL!");
+                    }
                     break;
                 }
                 e->gtp_xact = gtp_xact;
