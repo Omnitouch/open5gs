@@ -834,9 +834,19 @@ sgwc_tunnel_t *sgwc_tunnel_add(
 
     uint8_t src_if, dst_if;
 
-    ogs_assert(bearer);
-    sess = sgwc_sess_cycle(bearer->sess);
+    bearer = sgwc_bearer_cycle(bearer);
+    sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
     ogs_assert(sess);
+
+    if (0 == sess->pdr_id_pool.avail) {
+        ogs_error("Cannot make a new tunnel, this UE is already using all its available PDRs");
+        return NULL;
+    }
+
+    if (0 == sess->far_id_pool.avail) {
+        ogs_error("Cannot make a new tunnel, this UE is already using all its available FARs");
+        return NULL;
+    }
 
     switch (interface_type) {
     /* Downlink */
