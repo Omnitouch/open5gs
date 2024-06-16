@@ -989,9 +989,13 @@ ogs_pkbuf_t *mme_s11_build_create_indirect_data_forwarding_tunnel_request(
     ogs_gtp2_f_teid_t ul_teid[OGS_GTP2_MAX_INDIRECT_TUNNEL];
     int len;
 
-    ogs_assert(mme_ue);
-    sgw_ue = mme_ue->sgw_ue;
-    ogs_assert(sgw_ue);
+    mme_ue = mme_ue_cycle(mme_ue);
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
+    
+    if (NULL == sgw_ue) {
+        ogs_error("No context!");
+        return NULL;
+    }
 
     ogs_debug("Create Indirect Data Forwarding Tunnel Request");
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",

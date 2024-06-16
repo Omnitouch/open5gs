@@ -2657,8 +2657,8 @@ void s1ap_handle_handover_request_ack(
             Target_ToSource_TransparentContainer);
 
     if (mme_ue_have_indirect_tunnel(mme_ue) == true) {
-        ogs_assert(OGS_OK ==
-            mme_gtp_send_create_indirect_data_forwarding_tunnel_request(mme_ue)\
+        ogs_expect(OGS_OK ==
+            mme_gtp_send_create_indirect_data_forwarding_tunnel_request(mme_ue)
         );
     } else {
         r = s1ap_send_handover_command(source_ue);
