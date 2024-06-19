@@ -237,13 +237,13 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         session->session_type == OGS_PDU_SESSION_TYPE_IPV4V6) {
         req->pdn_type.u8 = (session->session_type & sess->request_type.type);
         if (req->pdn_type.u8 == 0) {
-            ogs_fatal("Cannot derive PDN Type [UE:%d,HSS:%d]",
+            ogs_error("Cannot derive PDN Type [UE:%d,HSS:%d]",
                 sess->request_type.type, session->session_type);
-            ogs_assert_if_reached();
+            return NULL;
         }
     } else {
-        ogs_fatal("Invalid PDN_TYPE[%d]", session->session_type);
-        ogs_assert_if_reached();
+        ogs_error("Invalid PDN_TYPE[%d]", session->session_type);
+        return NULL;
     }
     req->pdn_type.presence = 1;
 
