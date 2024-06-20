@@ -1697,6 +1697,8 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
         if (smf_self()->redis_ip_reuse.enabled) {
             char ue_ip_str[OGS_ADDRSTRLEN] = "";
             sess->ipv4 = redis_ue_ip_alloc(sess->smf_ue->imsi_bcd, sess->session.name, sess->session.ue_ip.addr);
+            /* If this fails it means something has died with redis */
+            ogs_assert(sess->ipv4);
             sess->session.ue_ip.addr = sess->ipv4->addr[0];
             ogs_ipv4_to_string_stack(sess->session.ue_ip.addr, ue_ip_str);
             ogs_debug("UE was given the IP '%s'", ue_ip_str);
