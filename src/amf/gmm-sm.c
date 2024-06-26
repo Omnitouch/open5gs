@@ -1063,10 +1063,12 @@ static void common_register_state(ogs_fsm_t *s, amf_event_t *e,
                     ogs_assert(r != OGS_ERROR);
                 }
 
-                if (amf_ue->next.m_tmsi)
+                if (amf_ue->next.m_tmsi) {
                     OGS_FSM_TRAN(s, &gmm_state_initial_context_setup);
-                else
+                }
+                else {
                     OGS_FSM_TRAN(s, &gmm_state_registered);
+                }
 
             } else {
 
@@ -2237,10 +2239,12 @@ void gmm_state_exception(ogs_fsm_t *s, amf_event_t *e)
                     ogs_assert(r != OGS_ERROR);
                 }
 
-                if (amf_ue->next.m_tmsi)
+                if (amf_ue->next.m_tmsi) {
                     OGS_FSM_TRAN(s, &gmm_state_initial_context_setup);
-                else
+                }
+                else {
                     OGS_FSM_TRAN(s, &gmm_state_registered);
+                }
 
             } else {
 
