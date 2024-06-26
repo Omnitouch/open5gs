@@ -79,6 +79,7 @@ void sgwu_state_operational(ogs_fsm_t *s, sgwu_event_t *e)
         if (rv != OGS_OK) {
             ogs_pkbuf_free(recvbuf);
             ogs_pfcp_message_free(pfcp_message);
+            ogs_error("xact doesn't exist");
             break;
         }
 

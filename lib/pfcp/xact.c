@@ -182,10 +182,20 @@ void ogs_pfcp_xact_delete_all(ogs_pfcp_node_t *node)
 
     ogs_pfcp_xact_t *xact = NULL, *next_xact = NULL;
 
-    ogs_list_for_each_safe(&node->local_list, next_xact, xact)
+    ogs_list_for_each_safe(&node->local_list, next_xact, xact) {
+        if (NULL == ogs_pfcp_xact_cycle(xact)) {
+            ogs_error("Found an invalid xact in node->local_list");
+            break;
+        }
         ogs_pfcp_xact_delete(xact);
-    ogs_list_for_each_safe(&node->remote_list, next_xact, xact)
+    }
+    ogs_list_for_each_safe(&node->remote_list, next_xact, xact) {
+        if (NULL == ogs_pfcp_xact_cycle(xact)) {
+            ogs_error("Found an invalid xact in node->remote_list");
+            break;
+        }
         ogs_pfcp_xact_delete(xact);
+    }
 }
 
 int ogs_pfcp_xact_update_tx(ogs_pfcp_xact_t *xact,
@@ -201,7 +211,7 @@ int ogs_pfcp_xact_update_tx(ogs_pfcp_xact_t *xact,
         ogs_error("xact no longer valid");
         return OGS_ERROR;
     }
-    ogs_assert(xact->node);
+    ogs_assert(pfcp_node_cycle(xact->node));
     ogs_assert(hdesc);
     ogs_assert(pkbuf);
 
@@ -304,6 +314,12 @@ static int ogs_pfcp_xact_update_rx(ogs_pfcp_xact_t *xact, uint8_t type)
 {
     char buf[OGS_ADDRSTRLEN];
     ogs_pfcp_xact_stage_t stage;
+    
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
 
     ogs_debug("[%d] %s UPD RX-%d  peer [%s]:%d",
             xact->xid,
@@ -740,6 +756,12 @@ int ogs_pfcp_xact_receive(
 
     ogs_assert(list);
     ogs_list_for_each(list, new) {
+        new = ogs_pfcp_xact_cycle(new);
+        if (NULL == new) {
+            ogs_error("Found an invalid xact in list");
+            break;
+        }
+        
         if (new->xid == xid) {
             ogs_debug("[%d] %s Find    peer [%s]:%d",
                 new->xid,
@@ -769,6 +791,7 @@ int ogs_pfcp_xact_receive(
         ogs_pfcp_xact_delete(new);
         return rv;
     } else if (rv == OGS_RETRY) {
+        ogs_debug("ogs_pfcp_xact_update_rx() resulted in a retry");
         return rv;
     }
 

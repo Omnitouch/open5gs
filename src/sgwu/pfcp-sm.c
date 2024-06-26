@@ -150,6 +150,16 @@ void sgwu_pfcp_state_will_associate(ogs_fsm_t *s, sgwu_event_t *e)
         default:
             ogs_warn("cannot handle PFCP message type[%d]",
                     message->h.type);
+
+            if (false == ogs_timer_running(node->t_association)) {
+                ogs_warn("Looks like we're waiting to associate but we don't have a timer running for an association response. Lets try associate again...");
+                /* Sanity check to ensure that we're not waiting 
+                * for a response to a message we never sent */
+                ogs_timer_start(node->t_association,
+                        ogs_app()->time.message.pfcp.association_interval);
+
+                ogs_pfcp_up_send_association_setup_request(node, node_timeout);
+            }
             break;
         }
         break;
@@ -408,6 +418,7 @@ static void node_timeout(ogs_pfcp_xact_t *xact, void *data)
         }
         break;
     case OGS_PFCP_ASSOCIATION_SETUP_REQUEST_TYPE:
+        ogs_error("OGS_PFCP_ASSOCIATION_SETUP_REQUEST_TYPE timeout");
         break;
     default:
         ogs_error("Not implemented [type:%d]", type);

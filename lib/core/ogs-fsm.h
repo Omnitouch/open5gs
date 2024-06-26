@@ -52,6 +52,7 @@ void ogs_fsm_dispatch(void *fsm, void *event);
 void ogs_fsm_fini(void *fsm, void *event);
 
 #define OGS_FSM_TRAN(__s, __target) \
+    ogs_debug("OGS_FSM_TRAN -> %s", #__target); \
     ((ogs_fsm_t *)__s)->state = (ogs_fsm_handler_t)(__target)
 
 #define OGS_FSM_STATE(__s) \
