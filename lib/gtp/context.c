@@ -609,6 +609,10 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_f_teid(
             ogs_error("ip.addr = %d !=? %d", ip.addr, comp_node->ip.addr);
             ogs_error("port4 = %d !=? %d", addr->sin.sin_port, comp_node->addr.sin.sin_port);
             ogs_error("port6 = %d !=? %d", addr->sin6.sin6_port, comp_node->addr.sin6.sin6_port);
+            ogs_error("sin.sin_addr = %d !=? %d", addr->sin.sin_addr, comp_node->addr.sin.sin_addr);
+            ogs_error("addr->sa.sa_family != comp_node->addr.sa.sa_family = %d", addr->sa.sa_family != comp_node->addr.sa.sa_family);
+            ogs_error("addr->sa.sa_family = %d", addr->sa.sa_family);
+            ogs_error("comp_node->addr.sa.sa_family = %d", comp_node->addr.sa.sa_family);
 
             if ((1 == ip.ipv4) && (1 == comp_node->ip.ipv4)) {
                 if (ip.addr == comp_node->ip.addr) {
@@ -662,6 +666,9 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_addr(ogs_list_t *list, ogs_sockaddr_t *addr)
     }
 
     memcpy(&gnode->addr, new, sizeof(gnode->addr));
+
+    ogs_expect(OGS_OK == ogs_sockaddr_to_ip(
+        &gnode->addr, NULL, &gnode->ip));
 
     ogs_list_add(list, gnode);
 
