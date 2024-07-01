@@ -4377,6 +4377,7 @@ void mme_bearer_remove(mme_bearer_t *bearer)
     if (bearer->ebi_node) {
         if (NULL != mme_ue_cycle(bearer->mme_ue)) {
             ogs_pool_free(&bearer->mme_ue->ebi_pool, bearer->ebi_node);
+            bearer->ebi_node = NULL;
         } else {
             ogs_error("Bearer doesn't have a valid mme_ue, possible memory leak detected");
         }
