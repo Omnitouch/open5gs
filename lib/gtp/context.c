@@ -609,7 +609,7 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_f_teid(
             ogs_error("ip.addr = %d !=? %d", ip.addr, comp_node->ip.addr);
             ogs_error("port4 = %d !=? %d", addr->sin.sin_port, comp_node->addr.sin.sin_port);
             ogs_error("port6 = %d !=? %d", addr->sin6.sin6_port, comp_node->addr.sin6.sin6_port);
-            ogs_error("sin.sin_addr = %d !=? %d", addr->sin.sin_addr, comp_node->addr.sin.sin_addr);
+            ogs_error("sin.sin_addr = %d !=? %d", addr->sin.sin_addr.s_addr, comp_node->addr.sin.sin_addr.s_addr);
             ogs_error("addr->sa.sa_family != comp_node->addr.sa.sa_family = %d", addr->sa.sa_family != comp_node->addr.sa.sa_family);
             ogs_error("addr->sa.sa_family = %d", addr->sa.sa_family);
             ogs_error("comp_node->addr.sa.sa_family = %d", comp_node->addr.sa.sa_family);
