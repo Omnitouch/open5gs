@@ -808,13 +808,13 @@ void mme_s11_handle_create_bearer_request(
      ***********************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!mme_ue) {
+    mme_ue = mme_ue_cycle(mme_ue);
+    sgw_ue = mme_ue ? sgw_ue_cycle(mme_ue->sgw_ue) : NULL;
+
+    if ((NULL == mme_ue) || (NULL == sgw_ue)) {
         ogs_error("No Context in TEID");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     } else {
-        sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
-        ogs_assert(sgw_ue);
-
         if (req->linked_eps_bearer_id.presence == 0) {
             ogs_error("No Linked EBI");
             cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
