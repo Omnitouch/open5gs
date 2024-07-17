@@ -398,6 +398,7 @@ void snow_3g_f8(u8 *key, u32 count, u32 bearer, u32 dir, u8 *data, u32 length)
 	int i=0;
 	int lastbits = (8-(length%8)) % 8;
 	u32 *KS;
+	int data_sz = (length * 8); // in bytes
 	
 	/*Initialisation*/
 	/* Load the confidentiality key for SNOW 3G initialization as in section
@@ -423,10 +424,18 @@ void snow_3g_f8(u8 *key, u32 count, u32 bearer, u32 dir, u8 *data, u32 length)
 	stream */
 	for (i=0; i<n; i++)
 	{
-		data[4*i+0] ^= (u8) (KS[i] >> 24) & 0xff;
-		data[4*i+1] ^= (u8) (KS[i] >> 16) & 0xff;
-		data[4*i+2] ^= (u8) (KS[i] >> 8) & 0xff;
-		data[4*i+3] ^= (u8) (KS[i] ) & 0xff;
+		if ((4 * i + 0) < data_sz) {
+			data[4 * i + 0] ^= (u8) (KS[i] >> 24) & 0xff;
+		}
+		if ((4 * i + 1) < data_sz) {
+			data[4 * i + 1] ^= (u8) (KS[i] >> 16) & 0xff;
+		}
+		if ((4 * i + 2) < data_sz) {
+			data[4 * i + 2] ^= (u8) (KS[i] >> 8) & 0xff;
+		}
+		if ((4 * i + 3) < data_sz) {
+			data[4 * i + 3] ^= (u8) (KS[i] ) & 0xff;
+		}
 	}
 	
 	ogs_free(KS);
