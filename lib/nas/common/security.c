@@ -86,8 +86,14 @@ void ogs_nas_encrypt(uint8_t algorithm_identity,
 
     switch (algorithm_identity) {
     case OGS_NAS_SECURITY_ALGORITHMS_128_EEA1:
+        /* Ensure that there won't be an overflow 
+         * pkbuf->end points to the first byte after 
+         * the pkbuf data buffer. As long as the max
+         * indexed address is within that things should 
+         * be fine */
+        ogs_assert(&pkbuf->data[pkbuf->len - 1] < pkbuf->end);
         snow_3g_f8(knas_enc, count, bearer, direction, 
-                pkbuf->data, (pkbuf->len << 3));
+                pkbuf->data, (pkbuf->len * 8));
         break;
     case OGS_NAS_SECURITY_ALGORITHMS_128_EEA2:
         count = htonl(count);

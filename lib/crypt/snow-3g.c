@@ -391,6 +391,8 @@ void snow_3g_generate_key_stream(u32 n, u32 *ks)
 
 void snow_3g_f8(u8 *key, u32 count, u32 bearer, u32 dir, u8 *data, u32 length)
 {
+	ogs_debug("Running snow_3g_f8 on %u bits", length);
+
 	u32 K[4],IV[4];
 	int n = ( length + 31 ) / 32;
 	int i=0;
@@ -416,7 +418,7 @@ void snow_3g_f8(u8 *key, u32 count, u32 bearer, u32 dir, u8 *data, u32 length)
 	KS = (u32 *)ogs_malloc(4*n);
     ogs_assert(KS);
 	snow_3g_generate_key_stream(n,(u32*)KS);
-	
+
 	/* Exclusive-OR the input data with keystream to generate the output bit
 	stream */
 	for (i=0; i<n; i++)
@@ -431,8 +433,10 @@ void snow_3g_f8(u8 *key, u32 count, u32 bearer, u32 dir, u8 *data, u32 length)
 	
 	/* zero last bits of data in case its length is not byte-aligned 
 	   this is an addition to the C reference code, which did not handle it */
-	if (lastbits)
+	if (lastbits) {
+		ogs_warn("Indexing into the length of the slice provided");
 		data[length/8] &= 256 - (1<<lastbits);
+	}
 }
 /* End of f8.c */
 
