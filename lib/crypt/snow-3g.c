@@ -398,7 +398,7 @@ void snow_3g_f8(u8 *key, u32 count, u32 bearer, u32 dir, u8 *data, u32 length)
 	int i=0;
 	int lastbits = (8-(length%8)) % 8;
 	u32 *KS;
-	int data_sz = (length * 8); // in bytes
+	int data_sz = (length / 8); // in bytes
 	
 	/*Initialisation*/
 	/* Load the confidentiality key for SNOW 3G initialization as in section
