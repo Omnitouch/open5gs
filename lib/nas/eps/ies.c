@@ -728,7 +728,14 @@ int ogs_nas_eps_encode_eps_update_type(ogs_pkbuf_t *pkbuf, ogs_nas_eps_update_ty
 int ogs_nas_eps_decode_esm_message_container(ogs_nas_esm_message_container_t *esm_message_container, ogs_pkbuf_t *pkbuf)
 {
     int size = 0;
+    ogs_assert(pkbuf);
     ogs_nas_esm_message_container_t *source = (ogs_nas_esm_message_container_t *)pkbuf->data;
+    ogs_assert(source);
+    
+    if (pkbuf->len < sizeof(source->length)) {
+        ogs_error("pkbuf->data isn't big enough to store source->length!");
+        return -1;
+    }
 
     esm_message_container->length = be16toh(source->length);
     size = esm_message_container->length + sizeof(esm_message_container->length);

@@ -62,6 +62,7 @@
 int ogs_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 {
     int r = -1;
+    ogs_assert(0 < size);
 
     /* Microsoft has finally implemented snprintf in Visual Studio 2015.
      * In previous versions, I will simulate it as below. */
