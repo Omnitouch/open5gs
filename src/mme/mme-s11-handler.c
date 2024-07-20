@@ -1696,8 +1696,20 @@ void mme_s11_handle_create_indirect_data_forwarding_tunnel_response(
         ogs_error("MME-UE Context has already been removed");
         return;
     }
+
     sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
-    ogs_assert(sgw_ue);
+    if (!sgw_ue) {
+        ogs_error("SGW-UE Context does not exist");
+        mme_send_delete_session_or_mme_ue_context_release(mme_ue);
+        return;
+    }
+
+    source_ue = enb_ue_cycle(mme_ue->enb_ue);
+    if (!source_ue) {
+        ogs_error("Source-UE Context does not exist");
+        mme_send_delete_session_or_mme_ue_context_release(mme_ue);
+        return;
+    }
 
     /************************
      * Getting Cause Value
@@ -1790,9 +1802,7 @@ void mme_s11_handle_create_indirect_data_forwarding_tunnel_response(
         }
     }
 
-    source_ue = enb_ue_cycle(mme_ue->enb_ue);
     ogs_assert(source_ue);
-
     r = s1ap_send_handover_command(source_ue);
     ogs_expect(r == OGS_OK);
     ogs_assert(r != OGS_ERROR);
