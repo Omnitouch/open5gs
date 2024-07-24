@@ -27,7 +27,9 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_sockaddr_t from;
     ogs_gtp_node_t *gnode = NULL;
+    ogs_gtp_node_t *gnode_from_ip = NULL;
     char frombuf[OGS_ADDRSTRLEN];
+    ogs_ip_t from_ip = {};
 
     ogs_assert(fd != INVALID_SOCKET);
 
@@ -75,10 +77,16 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
      *   "Context not found".
      */
     gnode = ogs_gtp_node_find_by_addr(&sgwc_self()->pgw_s5c_list, &from);
-
-    /* If we have a node with the same address but different port add it as new node */
+    ogs_assert(OGS_OK == ogs_sockaddr_to_ip(&from, NULL, &from_ip));
+    gnode_from_ip = ogs_gtp_node_find_by_ip(&sgwc_self()->pgw_s5c_list, &from_ip);
+    
+    /* If we can't find a node based on addr (IP + port) but we can find a node
+     * based on IP alone then this is probably a case where a node we've spoken
+     * to before is now sending messages on a different port (this seems to 
+     * happen often in roaming). So lets think of this as a new node and add it
+     * to the list. */
     if ((NULL == gnode) &&
-        (NULL != ogs_gtp_node_find_by_addr_only(&sgwc_self()->pgw_s5c_list, &from)))
+        (NULL != gnode_from_ip))
     {
         gnode = ogs_gtp_node_add_by_addr(&sgwc_self()->pgw_s5c_list, &from);
         if (!gnode) {
