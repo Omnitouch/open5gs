@@ -151,6 +151,12 @@ void sgwu_pfcp_state_will_associate(ogs_fsm_t *s, sgwu_event_t *e)
             ogs_warn("cannot handle PFCP message type[%d]",
                     message->h.type);
 
+            if (NULL == node->t_association) {
+                node->t_association = ogs_timer_add(ogs_app()->timer_mgr,
+                    sgwu_timer_association, node);
+            }
+            ogs_assert(node->t_association);
+
             if (false == ogs_timer_running(node->t_association)) {
                 ogs_warn("Looks like we're waiting to associate but we don't have a timer running for an association response. Lets try associate again...");
                 /* Sanity check to ensure that we're not waiting 
