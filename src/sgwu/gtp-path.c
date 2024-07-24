@@ -285,6 +285,28 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
 
             if (NULL == pdr) {
                 ogs_error("PDR does not exist any more");
+
+                /*
+                * Refer to the following 5G standard
+                *
+                * TS23.527 Restoration procedures
+                * 4.3 UPF Restoration Procedures
+                * 4.3.2 Restoration Procedure for PSA UPF Restart
+                *
+                * The UPF shall not send GTP-U Error indication message
+                * for a configurable period after an UPF restart
+                * when the UPF receives a G-PDU not matching any PDRs.
+                */
+                if (ogs_time_ntp32_now() >
+                    (ogs_pfcp_self()->local_recovery +
+                        ogs_time_sec(
+                            ogs_app()->time.message.pfcp.association_interval))) {
+                    ogs_error("[%s] Send Error Indication [TEID:0x%x] to [%s]",
+                            OGS_ADDR(&sock->local_addr, buf1),
+                            teid,
+                            OGS_ADDR(&from, buf2));
+                    ogs_gtp1_send_error_indication(sock, teid, 0, &from);
+                }
                 goto cleanup;
             }
 
@@ -299,6 +321,27 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
             far = pfcp_far_cycle(pdr->far);
             if (NULL == far) {
                 ogs_error("FAR does not exist any more");
+                /*
+                * Refer to the following 5G standard
+                *
+                * TS23.527 Restoration procedures
+                * 4.3 UPF Restoration Procedures
+                * 4.3.2 Restoration Procedure for PSA UPF Restart
+                *
+                * The UPF shall not send GTP-U Error indication message
+                * for a configurable period after an UPF restart
+                * when the UPF receives a G-PDU not matching any PDRs.
+                */
+                if (ogs_time_ntp32_now() >
+                    (ogs_pfcp_self()->local_recovery +
+                        ogs_time_sec(
+                            ogs_app()->time.message.pfcp.association_interval))) {
+                    ogs_error("[%s] Send Error Indication [TEID:0x%x] to [%s]",
+                            OGS_ADDR(&sock->local_addr, buf1),
+                            teid,
+                            OGS_ADDR(&from, buf2));
+                    ogs_gtp1_send_error_indication(sock, teid, 0, &from);
+                }
                 goto cleanup;
             }
 
