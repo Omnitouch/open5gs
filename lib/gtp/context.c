@@ -747,7 +747,6 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_f_teid(
         ogs_list_t *list, ogs_gtp2_f_teid_t *f_teid)
 {
     int rv;
-    ogs_gtp_node_t *node = NULL;
     ogs_ip_t ip;
 
     ogs_assert(list);
