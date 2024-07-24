@@ -1090,6 +1090,8 @@ void sgwc_sxa_handle_session_modification_response(
             ogs_gtp2_f_teid_t sgw_s1u_teid[OGS_BEARER_PER_UE];
             int sgw_s1u_len[OGS_BEARER_PER_UE];
 
+            ogs_debug("[SGWC] Create Session Response");
+
             ogs_assert(recv_message);
             gtp_rsp = &recv_message->create_session_response;
             ogs_assert(gtp_rsp);
@@ -1195,6 +1197,8 @@ void sgwc_sxa_handle_session_modification_response(
                     ogs_expect(rv == OGS_OK);
 
                 } else {
+                    ogs_debug("[SGWC] Modify Bearer Response");
+
                     gtp_rsp = &send_message.modify_bearer_response;
                     ogs_assert(gtp_rsp);
 

@@ -734,6 +734,8 @@ void sgwc_s11_handle_delete_session_request(
             sgwc_pfcp_send_session_deletion_request(sess, s11_xact, gtpbuf));
 
     } else {
+        ogs_debug("[SGWC] Delete Session Request");
+
         message->h.type = OGS_GTP2_DELETE_SESSION_REQUEST_TYPE;
         message->h.teid = sess->pgw_s5c_teid;
 

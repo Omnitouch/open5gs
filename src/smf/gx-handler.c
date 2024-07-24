@@ -260,7 +260,7 @@ uint32_t smf_gx_handle_cca_termination_request(
     ogs_assert(sess);
     ogs_assert(gx_message);
 
-    ogs_debug("[SMF] Delete Session Response");
+    ogs_debug("[SMF] Credit-Control-Answer Termination Request");
     ogs_debug("    SGW_S5C_TEID[0x%x] SMF_N4_TEID[0x%x]",
             sess->sgw_s5c_teid, sess->smf_n4_teid);
 

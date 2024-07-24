@@ -273,6 +273,8 @@ ogs_pkbuf_t *smf_s5c_build_delete_session_response(
     uint8_t *epco_buf = NULL;
     int16_t epco_len;
 
+    ogs_debug("Delete Session Response");
+
     /* prepare cause */
     memset(&cause, 0, sizeof(cause));
     cause.value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
