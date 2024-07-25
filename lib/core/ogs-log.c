@@ -383,8 +383,9 @@ void ogs_log_vprintf(ogs_log_level_e level, int id,
     ogs_log_t *log = NULL;
     ogs_log_domain_t *domain = NULL;
 
-    char logstr[OGS_HUGE_LEN];
-    char *p, *last;
+    char logstr[OGS_HUGE_LEN] = {};
+    char *p = NULL;
+    char *last = NULL;
 
     int wrote_stderr = 0;
 
@@ -397,8 +398,8 @@ void ogs_log_vprintf(ogs_log_level_e level, int id,
         if (domain->level < level)
             return;
 
-        p = logstr;
-        last = logstr + OGS_HUGE_LEN;
+        p = &logstr[0];
+        last = &logstr[OGS_HUGE_LEN - 1];
 
         if (!content_only) {
             if (log->print.timestamp)
