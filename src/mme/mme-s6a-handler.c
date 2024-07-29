@@ -366,6 +366,8 @@ static uint8_t mme_ue_session_from_slice_data(mme_ue_t *mme_ue,
         if (slice_data->session[i].name) {
             mme_ue->session[i].name = ogs_strdup(slice_data->session[i].name);
             ogs_assert(mme_ue->session[i].name);
+        } else {
+            mme_ue->session[i].name = NULL;
         }
 
         mme_ue->session[i].context_identifier =

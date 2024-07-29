@@ -4661,6 +4661,7 @@ void mme_session_remove_all(mme_ue_t *mme_ue)
     for (i = 0; i < mme_ue->num_of_session; i++) {
         if (mme_ue->session[i].name) {
             ogs_free(mme_ue->session[i].name);
+            mme_ue->session[i].name = NULL;
         }
     }
 

@@ -1725,7 +1725,7 @@ void ogs_pfcp_urr_remove(ogs_pfcp_urr_t *urr)
     ogs_pfcp_sess_t *sess = NULL;
 
     if (NULL == pfcp_urr_cycle(urr)) {
-        ogs_error("Trying to remove a URR that has already been removed!");
+        ogs_debug("Trying to remove a URR that has already been removed!");
         return;
     }
 
