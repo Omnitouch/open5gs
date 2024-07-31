@@ -383,7 +383,7 @@ void ogs_log_vprintf(ogs_log_level_e level, int id,
     ogs_log_t *log = NULL;
     ogs_log_domain_t *domain = NULL;
 
-    char logstr[OGS_HUGE_LEN] = {};
+    char logstr[OGS_HUGE_LEN] = "";
     char *p = NULL;
     char *last = NULL;
 
