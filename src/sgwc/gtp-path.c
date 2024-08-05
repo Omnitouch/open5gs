@@ -93,6 +93,7 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
             ogs_error("Failed to create new gnode(%s:%u), mempool full, ignoring msg!",
                       OGS_ADDR(&from, frombuf), OGS_PORT(&from));
             ogs_pkbuf_free(pkbuf);
+            ogs_assert_if_reached();
             return;
         }
     	gnode->sock = data;
@@ -104,6 +105,7 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
             ogs_error("Failed to create new gnode(%s:%u), mempool full, ignoring msg!",
                       OGS_ADDR(&from, frombuf), OGS_PORT(&from));
             ogs_pkbuf_free(pkbuf);
+            ogs_assert_if_reached();
             return;
         }
         gnode->sock = data;
@@ -125,6 +127,7 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
                 ogs_error("Failed to create new gnode(%s:%u), mempool full, ignoring msg!",
                           OGS_ADDR(&from, frombuf), OGS_PORT(&from));
                 ogs_pkbuf_free(pkbuf);
+                ogs_assert_if_reached();
                 return;
             }
             gnode->sock = data;
