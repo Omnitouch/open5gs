@@ -603,6 +603,9 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_f_teid(
         int same_addr = 0;
         ogs_gtp_node_t *comp_node = NULL;
         ogs_list_for_each(list, comp_node) {
+            char buf[OGS_ADDRSTRLEN] = "";
+            ogs_error("[%p] ADDR:PORT -> %s:%d", comp_node, OGS_ADDR(comp_node->sa_list, buf), OGS_PORT(comp_node->sa_list));
+
             ogs_error("ip.ipv4 = %d !=? %d", ip.ipv4, comp_node->ip.ipv4);
             ogs_error("ip.ipv6 = %d !=? %d", ip.ipv6, comp_node->ip.ipv6);
             ogs_error("ip.addr = %d !=? %d", ip.addr, comp_node->ip.addr);

@@ -93,18 +93,53 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
             ogs_error("Failed to create new gnode(%s:%u), mempool full, ignoring msg!",
                       OGS_ADDR(&from, frombuf), OGS_PORT(&from));
             ogs_pkbuf_free(pkbuf);
+
+            ogs_gtp_node_t *n = NULL;
+            ogs_list_for_each(&sgwc_self()->pgw_s5c_list, n) {
+                char buf[OGS_ADDRSTRLEN] = "";
+                ogs_error("[%p] ADDR:PORT -> %s:%d", n, OGS_ADDR(n->sa_list, buf), OGS_PORT(n->sa_list));
+
+                ogs_gtp_node_t *found = NULL;
+                found = ogs_gtp_node_find_by_addr(&sgwc_self()->pgw_s5c_list, n->sa_list);
+                ogs_error("ogs_gtp_node_find_by_addr = %p", found);
+
+                ogs_ip_t nip = {};
+                ogs_expect(OGS_OK == ogs_sockaddr_to_ip(n->sa_list, NULL, &nip));
+                found = ogs_gtp_node_find_by_ip(&sgwc_self()->pgw_s5c_list, &nip);
+                ogs_error("ogs_gtp_node_find_by_ip = %p, nip.addr = %u", found, nip.addr);
+            }
             ogs_assert_if_reached();
             return;
         }
     	gnode->sock = data;
-    } else if (OGS_GTPV2_C_UDP_PORT != OGS_PORT(&from)) {
-        /* Catch special case when SGWC is restarted and PGW sends a message
-         * on non-gtp port due to state mismatch */
+    }
+
+    /* If we couldn't find a node based on addr (IP + port) and IP alone, and
+     * we can see that the port coming in doesn't use the typical GTP port than
+     * we assume that it must be a roaming PGW sending a message on a non-
+     * standard port that we haven't seen before */
+    if ((NULL == gnode) &&
+        (OGS_GTPV2_C_UDP_PORT != OGS_PORT(&from))) {
         gnode = ogs_gtp_node_add_by_addr(&sgwc_self()->pgw_s5c_list, &from);
         if (!gnode) {
             ogs_error("Failed to create new gnode(%s:%u), mempool full, ignoring msg!",
                       OGS_ADDR(&from, frombuf), OGS_PORT(&from));
             ogs_pkbuf_free(pkbuf);
+
+            ogs_gtp_node_t *n = NULL;
+            ogs_list_for_each(&sgwc_self()->pgw_s5c_list, n) {
+                char buf[OGS_ADDRSTRLEN] = "";
+                ogs_error("[%p] ADDR:PORT -> %s:%d", n, OGS_ADDR(n->sa_list, buf), OGS_PORT(n->sa_list));
+
+                ogs_gtp_node_t *found = NULL;
+                found = ogs_gtp_node_find_by_addr(&sgwc_self()->pgw_s5c_list, n->sa_list);
+                ogs_error("ogs_gtp_node_find_by_addr = %p", found);
+
+                ogs_ip_t nip = {};
+                ogs_expect(OGS_OK == ogs_sockaddr_to_ip(n->sa_list, NULL, &nip));
+                found = ogs_gtp_node_find_by_ip(&sgwc_self()->pgw_s5c_list, &nip);
+                ogs_error("ogs_gtp_node_find_by_ip = %p, nip.addr = %u", found, nip.addr);
+            }
             ogs_assert_if_reached();
             return;
         }
@@ -117,7 +152,7 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
         ogs_assert(e);
         e->gnode = gnode;
     }
-    /* This has to be a message from the MME */
+    /* If we didn't find a node than this has to be a message from the MME */
     else {
         e = sgwc_event_new(SGWC_EVT_S11_MESSAGE);
         gnode = ogs_gtp_node_find_by_addr(&sgwc_self()->mme_s11_list, &from);

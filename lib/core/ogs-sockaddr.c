@@ -444,7 +444,7 @@ bool ogs_sockaddr_is_equal(void *p, void *q)
             return false;
         return true;
     default:
-        ogs_error("Unexpected address faimily %u", a->ogs_sa_family);
+        ogs_error("Unexpected address family %u", a->ogs_sa_family);
         ogs_abort();
     }
 }
