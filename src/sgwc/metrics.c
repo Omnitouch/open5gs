@@ -128,10 +128,30 @@ sgwc_metrics_spec_def_t sgwc_metrics_spec_def_global[_SGWC_METR_GLOB_MAX] = {
     },
 
     /* Session */
-    [SGWC_METR_GLOB_GAUGE_SGWC_SESSIONNBR] = {
+    [SGWC_METR_GLOB_GAUGE_GTP2_SESSIONS_ACTIVE] = {
         .type = OGS_METRICS_METRIC_TYPE_GAUGE,
-        .name = "fivegs_sgwcfunction_sm_sessionnbr",
-        .description = "Active Sessions for SGWC",
+        .name = "gtp2_sessions_active",
+        .description = "Number of active GTPv2 Sessions (SGW-C)",
+    },
+    [SGWC_METR_GLOB_CTR_S11_CREATE_SESSION_REQ] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "s11_create_session_request",
+        .description = "Number of received GTPv2C Create Session Request messages on the S11 interface",
+    },
+    [SGWC_METR_GLOB_CTR_S5_S8_CREATE_SESSION_REQ] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "s5_s8_create_session_request",
+        .description = "Number of sent GTPv2C Create Session Request messages on the S5/S8 interface",
+    },
+    [SGWC_METR_GLOB_CTR_S5_S8_CREATE_SESSION_RES] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "s5_s8_create_session_response",
+        .description = "Number of received GTPv2C Create Session Response messages on the S5/S8 interface",
+    },
+    [SGWC_METR_GLOB_CTR_S11_CREATE_SESSION_RES] = {
+        .type = OGS_METRICS_METRIC_TYPE_COUNTER,
+        .name = "s11_create_session_response",
+        .description = "Number of sent GTPv2C Create Session Response messages on the S5/S8 interface",
     },
 };
 

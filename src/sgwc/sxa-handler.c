@@ -178,6 +178,7 @@ void sgwc_sxa_handle_session_establishment_response(
     ogs_pkbuf_t *pkbuf = NULL;
 
     ogs_gtp2_indication_t *indication = NULL;
+    bool sending_create_session_request = false;
 
     ogs_debug("Session Establishment Response");
 
@@ -430,8 +431,9 @@ void sgwc_sxa_handle_session_establishment_response(
         s5c_xact->modify_action = OGS_GTP_MODIFY_IN_PATH_SWITCH_REQUEST;
 
     } else {
+        ogs_debug("[SGWC] Create Session Request");
+        sending_create_session_request = true;
 
-        /* Create Session Request */
         recv_message->h.type = OGS_GTP2_CREATE_SESSION_REQUEST_TYPE;
         recv_message->h.teid = sess->pgw_s5c_teid;
 
@@ -480,6 +482,9 @@ void sgwc_sxa_handle_session_establishment_response(
     ogs_expect(rv == OGS_OK);
     if (OGS_OK == rv) {
         sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_ESTABLISHPFCPSESSIONSUCC);
+        if (sending_create_session_request) {
+            sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_S5_S8_CREATE_SESSION_REQ);
+        }
     } else {
         sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_SM_ESTABLISHPFCPSESSIONFAIL);
     }
@@ -1153,6 +1158,7 @@ void sgwc_sxa_handle_session_modification_response(
             rv = ogs_gtp_xact_commit(s11_xact);
             ogs_expect(rv == OGS_OK);
 
+            sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_S11_CREATE_SESSION_RES);
         } else if (flags & OGS_PFCP_MODIFY_DL_ONLY) {
             if (SGWC_SESSION_SYNC_DONE(sgwc_ue,
                     OGS_PFCP_SESSION_MODIFICATION_REQUEST_TYPE, flags)) {

@@ -334,6 +334,8 @@ void sgwc_s5c_handle_create_session_response(
     /* Setup GTP Node */
     OGS_SETUP_GTP_NODE(sess, pgw);
 
+    sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_S5_S8_CREATE_SESSION_RES);
+
     ogs_assert(OGS_OK ==
         sgwc_pfcp_send_session_modification_request(
             sess, s11_xact, gtpbuf,
