@@ -633,11 +633,17 @@ sgwc_bearer_t *sgwc_bearer_add(sgwc_sess_t *sess)
 
     /* Downlink */
     dl_tunnel = sgwc_tunnel_add(bearer, OGS_GTP2_F_TEID_S5_S8_SGW_GTP_U);
-    ogs_assert(dl_tunnel);
 
     /* Uplink */
     ul_tunnel = sgwc_tunnel_add(bearer, OGS_GTP2_F_TEID_S1_U_SGW_GTP_U);
-    ogs_assert(ul_tunnel);
+
+    if ((NULL == dl_tunnel) ||
+        (NULL == ul_tunnel))
+    {
+        ogs_error("Failed to add tunnel to bearer");
+        sgwc_bearer_remove(bearer);
+        return NULL;
+    }
 
     /* If usage logging enabled create a new URR */
     if (ogs_pfcp_self()->usageLoggerState.enabled) {

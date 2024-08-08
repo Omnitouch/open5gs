@@ -662,7 +662,13 @@ void sgwc_s5c_handle_create_bearer_request(
     ogs_assert(sgwc_ue);
 
     bearer = sgwc_bearer_add(sess);
-    ogs_assert(bearer);
+    if (NULL == bearer) {
+        ogs_gtp_send_error_message(s5c_xact, sess ? sess->pgw_s5c_teid : 0,
+                OGS_GTP2_CREATE_BEARER_RESPONSE_TYPE,
+                OGS_GTP2_CAUSE_NO_RESOURCES_AVAILABLE);
+        return;
+    }
+
     bearer->dedicated = 1;
     ul_tunnel = sgwc_ul_tunnel_in_bearer(bearer);
     ogs_assert(ul_tunnel);
