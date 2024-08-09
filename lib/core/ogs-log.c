@@ -376,6 +376,7 @@ int ogs_log_config_domain(const char *domain, const char *level)
     return OGS_OK;
 }
 
+__attribute__((no_sanitize_address))
 void ogs_log_vprintf(ogs_log_level_e level, int id,
     ogs_err_t err, const char *file, int line, const char *func,
     int content_only, const char *format, va_list ap)
