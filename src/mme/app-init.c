@@ -35,6 +35,7 @@ int app_initialize(const char *const argv[])
     return OGS_OK;
 }
 
+__attribute__((no_sanitize_address))
 void app_terminate(void)
 {
     mme_terminate();
