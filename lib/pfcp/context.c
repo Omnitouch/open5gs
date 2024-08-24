@@ -1051,17 +1051,22 @@ ogs_pfcp_pdr_t *ogs_pfcp_pdr_find_or_add(
     return pdr;
 }
 
-void ogs_pfcp_pdr_swap_teid(ogs_pfcp_pdr_t *pdr)
+/* Returns isFailure */
+bool ogs_pfcp_pdr_swap_teid(ogs_pfcp_pdr_t *pdr)
 {
     int i = 0;
 
     if (NULL == pfcp_pdr_cycle(pdr)) {
         ogs_error("PDR does not exist!");
-        return;
+        return true;
     }
 
-    ogs_assert(pdr->f_teid.teid > 0 &&
+    ogs_expect(pdr->f_teid.teid > 0 &&
             pdr->f_teid.teid <= ogs_pfcp_pdr_teid_pool.size);
+
+    if (ogs_pfcp_pdr_teid_pool.size < pdr->f_teid.teid) {
+        return true;
+    }
 
     /* Find out the Array Index for the restored TEID. */
     i = pdr_random_to_index[pdr->f_teid.teid];
@@ -1077,6 +1082,8 @@ void ogs_pfcp_pdr_swap_teid(ogs_pfcp_pdr_t *pdr)
         ogs_pfcp_pdr_teid_pool.array[i] = *(pdr->teid_node);
         *(pdr->teid_node) = pdr->f_teid.teid;
     }
+
+    return false;
 }
 
 void ogs_pfcp_object_teid_hash_set(

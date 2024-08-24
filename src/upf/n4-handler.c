@@ -145,8 +145,14 @@ void upf_n4_handle_session_establishment_request(
                 continue;
             }
 
-            if (pdr->f_teid_len)
-                ogs_pfcp_pdr_swap_teid(pdr);
+            if (pdr->f_teid_len) {
+                bool isFailure = ogs_pfcp_pdr_swap_teid(pdr);
+                if (isFailure) {
+                    ogs_error("Failed to perform ogs_pfcp_pdr_swap_teid while handling session establishment request");
+                    cause_value = OGS_PFCP_CAUSE_SYSTEM_FAILURE;
+                    goto cleanup;
+                }
+            }
         }
         restoration_indication = true;
     }
