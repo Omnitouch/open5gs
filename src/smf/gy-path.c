@@ -322,7 +322,7 @@ static void fill_service_information_ccr(smf_sess_t *sess,
     /* 3GPP-Charging-Id, 3GPP TS 29.061 16.4.7.2 2 */
     ret = fd_msg_avp_new(ogs_diam_gy_3gpp_charging_id, 0, &avpch2);
     ogs_assert(ret == 0);
-    val.u32 = sess->charging.id;
+    val.u32 = sess->gx_charging.id;
     ret = fd_msg_avp_setvalue(avpch2, &val);
     ogs_assert(ret == 0);
     ret = fd_msg_avp_add(avpch1, MSG_BRW_LAST_CHILD, avpch2);

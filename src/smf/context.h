@@ -237,6 +237,12 @@ typedef struct smf_bearer_s {
     ogs_timer_t* timer_bearer_deactivation;
 
     smf_sess_t      *sess;
+    uint32_t        index;          /* An index of this node */
+
+    /* Charging */
+    struct {
+        uint32_t id;
+    } charging;
 } smf_bearer_t;
 
 #define SMF_SESS(pfcp_sess) ogs_container_of(pfcp_sess, smf_sess_t, pfcp)
@@ -425,10 +431,10 @@ typedef struct smf_sess_s {
         ogs_ip_t gnb_dl_ip;
     } handover;
 
-    /* Charging */
+    /* Gx Charging */
     struct {
         uint32_t id;
-    } charging;
+    } gx_charging;
 
     /* Data Forwarding between the CP and UP functions */
     ogs_pfcp_pdr_t  *cp2up_pdr;

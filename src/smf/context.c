@@ -1294,10 +1294,8 @@ smf_sess_t *smf_sess_add_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type)
 
     ogs_hash_set(self.smf_n4_seid_hash, &sess->smf_n4_seid,
             sizeof(sess->smf_n4_seid), sess);
-
-    /* Set Charging ID */
-    sess->charging.id = sess->index;
-
+    /* Set Gx Charging ID */
+    sess->gx_charging.id = sess->index;
     /* Create BAR in PFCP Session */
     ogs_pfcp_bar_new(&sess->pfcp);
 
@@ -1565,8 +1563,8 @@ smf_sess_t *smf_sess_add_by_psi(smf_ue_t *smf_ue, uint8_t psi)
     sess->mapped_hplmn.sst = 0;
     sess->mapped_hplmn.sd.v = OGS_S_NSSAI_NO_SD_VALUE;
 
-    /* Set Charging Id */
-    sess->charging.id = sess->index;
+    /* Set Gx Charging ID */
+    sess->gx_charging.id = sess->index;
 
     memset(&e, 0, sizeof(e));
     e.sess = sess;
@@ -2545,6 +2543,9 @@ smf_bearer_t *smf_bearer_add(smf_sess_t *sess)
     ogs_pool_alloc(&smf_bearer_pool, &bearer);
     ogs_assert(bearer);
     memset(bearer, 0, sizeof *bearer);
+
+    bearer->index = ogs_pool_index(&smf_bearer_pool, bearer);
+    ogs_assert(bearer->index > 0 && bearer->index <= ogs_app()->pool.bearer);
 
     smf_pf_identifier_pool_init(bearer);
 

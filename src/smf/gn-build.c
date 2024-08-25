@@ -171,7 +171,7 @@ ogs_pkbuf_t *smf_gn_build_create_pdp_context_response(
 
     /* Charging ID */
     rsp->charging_id.presence = 1;
-    rsp->charging_id.u32 = sess->charging.id;
+    rsp->charging_id.u32 = bearer->charging.id;
 
     /* End User Address */
     rv = ogs_gtp2_paa_to_ip(&sess->session.paa, &ip_eua);
@@ -413,7 +413,7 @@ ogs_pkbuf_t *smf_gn_build_update_pdp_context_response(
 
     /* Charging ID */
     rsp->charging_id.presence = 1;
-    rsp->charging_id.u32 = sess->charging.id;
+    rsp->charging_id.u32 = bearer->charging.id;
 
     /* Protocol Configuration Options (PCO):
      * If the "No QoS negotiation" bit of the Common Flags IE in the Update PDP

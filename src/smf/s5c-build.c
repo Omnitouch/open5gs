@@ -210,7 +210,7 @@ ogs_pkbuf_t *smf_s5c_build_create_session_response(
 
         /* Bearer Charging ID */
         rsp->bearer_contexts_created[i].charging_id.presence = 1;
-        rsp->bearer_contexts_created[i].charging_id.u32 = sess->charging.id;
+        rsp->bearer_contexts_created[i].charging_id.u32 = bearer->charging.id;
 
         /* Data Plane(UL) : SMF-S5U */
         memset(&pgw_s5u_teid[i], 0, sizeof(ogs_gtp2_f_teid_t));
@@ -395,7 +395,7 @@ ogs_pkbuf_t *smf_s5c_build_modify_bearer_response(
 
             rsp->bearer_contexts_modified[i].charging_id.presence = 1;
             rsp->bearer_contexts_modified[i].charging_id.u32 =
-                sess->charging.id;
+                bearer->charging.id;
         }
 
     }
@@ -477,7 +477,7 @@ ogs_pkbuf_t *smf_s5c_build_create_bearer_request(
 
     /* Charging ID */
     req->bearer_contexts.charging_id.presence = 1;
-    req->bearer_contexts.charging_id.u32 = sess->charging.id;    
+    req->bearer_contexts.charging_id.u32 = bearer->charging.id;    
 
     /* Bearer TFT */
     if (tft && tft->num_of_packet_filter) {
