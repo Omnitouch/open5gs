@@ -27,3 +27,4 @@ UsageLoggerData build_usage_logger_data(sgwc_bearer_t *bearer, char const* event
 void log_usage_logger_data(UsageLoggerData usageLoggerData);
 bool hex_array_to_string(uint8_t* hex_array, size_t hex_array_len, char* hex_string, size_t hex_string_len);
 void log_start_usage_reports(sgwc_bearer_t *bearer);
+void log_uli_update(sgwc_bearer_t *bearer);

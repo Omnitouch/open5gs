@@ -207,3 +207,8 @@ void log_start_usage_reports(sgwc_bearer_t *bearer) {
     UsageLoggerData usageLoggerData = build_usage_logger_data(bearer, "start", 0, 0);
     log_usage_logger_data(usageLoggerData);
 }
+
+void log_uli_update(sgwc_bearer_t *bearer) {
+    UsageLoggerData usageLoggerData = build_usage_logger_data(bearer, "uli_update", 0, 0);
+    log_usage_logger_data(usageLoggerData);
+}

@@ -19,6 +19,7 @@
 
 #include "gtp-path.h"
 #include "pfcp-path.h"
+#include "sgwc-usage-logger.h"
 
 #include "s11-handler.h"
 
@@ -629,6 +630,8 @@ void sgwc_s11_handle_modify_bearer_request(
         ogs_debug("    E_CGI[PLMN_ID:%06x,CELL_ID:0x%x]",
                 ogs_plmn_id_hexdump(&sgwc_ue->e_cgi.plmn_id),
                 sgwc_ue->e_cgi.cell_id);
+
+        log_uli_update(bearer);
     }
 
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
