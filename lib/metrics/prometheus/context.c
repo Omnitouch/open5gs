@@ -229,6 +229,7 @@ static _MHD_Result mhd_server_access_handler(void *cls, struct MHD_Connection *c
             ret = MHD_queue_response(connection, MHD_HTTP_BAD_REQUEST, rsp);
         }
 
+        prom_free((void*)buf);
         MHD_destroy_response(rsp);
         return ret;
     }
