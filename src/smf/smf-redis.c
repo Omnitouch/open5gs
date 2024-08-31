@@ -2,10 +2,12 @@
 #include "smf-redis.h"
 #include "context.h"
 
+#define MAX_CHARGING_ID_VAL 0xFFFFFFFF
 
 static redisContext* connection = NULL;
 static const char *available_ip_sset_key = "available_ips";
 static const char *reserved_ip_hset_key = "reserved_ips";
+static const char *charging_id_key = "charging_id";
 
 static ogs_pfcp_ue_ip_t *alloc_ue_ip(const char* apn, uint32_t ipv4);
 static bool redis_clear_ip_data(void);
@@ -52,12 +54,69 @@ void smf_redis_init(void) {
 
         ogs_debug("Number of IPs loaded onto redis: %i", redis_get_num_available_ips());
     }
+
+    smf_redis_reset_charging_id();
 }
 
 void smf_redis_final(void) {
     if (smf_self()->redis_ip_reuse.enabled) {
         ogs_redis_finalise(connection);
     }
+}
+
+void smf_redis_reset_charging_id(void) {
+    if (NULL == connection) {
+        ogs_error("Cannot call smf_redis_reset_charging_id without a valid redis connection");
+        return;
+    }
+
+    redisReply *reply = redisCommand(connection, "SET %s 0", charging_id_key);
+
+    if (NULL == reply) {
+        ogs_error("Got NULL response from redis, something has gone terribly wrong");
+        return;
+    }
+
+    freeReplyObject(reply);
+
+    return;
+}
+
+uint32_t smf_redis_get_next_charging_id(void) {
+    uint32_t charging_id = 0;
+    
+    if (NULL == connection) {
+        ogs_error("Cannot call smf_redis_get_next_charging_id without a valid redis connection");
+        return 0;
+    }
+
+    redisReply *reply = redisCommand(connection, "INCR %s", charging_id_key);
+
+    if (NULL == reply) {
+        ogs_error("Got NULL response from redis, something has gone terribly wrong");
+        return 0;
+    }
+
+    if (REDIS_REPLY_INTEGER == reply->type) {
+        charging_id = (uint32_t)reply->integer;
+    } else {
+        ogs_error(
+            "Redis reply was of type %d, was expecting integer type %d",
+            reply->type,
+            REDIS_REPLY_INTEGER
+        );
+    }
+
+    freeReplyObject(reply);
+
+    if (MAX_CHARGING_ID_VAL <= charging_id) {
+        smf_redis_reset_charging_id();
+    }
+
+    ogs_assert(0 < charging_id);
+    ogs_assert(charging_id <= MAX_CHARGING_ID_VAL);
+
+    return charging_id;
 }
 
 int redis_get_num_available_ips(void) {

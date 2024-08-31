@@ -2545,9 +2545,7 @@ smf_bearer_t *smf_bearer_add(smf_sess_t *sess)
     memset(bearer, 0, sizeof *bearer);
 
     /* Set the Charging ID */
-    bearer->index = ogs_pool_index(&smf_bearer_pool, bearer);
-    ogs_assert(bearer->index > 0 && bearer->index <= ogs_app()->pool.bearer);
-    bearer->charging.id = bearer->index;
+    bearer->charging.id = smf_redis_get_next_charging_id();
 
     smf_pf_identifier_pool_init(bearer);
 

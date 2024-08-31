@@ -5,6 +5,8 @@
 void smf_redis_init(void);
 void smf_redis_final(void);
 
+void smf_redis_reset_charging_id(void);
+uint32_t smf_redis_get_next_charging_id(void);
 ogs_pfcp_ue_ip_t *redis_ue_ip_alloc(const char* imsi_bcd, const char* apn, uint32_t paa_ip);
 bool redis_ue_ip_free(const char* imsi_bcd, const char* apn, uint32_t requested_ipv4);
 int redis_get_num_available_ips(void);
