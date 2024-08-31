@@ -181,6 +181,9 @@ void sgwc_state_operational(ogs_fsm_t *s, sgwc_event_t *e)
         }
 
         sgwc_ue = sgwc_ue_cycle(sgwc_ue);
+        if (NULL == sgwc_ue) {
+            ogs_warn("No sgwc_ue context");
+        }
 
         switch(gtp_message.h.type) {
         case OGS_GTP2_ECHO_REQUEST_TYPE:

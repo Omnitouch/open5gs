@@ -967,12 +967,17 @@ void sgwc_s11_handle_update_bearer_response(
     sgwc_bearer_t *bearer = NULL;
     ogs_gtp2_update_bearer_response_t *rsp = NULL;
 
-    ogs_assert(sgwc_ue);
+    ogs_debug("Update Bearer Response");
+
+    if (NULL == sgwc_ue) {
+        ogs_error("sgwc_ue was NULL!");
+        ogs_gtp_send_error_message(s5c_xact, sess ? sess->pgw_s5c_teid : 0,
+            OGS_GTP2_UPDATE_BEARER_RESPONSE_TYPE, OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND);
+        return;
+    }
     ogs_assert(message);
     rsp = &message->update_bearer_response;
     ogs_assert(rsp);
-
-    ogs_debug("Update Bearer Response");
 
     /********************
      * Check Transaction
