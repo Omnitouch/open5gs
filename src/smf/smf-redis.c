@@ -54,8 +54,6 @@ void smf_redis_init(void) {
 
         ogs_debug("Number of IPs loaded onto redis: %i", redis_get_num_available_ips());
     }
-
-    smf_redis_reset_charging_id();
 }
 
 void smf_redis_final(void) {
