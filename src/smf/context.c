@@ -3056,6 +3056,7 @@ int smf_pco_build(uint8_t *pco_buf, uint8_t *buffer, int length, char *apn)
     int size = 0;
     int i = 0;
     uint16_t mtu = 0;
+    uint32_t emergency_p_cscf_addr[4] = {}; /* big enough for IPv4 and IPv6 addresses */
 
     ogs_assert(pco_buf);
     ogs_assert(buffer);
@@ -3227,12 +3228,10 @@ int smf_pco_build(uint8_t *pco_buf, uint8_t *buffer, int length, char *apn)
                 (NULL != smf_self()->emergency_p_cscf_ipv4) &&
                 (0 == strcmp(apn, "sos")))
             {
-                uint32_t emergency_p_cscf_addr[4] = {}; /* big enough for IPv4 and IPv6 addresses */
-
                 if (OGS_OK == ogs_ipv4_from_string(emergency_p_cscf_addr, (char*)smf_self()->emergency_p_cscf_ipv4)) {
                     smf.ids[smf.num_of_id].id = ue.ids[i].id;
                     smf.ids[smf.num_of_id].len = OGS_IPV4_LEN;
-                    smf.ids[smf.num_of_id].data = emergency_p_cscf_addr;
+                    smf.ids[smf.num_of_id].data = &emergency_p_cscf_addr[0];
                     smf.num_of_id++;
                 } else {
                     ogs_error("Failed to parse the emergency P-CSCF address '%s'!", smf_self()->emergency_p_cscf_ipv4);
