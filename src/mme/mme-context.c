@@ -3245,11 +3245,21 @@ static mme_sgw_t *selected_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue)
 
     next = ogs_list_next(current);
     for (node = next; node; node = ogs_list_next(node)) {
+        ogs_expect(node);
+        if (NULL == node) {
+            ogs_error("Found a NULL node in mme_self()->sgw_list...");
+            break;
+        }
         if (compare_ue_info(node, enb_ue) == true) return node;
     }
 
     for (node = ogs_list_first(&mme_self()->sgw_list);
             node != next; node = ogs_list_next(node)) {
+        ogs_expect(node);
+        if (NULL == node) {
+            ogs_error("Found a NULL node in mme_self()->sgw_list...");
+            break;
+        }
         if (compare_ue_info(node, enb_ue) == true) return node;
     }
 
