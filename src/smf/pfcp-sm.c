@@ -246,6 +246,8 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
              * locally stored in xact when sending the original request: */
             sess = smf_sess_find_by_seid(xact->local_seid);
         }
+
+        sess = smf_sess_cycle(sess);
         if (sess)
             e->sess = sess;
 

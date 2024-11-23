@@ -572,8 +572,19 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     ogs_assert(xact);
     ogs_assert(sess);
 
+    sess = smf_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("Got a NULL sess");
+        return;
+    }
+
+    smf_ue = smf_ue_cycle(sess->smf_ue);
+    if (NULL == smf_ue) {
+        ogs_error("Got a NULL smf_ue");
+        return;
+    }
+
     ogs_assert(sess->ipv4 || sess->ipv6);
-    smf_ue = sess->smf_ue;
     ogs_assert(smf_ue);
 
     ogs_debug("[Gy][Credit-Control-Request]");

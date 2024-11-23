@@ -1191,6 +1191,8 @@ void smf_n4_handle_session_report_request(
     uint16_t pdr_id = 0;
     unsigned int i;
 
+    sess = smf_sess_cycle(sess);
+
     smf_metrics_inst_global_inc(SMF_METR_GLOB_CTR_SM_N4SESSIONREPORT);
 
     ogs_assert(pfcp_xact);
@@ -1218,7 +1220,13 @@ void smf_n4_handle_session_report_request(
     }
 
     ogs_assert(sess);
-    smf_ue = sess->smf_ue;
+    smf_ue = smf_ue_cycle(sess->smf_ue);
+
+    if (!smf_ue) {
+        ogs_error("No Context");
+        cause_value = OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND;
+    }
+
     ogs_assert(smf_ue);
 
     report_type.value = pfcp_req->report_type.u8;

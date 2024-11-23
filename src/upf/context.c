@@ -799,7 +799,13 @@ void upf_sess_urr_acc_snapshot(upf_sess_t *sess, ogs_pfcp_urr_t *urr)
 static void upf_sess_urr_acc_timers_cb(void *data)
 {
     ogs_pfcp_urr_t *urr = pfcp_urr_cycle((ogs_pfcp_urr_t *)data);
-    ogs_pfcp_user_plane_report_t report;
+
+    if (NULL == urr) {
+        ogs_error("Got a NULL URR");
+        return;
+    }
+
+    ogs_pfcp_user_plane_report_t report = {};
     ogs_pfcp_sess_t *pfcp_sess = urr->sess;
     upf_sess_t *sess = upf_sess_cycle(UPF_SESS(pfcp_sess));
 
