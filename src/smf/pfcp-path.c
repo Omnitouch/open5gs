@@ -231,9 +231,8 @@ static void sess_5gc_timeout(ogs_pfcp_xact_t *xact, void *data)
     }
     ogs_assert(data);
 
-    sess = data;
-    ogs_assert(sess);
-    smf_ue = sess->smf_ue;
+    sess = smf_sess_cycle(data);
+    smf_ue = sess ? smf_ue_cycle(sess->smf_ue) : NULL;
     ogs_assert(smf_ue);
 
     stream = xact->assoc_stream;
@@ -800,8 +799,8 @@ int smf_epc_pfcp_send_deactivation(smf_sess_t *sess, uint8_t gtp_cause)
     smf_ue_t *smf_ue = NULL;
     smf_sess_t *eutran_sess = NULL, *wlan_sess = NULL;
 
-    ogs_assert(sess);
-    smf_ue = sess->smf_ue;
+    sess = smf_sess_cycle(data);
+    smf_ue = sess ? smf_ue_cycle(sess->smf_ue) : NULL;
     ogs_assert(smf_ue);
 
     switch (gtp_cause) {

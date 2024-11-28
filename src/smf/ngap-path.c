@@ -25,6 +25,8 @@ void ngap_send_to_n2sm(smf_sess_t *sess,
     int rv;
     smf_event_t *e = NULL;
 
+    sess = smf_sess_cycle(sess);
+
     ogs_assert(sess);
     ogs_assert(pkbuf);
 

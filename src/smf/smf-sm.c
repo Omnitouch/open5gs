@@ -806,7 +806,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 break;
             }
 
-            sess = (smf_sess_t *)sbi_xact->sbi_object;
+            sess = smf_sess_cycle((smf_sess_t *)sbi_xact->sbi_object);
             ogs_assert(sess);
 
             e->h.sbi.data = sbi_xact->assoc_stream;

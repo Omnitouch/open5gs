@@ -43,8 +43,8 @@ ogs_pkbuf_t *smf_n4_build_session_establishment_request(
     char user_id_buf[sizeof(ogs_pfcp_user_id_t)];
 
     ogs_debug("Session Establishment Request");
-    ogs_assert(sess);
-    smf_ue = sess->smf_ue;
+    sess = smf_sess_cycle(sess);
+    smf_ue = sess ? smf_ue_cycle(sess->smf_ue) : NULL;
     ogs_assert(smf_ue);
     xact = ogs_pfcp_xact_cycle(xact);
     if (NULL == xact) {

@@ -239,7 +239,7 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
         }
 
         ogs_assert(far->sess);
-        sess = SMF_SESS(far->sess);
+        sess = smf_sess_cycle(SMF_SESS(far->sess));
         ogs_assert(sess);
 
         if (sess->ipv6 && check_if_router_solicit(pkbuf) == true) {
@@ -440,13 +440,14 @@ int smf_gtp1_send_update_pdp_context_response(
 
     smf_sess_t *sess = NULL;
 
+    bearer = smf_bearer_cycle(bearer);
     ogs_assert(bearer);
     xact = ogs_gtp_xact_cycle(xact);
     if (NULL == xact) {
         ogs_error("xact no longer valid");
         return OGS_ERROR;
     }
-    sess = bearer->sess;
+    sess = smf_sess_cycle(bearer->sess);
     ogs_assert(sess);
 
     memset(&h, 0, sizeof(ogs_gtp1_header_t));
@@ -594,8 +595,8 @@ int smf_gtp2_send_delete_bearer_request(
 
     smf_sess_t *sess = NULL;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
+    bearer = smf_bearer_cycle(bearer);
+    sess = bearer ? smf_sess_cycle(bearer->sess) : NULL;
     ogs_assert(sess);
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
@@ -773,16 +774,18 @@ static void send_router_advertisement(smf_sess_t *sess, uint8_t *ip6_dst)
 
 static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
 {
-    smf_bearer_t *bearer = data;
+    smf_bearer_t *bearer = smf_bearer_cycle(data);
     smf_sess_t *sess = NULL;
     smf_ue_t *smf_ue = NULL;
     uint8_t type = 0;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    smf_ue = sess->smf_ue;
-    ogs_assert(smf_ue);
+    sess = bearer ? smf_sess_cycle(bearer->sess) : NULL;
+    smf_ue = sess ? smf_ue_cycle(sess->smf_ue) : NULL;
+
+    if (NULL == smf_ue) {
+        ogs_error("NO context");
+        return;
+    }
 
     type = xact->seq[0].type;
 

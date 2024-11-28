@@ -35,9 +35,9 @@ ogs_sbi_request_t *smf_npcf_smpolicycontrol_build_create(
     OpenAPI_arp_t Arp;
     OpenAPI_snssai_t sNssai;
 
-    ogs_assert(sess);
+    sess = smf_sess_cycle(sess);
+    smf_ue = sess ? smf_ue_cycle(sess->smf_ue) : NULL;
     ogs_assert(sess->sm_context_ref);
-    smf_ue = sess->smf_ue;
     ogs_assert(smf_ue);
 
     memset(&message, 0, sizeof(message));
@@ -237,9 +237,9 @@ ogs_sbi_request_t *smf_npcf_smpolicycontrol_build_delete(
     OpenAPI_user_location_t ueLocation;
     OpenAPI_lnode_t *node = NULL;
 
-    ogs_assert(sess);
+    sess = smf_sess_cycle(sess);
+    smf_ue = sess ? smf_ue_cycle(sess->smf_ue) : NULL;
     ogs_assert(sess->sm_context_ref);
-    smf_ue = sess->smf_ue;
     ogs_assert(smf_ue);
     ogs_assert(sess->policy_association_id);
 

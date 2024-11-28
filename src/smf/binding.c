@@ -31,11 +31,22 @@ static void gtp_bearer_timeout(ogs_gtp_xact_t *xact, void *data)
     smf_ue_t *smf_ue = NULL;
     uint8_t type = 0;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
-    smf_ue = sess->smf_ue;
-    ogs_assert(smf_ue);
+    xact = ogs_gtp_xact_cycle(xact):
+
+    if (NULL == xact) {
+        ogs_error("Received invalid xact in bearer timeout");
+        return;
+    }
+    
+    bearer smf_bearer_cycle(bearer);
+    sess = bearer ? smf_sess_cycle(bearer->sess) : NULL;
+    smf_ue = sess ? smf_ue_cycle(sess->smf_ue) : NULL;
+    
+    if (NULL == smf_ue) {
+        ogs_error("Received invalid context in bearer timeout");
+        return;
+    }
+
 
     type = xact->seq[0].type;
 
@@ -434,9 +445,13 @@ int smf_gtp2_send_create_bearer_request(smf_bearer_t *bearer)
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_gtp2_tft_t tft;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    bearer smf_bearer_cycle(bearer);
+    sess = bearer ? smf_sess_cycle(bearer->sess) : NULL;
+    
+    if (NULL == sess) {
+        ogs_error("Received invalid context in create bearer request");
+        return;
+    }
 
     h.type = OGS_GTP2_CREATE_BEARER_REQUEST_TYPE;
     h.teid = sess->sgw_s5c_teid;

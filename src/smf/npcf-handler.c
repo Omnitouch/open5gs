@@ -298,7 +298,7 @@ bool smf_npcf_smpolicycontrol_handle_create(
 
     ogs_assert(sess);
     ogs_assert(stream);
-    smf_ue = sess->smf_ue;
+    smf_ue = smf_ue_cycle(sess->smf_ue);
     ogs_assert(smf_ue);
 
     ogs_assert(recvmsg);
@@ -657,7 +657,7 @@ bool smf_npcf_smpolicycontrol_handle_update_notify(
 
     ogs_assert(sess);
     ogs_assert(stream);
-    smf_ue = sess->smf_ue;
+    smf_ue = smf_ue_cycle(sess->smf_ue);
     ogs_assert(smf_ue);
 
     ogs_assert(recvmsg);
@@ -706,7 +706,7 @@ bool smf_npcf_smpolicycontrol_handle_terminate_notify(
 
     ogs_assert(sess);
     ogs_assert(stream);
-    smf_ue = sess->smf_ue;
+    smf_ue = smf_ue_cycle(sess->smf_ue);
     ogs_assert(smf_ue);
 
     ogs_assert(recvmsg);

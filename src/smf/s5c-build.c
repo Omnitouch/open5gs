@@ -349,7 +349,7 @@ ogs_pkbuf_t *smf_s5c_build_modify_bearer_response(
     smf_bearer_t *bearer = NULL;
 
     ogs_assert(sess);
-    smf_ue = sess->smf_ue;
+    smf_ue = smf_ue_cycle(sess->smf_ue);
     ogs_assert(smf_ue);
     ogs_assert(req);
 
@@ -421,8 +421,8 @@ ogs_pkbuf_t *smf_s5c_build_create_bearer_request(
     int len;
     char tft_buf[OGS_GTP2_MAX_TRAFFIC_FLOW_TEMPLATE];
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
+    bearer = smf_bearer_cycle(bearer);
+    sess = bearer ? smf_sess_cycle(bearer->sess) : NULL;
     ogs_assert(sess);
     linked_bearer = smf_default_bearer_in_sess(sess);
     ogs_assert(linked_bearer);
@@ -505,7 +505,8 @@ ogs_pkbuf_t *smf_s5c_build_update_bearer_request(
     char tft_buf[OGS_GTP2_MAX_TRAFFIC_FLOW_TEMPLATE];
 
     ogs_assert(bearer);
-    sess = bearer->sess;
+    bearer = smf_bearer_cycle(bearer);
+    sess = bearer ? smf_sess_cycle(bearer->sess) : NULL;
     ogs_assert(sess);
 
     ogs_debug("[SMF] Update Bearer Request");
@@ -582,8 +583,8 @@ ogs_pkbuf_t *smf_s5c_build_delete_bearer_request(
 
     ogs_gtp2_cause_t cause;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
+    bearer = smf_bearer_cycle(bearer);
+    sess = bearer ? smf_sess_cycle(bearer->sess) : NULL;
     ogs_assert(sess);
     linked_bearer = smf_default_bearer_in_sess(sess);
     ogs_assert(linked_bearer);

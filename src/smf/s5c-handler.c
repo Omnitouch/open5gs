@@ -504,7 +504,7 @@ void smf_s5c_handle_modify_bearer_request(
      * Check ALL Context
      ********************/
     ogs_assert(sess);
-    smf_ue = sess->smf_ue;
+    smf_ue = smf_ue_cycle(sess->smf_ue);
     ogs_assert(smf_ue);
 
     /* Control Plane(DL) : SGW-S5C */

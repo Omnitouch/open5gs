@@ -162,8 +162,9 @@ typedef struct smf_ue_s {
 #define SMF_SESS_CLEAR(__sESS) \
     do { \
         smf_ue_t *smf_ue = NULL; \
+        __sESS = smf_sess_cycle(__sESS); \
         ogs_assert(__sESS); \
-        smf_ue = __sESS->smf_ue; \
+        smf_ue = smf_ue_cycle(__sESS->smf_ue); \
         ogs_assert(smf_ue); \
         if (SMF_UE_IS_LAST_SESSION(smf_ue)) \
             smf_ue_remove(smf_ue); \

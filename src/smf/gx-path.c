@@ -798,7 +798,7 @@ static void smf_gx_cca_cb(void *data, struct msg **msg)
     ogs_debug("    CC-Request-Number[%d]", cc_request_number);
 
     xact = ogs_gtp_xact_cycle(sess_data->xact[cc_request_number]);
-    sess = sess_data->sess;
+    sess = smf_sess_cycle(sess_data->sess);
     ogs_assert(sess);
 
     gx_message = ogs_calloc(1, sizeof(ogs_diam_gx_message_t));
@@ -1195,7 +1195,7 @@ static int smf_gx_rar_cb( struct msg **msg, struct avp *avp,
     }
 
     /* Get Session Information */
-    sess = sess_data->sess;
+    sess = smf_sess_cycle(sess_data->sess);
     ogs_assert(sess);
 
     ret = fd_msg_browse(qry, MSG_BRW_FIRST_CHILD, &avp, NULL);

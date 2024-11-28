@@ -105,8 +105,8 @@ void smf_s6b_send_aar(smf_sess_t *sess, ogs_gtp_xact_t *xact)
         ogs_error("xact no longer valid");
         return;
     }
-    ogs_assert(sess);
-    smf_ue = sess->smf_ue;
+    sess = smf_sess_cycle(sess);
+    smf_ue = sess ? smf_ue_cycle(sess->smf_ue) : NULL;
     ogs_assert(smf_ue);
 
     ogs_debug("[AA-Request]");
@@ -373,10 +373,9 @@ static void smf_s6b_aaa_cb(void *data, struct msg **msg)
 
     ogs_debug("    Retrieve its data: [%s]", sess_data->s6b_sid);
 
-    sess = sess_data->sess;
+    sess = smf_sess_cycle(sess_data->sess);
     ogs_assert(sess);
-    xact = sess_data->xact;
-    xact = ogs_gtp_xact_cycle(xact);
+    xact = ogs_gtp_xact_cycle(sess_data->xact);
     if (NULL == xact) {
         ogs_error("xact no longer valid");
         return;
@@ -512,7 +511,7 @@ void smf_s6b_send_str(smf_sess_t *sess, ogs_gtp_xact_t *xact, uint32_t cause)
         return;
     }
     ogs_assert(sess);
-    smf_ue = sess->smf_ue;
+    smf_ue = smf_ue_cycle(sess->smf_ue);
     ogs_assert(smf_ue);
 
     ogs_debug("[Session-Termination-Request]");
@@ -659,7 +658,7 @@ static void smf_s6b_sta_cb(void *data, struct msg **msg)
 
     ogs_debug("    Retrieve its data: [%s]", sess_data->s6b_sid);
 
-    sess = sess_data->sess;
+    sess = smf_sess_cycle(sess_data->sess);
 
     s6b_message = ogs_calloc(1, sizeof(ogs_diam_s6b_message_t));
     ogs_assert(s6b_message);

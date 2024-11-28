@@ -28,8 +28,8 @@ bool smf_namf_comm_handle_n1_n2_message_transfer(
     smf_ue_t *smf_ue = NULL;
     OpenAPI_n1_n2_message_transfer_rsp_data_t *N1N2MessageTransferRspData;
 
-    ogs_assert(sess);
-    smf_ue = sess->smf_ue;
+    sess = smf_sess_cycle(sess);
+    smf_ue = sess ? smf_ue_cycle(sess->smf_ue) : NULL;
     ogs_assert(smf_ue);
     ogs_assert(state);
     ogs_assert(recvmsg);

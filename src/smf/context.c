@@ -1267,6 +1267,7 @@ smf_sess_t *smf_sess_add_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type)
 
     ogs_debug("smf_sess_add_by_apn");
 
+    smf_ue = smf_ue_cycle(smf_ue);
     ogs_assert(smf_ue);
     ogs_assert(apn);
 
@@ -1320,7 +1321,7 @@ smf_sess_t *smf_sess_add_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type)
 
     stats_add_smf_session();
 
-    return sess;
+    return smf_sess_cycle(sess);
 }
 
 smf_sess_t *smf_sess_add_by_gtp1_message(ogs_gtp1_message_t *message)
@@ -1419,7 +1420,8 @@ smf_sess_t *smf_sess_add_by_gtp1_message(ogs_gtp1_message_t *message)
     sess = smf_sess_add_by_apn(smf_ue, apn, req->rat_type.u8);
     sess->gtp.version = 1;
     smf_metrics_inst_global_inc(SMF_METR_GLOB_GAUGE_GTP1_PDPCTXS_ACTIVE);
-    return sess;
+    
+    return smf_sess_cycle(sess);
 }
 
 smf_sess_t *smf_sess_add_by_gtp2_message(ogs_gtp2_message_t *message)
@@ -1504,7 +1506,7 @@ smf_sess_t *smf_sess_add_by_gtp2_message(ogs_gtp2_message_t *message)
     sess = smf_sess_add_by_apn(smf_ue, apn, req->rat_type.u8);
     sess->gtp.version = 2;
     smf_metrics_inst_global_inc(SMF_METR_GLOB_GAUGE_GTP2_SESSIONS_ACTIVE);
-    return sess;
+    return smf_sess_cycle(sess);
 }
 
 smf_sess_t *smf_sess_add_by_psi(smf_ue_t *smf_ue, uint8_t psi)
@@ -1515,6 +1517,7 @@ smf_sess_t *smf_sess_add_by_psi(smf_ue_t *smf_ue, uint8_t psi)
 
     ogs_debug("smf_sess_add_by_psi");
 
+    smf_ue = smf_ue_cycle(smf_ue);
     ogs_assert(smf_ue);
     ogs_assert(psi != OGS_NAS_PDU_SESSION_IDENTITY_UNASSIGNED);
 
@@ -1576,7 +1579,7 @@ smf_sess_t *smf_sess_add_by_psi(smf_ue_t *smf_ue, uint8_t psi)
 
     stats_add_smf_session();
 
-    return sess;
+    return smf_sess_cycle(sess);
 }
 
 smf_sess_t *smf_sess_add_by_sbi_message(ogs_sbi_message_t *message)
@@ -1610,6 +1613,7 @@ smf_sess_t *smf_sess_add_by_sbi_message(ogs_sbi_message_t *message)
     }
 
     sess = smf_sess_find_by_psi(smf_ue, SmContextCreateData->pdu_session_id);
+
     if (sess) {        
         int rv;
         ogs_warn("OLD Session Will Release [SUPI:%s,PDU Session identity:%d]",
@@ -1636,7 +1640,7 @@ smf_sess_t *smf_sess_add_by_sbi_message(ogs_sbi_message_t *message)
 
     sess = smf_sess_add_by_psi(smf_ue, SmContextCreateData->pdu_session_id);
 
-    return sess;
+    return smf_sess_cycle(sess);
 }
 
 uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
@@ -1976,7 +1980,7 @@ smf_sess_t *smf_sess_find_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type)
 
         if (ogs_strcasecmp(sess->session.name, apn) == 0 &&
             sess->gtp_rat_type == rat_type)
-            return sess;
+            return smf_sess_cycle(sess);
     }
 
     return NULL;
@@ -1996,7 +2000,7 @@ smf_sess_t *smf_sess_find_by_psi(smf_ue_t *smf_ue, uint8_t psi)
         }
 
         if (sess->psi == psi)
-            return sess;
+            return smf_sess_cycle(sess);
     }
 
     return NULL;
@@ -2072,6 +2076,7 @@ smf_bearer_t *smf_qos_flow_add(smf_sess_t *sess)
     ogs_pfcp_urr_t *urr = NULL;
     ogs_pfcp_qer_t *qer = NULL;
 
+    sess = smf_sess_cycle(sess);
     ogs_assert(sess);
 
     ogs_pool_alloc(&smf_bearer_pool, &qos_flow);
@@ -2538,6 +2543,7 @@ smf_bearer_t *smf_bearer_add(smf_sess_t *sess)
     ogs_pfcp_far_t *ul_far = NULL;
     ogs_pfcp_urr_t *urr = NULL;
 
+    sess = smf_sess_cycle(sess);
     ogs_assert(sess);
 
     ogs_pool_alloc(&smf_bearer_pool, &bearer);
@@ -2850,9 +2856,13 @@ void smf_bearer_qos_update(smf_bearer_t *bearer)
     ogs_pfcp_pdr_t *dl_pdr = NULL, *ul_pdr = NULL;
     ogs_pfcp_qer_t *qer = NULL;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    bearer = smf_bearer_cycle(bearer);
+    sess = bearer ? smf_sess_cycle(bearer->sess) : NULL;
+
+    if (NULL == sess) {
+        ogs_error("No context");
+        return;
+    }
 
     dl_pdr = pfcp_pdr_cycle(bearer->dl_pdr);
     ogs_assert(dl_pdr);
@@ -2906,9 +2916,13 @@ smf_pf_t *smf_pf_add(smf_bearer_t *bearer)
     smf_sess_t *sess = NULL;
     smf_pf_t *pf = NULL;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    bearer = smf_bearer_cycle(bearer);
+    sess = bearer ? smf_sess_cycle(bearer->sess) : NULL;
+    
+    if (NULL == sess) {
+        ogs_error("No context");
+        return NULL;
+    }
 
     ogs_pool_alloc(&smf_pf_pool, &pf);
     ogs_assert(pf);

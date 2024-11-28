@@ -960,9 +960,19 @@ static void smf_gy_cca_cb(void *data, struct msg **msg)
     ogs_debug("    CC-Request-Number[%d]", cc_request_number);
 
     xact = sess_data->xact_data[cc_request_number].ptr;
-    ogs_assert(xact);
-    sess = sess_data->sess;
-    ogs_assert(sess);
+
+    if ((NULL == ogs_pfcp_xact_cycle(xact)) &&
+        (NULL == ogs_gtp_xact_cycle(xact)))
+    {
+        ogs_error("Invalid xact context");
+        error++;
+    }
+
+    sess = smf_sess_cycle(sess_data->sess);
+    if (NULL == sess) {
+        ogs_error("Received a NULL sess");
+        error++;
+    }
 
     gy_message = ogs_calloc(1, sizeof(ogs_diam_gy_message_t));
     ogs_assert(gy_message);
@@ -1242,7 +1252,7 @@ static int smf_gy_rar_cb( struct msg **msg, struct avp *avp,
     }
 
     /* Get Session Information */
-    sess = sess_data->sess;
+    sess = smf_sess_cycle(sess_data->sess);
     ogs_assert(sess);
 
     /* TODO: parsing of msg into gy_message */
