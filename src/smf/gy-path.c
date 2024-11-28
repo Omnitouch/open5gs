@@ -961,13 +961,6 @@ static void smf_gy_cca_cb(void *data, struct msg **msg)
 
     xact = sess_data->xact_data[cc_request_number].ptr;
 
-    if ((NULL == ogs_pfcp_xact_cycle(xact)) &&
-        (NULL == ogs_gtp_xact_cycle(xact)))
-    {
-        ogs_error("Invalid xact context");
-        error++;
-    }
-
     sess = smf_sess_cycle(sess_data->sess);
     if (NULL == sess) {
         ogs_error("Received a NULL sess");
