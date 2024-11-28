@@ -799,7 +799,7 @@ int smf_epc_pfcp_send_deactivation(smf_sess_t *sess, uint8_t gtp_cause)
     smf_ue_t *smf_ue = NULL;
     smf_sess_t *eutran_sess = NULL, *wlan_sess = NULL;
 
-    sess = smf_sess_cycle(data);
+    sess = smf_sess_cycle(sess);
     smf_ue = sess ? smf_ue_cycle(sess->smf_ue) : NULL;
     ogs_assert(smf_ue);
 
