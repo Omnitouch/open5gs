@@ -467,8 +467,8 @@ int smf_gtp2_send_create_bearer_request(smf_bearer_t *bearer)
     }
 
     /// TEST ///
-    in_port_t original_port = sess->gnode->addr.sin.sin_port;
-    sess->gnode->addr.sin.sin_port = 2123;
+    struct sockaddr_in *sa_in = (struct sockaddr_in *)&sess->gnode->addr.sa;
+    sa_in->sin_port = htons(2123);
     /// TEST ///
 
     xact = ogs_gtp_xact_local_create(
@@ -481,10 +481,6 @@ int smf_gtp2_send_create_bearer_request(smf_bearer_t *bearer)
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
-
-    /// TEST ///
-    sess->gnode->addr.sin.sin_port = original_port;
-    /// TEST ///
 
     return rv;
 }
