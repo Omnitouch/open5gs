@@ -468,6 +468,7 @@ int smf_gtp2_send_create_bearer_request(smf_bearer_t *bearer)
 
     /// TEST ///
     struct sockaddr_in *sa_in = (struct sockaddr_in *)&sess->gnode->addr.sa;
+    in_port_t original_port = sa_in->sin_port;
     sa_in->sin_port = htons(2123);
     /// TEST ///
 
@@ -481,6 +482,10 @@ int smf_gtp2_send_create_bearer_request(smf_bearer_t *bearer)
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    /// TEST ///
+    sa_in->sin_port = original_port;
+    /// TEST ///
 
     return rv;
 }
