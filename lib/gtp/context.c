@@ -845,6 +845,51 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_ip(ogs_list_t *list, ogs_ip_t *ip)
     return node;
 }
 
+ogs_gtp_node_t *ogs_gtp_node_find_by_ip_and_port(ogs_list_t *list, ogs_ip_t *ip, uint16_t port)
+{
+    ogs_gtp_node_t *node = NULL;
+
+    ogs_assert(list);
+    ogs_assert(ip);
+
+    ogs_list_for_each(list, node) {
+        node = gtp_node_cycle(node);
+
+        if (NULL == node) {
+            ogs_error("Found a node that doesn't exist in list");
+            break;
+        }
+
+        if (memcmp(&node->ip, ip, sizeof(*ip)) == 0)
+            break;
+
+        if ((1 == ip->ipv4) && (1 == ip->ipv6)) {
+            /* Return node if both IPv4 and IPv6 but we only have one */
+            if ((node->ip.addr == ip->addr) || 
+                (0 == memcmp(node->ip.addr6, ip->addr6, sizeof(node->ip.addr6)))) {
+                if ((htons(port) == node->addr.sin.sin_port) ||
+                    (htons(port) == node->addr.sin6.sin6_port)) {
+                    break;
+                }
+            }
+        } else if (1 == ip->ipv4) {
+            if (node->ip.addr == ip->addr) {
+                if (htons(port) == node->addr.sin.sin_port) {
+                    break;
+                }
+            }
+        } else if (1 == ip->ipv6) {
+            if (0 == memcmp(node->ip.addr6, ip->addr6, sizeof(node->ip.addr6))) {
+                if (htons(port) == node->addr.sin6.sin6_port) {
+                    break;
+                }
+            }
+        }
+    }
+
+    return node;
+}
+
 ogs_gtpu_resource_t *ogs_gtpu_resource_add(ogs_list_t *list,
         ogs_user_plane_ip_resource_info_t *info)
 {

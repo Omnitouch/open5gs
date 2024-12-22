@@ -109,6 +109,7 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_f_teid(
 ogs_gtp_node_t *ogs_gtp_node_add_by_ip(
         ogs_list_t *list, ogs_ip_t *ip, uint16_t port);
 ogs_gtp_node_t *ogs_gtp_node_find_by_ip(ogs_list_t *list, ogs_ip_t *ip);
+ogs_gtp_node_t *ogs_gtp_node_find_by_ip_and_port(ogs_list_t *list, ogs_ip_t *ip, uint16_t port);
 
 ogs_gtpu_resource_t *ogs_gtpu_resource_add(ogs_list_t *list,
         ogs_user_plane_ip_resource_info_t *info);

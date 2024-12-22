@@ -444,6 +444,8 @@ int smf_gtp2_send_create_bearer_request(smf_bearer_t *bearer)
     ogs_gtp2_header_t h;
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_gtp2_tft_t tft;
+    ogs_gtp_node_t *gnode = NULL;
+    ogs_ip_t ip = {};
 
     bearer = smf_bearer_cycle(bearer);
     sess = bearer ? smf_sess_cycle(bearer->sess) : NULL;
@@ -466,14 +468,24 @@ int smf_gtp2_send_create_bearer_request(smf_bearer_t *bearer)
         return OGS_ERROR;
     }
 
-    /// TEST ///
-    struct sockaddr_in *sa_in = (struct sockaddr_in *)&sess->gnode->addr.sa;
-    in_port_t original_port = sa_in->sin_port;
-    sa_in->sin_port = htons(2123);
-    /// TEST ///
+    /* Due to issues with other networks we need to make sure we send the create bearer
+     * message to the node using the default port address of 2123. First look for a node
+     * with the address in our list, if we can't find one we make a new gnode using the 
+     * gnode in the sess as the base then change the port value. */
+    ogs_expect(OGS_OK == ogs_sockaddr_to_ip(
+        &sess->gnode->addr, NULL, &ip));
+
+    gnode = ogs_gtp_node_find_by_ip_and_port(&smf_self()->sgw_s5c_list, &ip, OGS_GTPV2_C_UDP_PORT);
+    if (NULL == gnode) {
+        // Add a node with the same IP but the default GTP-C port
+        char buf[OGS_ADDRSTRLEN] = "";
+        gnode = ogs_gtp_node_add_by_ip(&smf_self()->sgw_s5c_list, &ip, OGS_GTPV2_C_UDP_PORT);
+        ogs_debug("Added new gnode with default port - %s:%d", OGS_ADDR(&gnode->addr, buf), OGS_PORT(&gnode->addr));
+    }
+    assert(NULL != gnode);
 
     xact = ogs_gtp_xact_local_create(
-            sess->gnode, &h, pkbuf, gtp_bearer_timeout, bearer);
+            gnode, &h, pkbuf, gtp_bearer_timeout, bearer);
     if (!xact) {
         ogs_error("ogs_gtp_xact_local_create() failed");
         return OGS_ERROR;
@@ -482,10 +494,6 @@ int smf_gtp2_send_create_bearer_request(smf_bearer_t *bearer)
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
-
-    /// TEST ///
-    sa_in->sin_port = original_port;
-    /// TEST ///
 
     return rv;
 }
