@@ -860,9 +860,6 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_ip_and_port(ogs_list_t *list, ogs_ip_t *ip,
             break;
         }
 
-        if (memcmp(&node->ip, ip, sizeof(*ip)) == 0)
-            break;
-
         if ((1 == ip->ipv4) && (1 == ip->ipv6)) {
             /* Return node if both IPv4 and IPv6 but we only have one */
             if ((node->ip.addr == ip->addr) || 

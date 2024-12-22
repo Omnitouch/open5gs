@@ -481,6 +481,9 @@ int smf_gtp2_send_create_bearer_request(smf_bearer_t *bearer)
         char buf[OGS_ADDRSTRLEN] = "";
         gnode = ogs_gtp_node_add_by_ip(&smf_self()->sgw_s5c_list, &ip, OGS_GTPV2_C_UDP_PORT);
         ogs_debug("Added new gnode with default port - %s:%d", OGS_ADDR(&gnode->addr, buf), OGS_PORT(&gnode->addr));
+    } else {
+        char buf[OGS_ADDRSTRLEN] = "";
+        ogs_debug("gnode with default port already existed - %s:%d", OGS_ADDR(&gnode->addr, buf), OGS_PORT(&gnode->addr));
     }
     assert(NULL != gnode);
 
