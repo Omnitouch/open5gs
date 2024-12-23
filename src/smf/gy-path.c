@@ -934,7 +934,14 @@ static void smf_gy_cca_cb(void *data, struct msg **msg)
 
     ret = fd_sess_state_retrieve(smf_gy_reg, session, &sess_data);
     ogs_assert(ret == 0);
-    ogs_assert(sess_data);
+
+    if (NULL == sess_data) {
+        ogs_error("Could not find sess_data for session");
+        ret = fd_msg_free(*msg);
+        ogs_assert(ret == 0);
+        *msg = NULL;
+        return;
+    }
     ogs_assert((void *)sess_data == data);
 
     ogs_debug("    Retrieve its data: [%s]", sess_data->gy_sid);
@@ -1111,6 +1118,18 @@ static void smf_gy_cca_cb(void *data, struct msg **msg)
             break;
         }
         fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL);
+    }
+
+    if (gy_message->cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_UPDATE_REQUEST) {
+        if (sess_data->xact_data[sess_data->cc_request_number].pfcp != true) {
+            ogs_error("GY message request type and flag don't line up");
+            error++;
+        }
+    } else {
+        if(sess_data->xact_data[sess_data->cc_request_number].pfcp != false) {
+            ogs_error("GY message request type and flag don't line up");
+            error++;
+        }
     }
 
 out:
