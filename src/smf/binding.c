@@ -477,18 +477,24 @@ int smf_gtp2_send_create_bearer_request(smf_bearer_t *bearer)
 
     gnode = ogs_gtp_node_find_by_ip_and_port(&smf_self()->sgw_s5c_list, &ip, OGS_GTPV2_C_UDP_PORT);
     if (NULL == gnode) {
-        // Add a node with the same IP but the default GTP-C port
+        // If there isn't a gnode with the default port then we'll clobber the port of this one
         char buf[OGS_ADDRSTRLEN] = "";
-        gnode = ogs_gtp_node_add_by_ip(&smf_self()->sgw_s5c_list, &ip, OGS_GTPV2_C_UDP_PORT);
+        struct sockaddr_in *sa_in = NULL;
+
+        gnode = sess->gnode;
+        sa_in = (struct sockaddr_in *)&gnode->addr.sa;
+        sa_in->sin_port = htons(OGS_GTPV2_C_UDP_PORT);
+
         ogs_debug("Added new gnode with default port - %s:%d", OGS_ADDR(&gnode->addr, buf), OGS_PORT(&gnode->addr));
     } else {
         char buf[OGS_ADDRSTRLEN] = "";
         ogs_debug("gnode with default port already existed - %s:%d", OGS_ADDR(&gnode->addr, buf), OGS_PORT(&gnode->addr));
     }
     assert(NULL != gnode);
+    sess->gnode = gnode;
 
     xact = ogs_gtp_xact_local_create(
-            gnode, &h, pkbuf, gtp_bearer_timeout, bearer);
+            sess->gnode, &h, pkbuf, gtp_bearer_timeout, bearer);
     if (!xact) {
         ogs_error("ogs_gtp_xact_local_create() failed");
         return OGS_ERROR;
