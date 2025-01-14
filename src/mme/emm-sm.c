@@ -1522,7 +1522,15 @@ void emm_state_exception(ogs_fsm_t *s, mme_event_t *e)
         ogs_assert(message);
 
         enb_ue = enb_ue_cycle(mme_ue->enb_ue);
-        ogs_assert(enb_ue);
+        if (NULL == enb_ue) {
+            ogs_error(
+                "Found a NULL enb_ue when handling an EMM message with type %d for imsi [%s]",
+                message->emm.h.message_type,
+                mme_ue->imsi_bcd
+            );
+            OGS_FSM_TRAN(s, emm_state_exception);
+            break;
+        }
 
         h.type = e->nas_type;
 
