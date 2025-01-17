@@ -313,8 +313,8 @@ static int pcrf_gx_ccr_cb( struct msg **msg, struct avp *avp,
     }
 
     if (!sess_data) {
-        os0_t sid;
-        size_t sidlen;
+        os0_t sid = NULL;
+        size_t sidlen = 0;
 
         ret = fd_sess_getsid(sess, &sid, &sidlen);
         ogs_assert(ret == 0);

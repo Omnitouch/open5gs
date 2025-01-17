@@ -150,8 +150,8 @@ void smf_s6b_send_aar(smf_sess_t *sess, ogs_gtp_xact_t *xact)
     /* Retrieve session state in this session */
     ret = fd_sess_state_retrieve(smf_s6b_reg, session, &sess_data);
     if (!sess_data) {
-        os0_t sid;
-        size_t sidlen;
+        os0_t sid = NULL;
+        size_t sidlen = 0;
 
         ret = fd_sess_getsid(session, &sid, &sidlen);
         ogs_assert(ret == 0);

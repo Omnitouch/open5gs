@@ -77,11 +77,15 @@ static void state_cleanup(struct sess_state *sess_data, os0_t sid, void *opaque)
         return;
     }
 
-    if (sess_data->gx_sid)
+    if (sess_data->gx_sid) {
         ogs_free(sess_data->gx_sid);
+        sess_data->gx_sid = NULL;
+    }
 
-    if (sess_data->peer_host)
+    if (sess_data->peer_host) {
         ogs_free(sess_data->peer_host);
+        sess_data->peer_host = NULL;
+    }
 
     ogs_thread_mutex_lock(&sess_state_mutex);
     ogs_pool_free(&sess_state_pool, sess_data);
@@ -103,7 +107,7 @@ void smf_gx_send_ccr(smf_sess_t *sess, ogs_gtp_xact_t *xact,
     struct session *session = NULL;
     int new;
     ogs_paa_t paa; /* For changing Framed-IPv6-Prefix Length to 64 */
-    char buf[OGS_PLMNIDSTRLEN];
+    char buf[OGS_PLMNIDSTRLEN] = "";
     struct sockaddr_in sin;
     struct sockaddr_in6 sin6;
     uint32_t charging_id;
@@ -162,8 +166,8 @@ void smf_gx_send_ccr(smf_sess_t *sess, ogs_gtp_xact_t *xact,
     /* Retrieve session state in this session */
     ret = fd_sess_state_retrieve(smf_gx_reg, session, &sess_data);
     if (!sess_data) {
-        os0_t sid;
-        size_t sidlen;
+        os0_t sid = NULL;
+        size_t sidlen = 0;
 
         ret = fd_sess_getsid(session, &sid, &sidlen);
         ogs_assert(ret == 0);

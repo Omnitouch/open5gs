@@ -628,8 +628,8 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     /* Retrieve session state in this session */
     ret = fd_sess_state_retrieve(smf_gy_reg, session, &sess_data);
     if (!sess_data) {
-        os0_t sid;
-        size_t sidlen;
+        os0_t sid = NULL;
+        size_t sidlen = 0;
 
         ret = fd_sess_getsid(session, &sid, &sidlen);
         ogs_assert(ret == 0);

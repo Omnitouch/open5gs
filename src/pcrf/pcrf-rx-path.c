@@ -75,13 +75,18 @@ static void state_cleanup(struct sess_state *sess_data, os0_t sid, void *opaque)
 {
     ogs_assert(sess_data);
 
-    if (sess_data->rx_sid)
+    if (sess_data->rx_sid) {
         ogs_free((char *)sess_data->rx_sid);
-    if (sess_data->gx_sid)
+        sess_data->rx_sid = NULL;
+    }
+    if (sess_data->gx_sid) {
         ogs_free((char *)sess_data->gx_sid);
-
-    if (sess_data->peer_host)
+        sess_data->gx_sid = NULL;
+    }
+    if (sess_data->peer_host) {
         ogs_free(sess_data->peer_host);
+        sess_data->peer_host = NULL;
+    }
 
     ogs_thread_mutex_lock(&sess_state_mutex);
     ogs_pool_free(&sess_state_pool, sess_data);
