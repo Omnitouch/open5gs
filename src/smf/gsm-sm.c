@@ -692,10 +692,25 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                         &pfcp_message->pfcp_session_establishment_response);
                 if (pfcp_cause != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
                     /* FIXME: tear down Gy and Gx */
-                    ogs_assert(gtp_xact);
+                    uint8_t gtp_version = 2;
+
+                    if (NULL != gtp_xact) {
+                        gtp_version = gtp_xact->gtp_version;
+                    } else {
+                        ogs_error("gtp_xact does't exist! Assuming gtp version is %d", gtp_version);
+                    }
+
                     gtp_cause = gtp_cause_from_pfcp(
-                                    pfcp_cause, gtp_xact->gtp_version);
-                    send_gtp_create_err_msg(sess, e->gtp_xact, gtp_cause);
+                                    pfcp_cause, gtp_version);
+
+                    e->gtp_xact = ogs_gtp_xact_cycle(e->gtp_xact);
+
+                    if (NULL != e->gtp_xact) {
+                        send_gtp_create_err_msg(sess, e->gtp_xact, gtp_cause);
+                    } else {
+                        ogs_error("Failed to send gtp error message as gtp_xact doesn't exist");
+                    }
+
                     return;
                 }
 
