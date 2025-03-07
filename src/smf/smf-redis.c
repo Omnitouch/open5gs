@@ -173,6 +173,58 @@ bool redis_get_rand_p_cscf_ipv4(ogs_ipsubnet_t *p_cscf, const char *redis_key) {
     return result;
 }
 
+int redis_get_2_rand_p_cscf_ipv4(ogs_ipsubnet_t *p_cscf_1, ogs_ipsubnet_t *p_cscf_2, const char *redis_key) {
+    int addresses_received = 0;
+
+    if (NULL == connection) {
+        ogs_error("Cannot call redis_get_2_rand_p_cscf_ipv4 without a valid redis connection");
+        return 0;
+    }
+
+    /* Randomly pick 2 ipv4 address from the p_cscf_ipv4_set set */
+    redisReply *reply = redisCommand(connection, "SRANDMEMBER %s 2", redis_key);
+
+    if (NULL == reply) {
+        ogs_error("Got NULL response from redis, something has gone terribly wrong");
+        return 0;
+    }
+
+    if ((REDIS_REPLY_ARRAY == reply->type) && (2 == reply->elements)) {
+        addresses_received = 2;
+        redisReply *firstElement = reply->element[0];
+        redisReply *secondElement = reply->element[1];
+
+        if (OGS_OK != ogs_ipsubnet(p_cscf_1, firstElement->str, NULL)) {
+            ogs_error("Failed to encode IPv4 address from redis: '%s'", firstElement->str);
+            /* If we failed decode the first one we want to make sure the 
+             * second one is in the p_cscf_1 address so that when we only
+             * return 1 address its always in the p_cscf_1 slot */
+            p_cscf_2 = p_cscf_1;
+            --addresses_received;
+        }
+
+        if (OGS_OK != ogs_ipsubnet(p_cscf_2, secondElement->str, NULL)) {
+            ogs_error("Failed to encode IPv4 address from redis: '%s'", secondElement->str);
+            --addresses_received;
+        }
+    } else if ((REDIS_REPLY_ARRAY == reply->type) && (1 == reply->elements)) {
+        addresses_received = 1;
+        redisReply *firstElement = reply->element[0];
+
+        if (OGS_OK != ogs_ipsubnet(p_cscf_1, firstElement->str, NULL)) {
+            ogs_error("Failed to encode IPv4 address from redis: '%s'", firstElement->str);
+            --addresses_received;
+        }
+    } else {
+        addresses_received = 0;
+        ogs_error("Failed to parse reply from redis with type: '%d'", reply->type);
+    }
+
+    freeReplyObject(reply);
+
+    return addresses_received;
+}
+
 ogs_pfcp_ue_ip_t *redis_ue_ip_alloc(const char* imsi_bcd, const char* apn, uint32_t requested_ipv4)
 {
     if (0 == requested_ipv4) {

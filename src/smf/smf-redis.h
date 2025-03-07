@@ -11,3 +11,4 @@ ogs_pfcp_ue_ip_t *redis_ue_ip_alloc(const char* imsi_bcd, const char* apn, uint3
 bool redis_ue_ip_free(const char* imsi_bcd, const char* apn, uint32_t requested_ipv4);
 int redis_get_num_available_ips(void);
 bool redis_get_rand_p_cscf_ipv4(ogs_ipsubnet_t *p_cscf, const char *redis_key);
+int redis_get_2_rand_p_cscf_ipv4(ogs_ipsubnet_t *p_cscf_1, ogs_ipsubnet_t *p_cscf_2, const char *redis_key);

@@ -3252,13 +3252,25 @@ int smf_pco_build(uint8_t *pco_buf, uint8_t *buffer, int length, char *apn)
                 }
             }
             else if (smf_self()->redis_p_cscf_ipv4_key) {
-                if (redis_get_rand_p_cscf_ipv4(&p_cscf, smf_self()->redis_p_cscf_ipv4_key)) {
+                ogs_ipsubnet_t p_cscf_2 = {};
+                int addresses_received = redis_get_2_rand_p_cscf_ipv4(&p_cscf, &p_cscf_2, smf_self()->redis_p_cscf_ipv4_key);
+                
+                if (0 == addresses_received) {
+                    ogs_fatal("Failed to get any P-CSCF IPv4 address from redis");
+                }
+
+                if (0 < addresses_received) {
                     smf.ids[smf.num_of_id].id = ue.ids[i].id;
                     smf.ids[smf.num_of_id].len = OGS_IPV4_LEN;
                     smf.ids[smf.num_of_id].data = p_cscf.sub;
                     smf.num_of_id++;
-                } else {
-                    ogs_fatal("Failed to get P-CSCF IPv4 address from redis");
+                }
+
+                if (1 < addresses_received) {
+                    smf.ids[smf.num_of_id].id = ue.ids[i].id;
+                    smf.ids[smf.num_of_id].len = OGS_IPV4_LEN;
+                    smf.ids[smf.num_of_id].data = p_cscf_2.sub;
+                    smf.num_of_id++;
                 }
             } else if (smf_self()->num_of_p_cscf) {
                 for (int j = 0; j < smf_self()->num_of_p_cscf; ++j) {
