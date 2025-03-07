@@ -3261,30 +3261,26 @@ int smf_pco_build(uint8_t *pco_buf, uint8_t *buffer, int length, char *apn)
                     ogs_fatal("Failed to get P-CSCF IPv4 address from redis");
                 }
             } else if (smf_self()->num_of_p_cscf) {
-                rv = ogs_ipsubnet(&p_cscf,
-                    smf_self()->p_cscf[smf_self()->p_cscf_index], NULL);
-                ogs_assert(rv == OGS_OK);
-                smf.ids[smf.num_of_id].id = ue.ids[i].id;
-                smf.ids[smf.num_of_id].len = OGS_IPV4_LEN;
-                smf.ids[smf.num_of_id].data = p_cscf.sub;
-                smf.num_of_id++;
-
-                smf_self()->p_cscf_index++;
-                smf_self()->p_cscf_index %= smf_self()->num_of_p_cscf;
+                for (int j = 0; j < smf_self()->num_of_p_cscf; ++j) {
+                    rv = ogs_ipsubnet(&p_cscf,
+                        smf_self()->p_cscf[j], NULL);
+                    ogs_assert(rv == OGS_OK);
+                    smf.ids[smf.num_of_id].id = ue.ids[i].id;
+                    smf.ids[smf.num_of_id].len = OGS_IPV4_LEN;
+                    smf.ids[smf.num_of_id].data = p_cscf.sub;
+                    smf.num_of_id++;
+                }
             }
             break;
         case OGS_PCO_ID_P_CSCF_IPV6_ADDRESS_REQUEST:
-            if (smf_self()->num_of_p_cscf6) {
+            for (int j = 0; j < smf_self()->num_of_p_cscf6; ++j) {
                 rv = ogs_ipsubnet(&p_cscf6,
-                    smf_self()->p_cscf6[smf_self()->p_cscf6_index], NULL);
+                    smf_self()->p_cscf6[j], NULL);
                 ogs_assert(rv == OGS_OK);
                 smf.ids[smf.num_of_id].id = ue.ids[i].id;
                 smf.ids[smf.num_of_id].len = OGS_IPV6_LEN;
                 smf.ids[smf.num_of_id].data = p_cscf6.sub;
                 smf.num_of_id++;
-
-                smf_self()->p_cscf6_index++;
-                smf_self()->p_cscf6_index %= smf_self()->num_of_p_cscf6;
             }
             break;
         case OGS_PCO_ID_IPV4_LINK_MTU_REQUEST:
