@@ -3066,7 +3066,7 @@ int smf_pco_build(uint8_t *pco_buf, uint8_t *buffer, int length, char *apn)
     int num_of_ipcp;
     int pco_size = 0;
     ogs_ipsubnet_t dns_primary, dns_secondary, dns6_primary, dns6_secondary;
-    ogs_ipsubnet_t p_cscf, p_cscf6;
+    ogs_ipsubnet_t p_cscf, p_cscf_2, p_cscf6;
     int size = 0;
     int i = 0;
     uint16_t mtu = 0;
@@ -3252,7 +3252,6 @@ int smf_pco_build(uint8_t *pco_buf, uint8_t *buffer, int length, char *apn)
                 }
             }
             else if (smf_self()->redis_p_cscf_ipv4_key) {
-                ogs_ipsubnet_t p_cscf_2 = {};
                 int addresses_received = redis_get_2_rand_p_cscf_ipv4(&p_cscf, &p_cscf_2, smf_self()->redis_p_cscf_ipv4_key);
                 
                 if (0 == addresses_received) {
