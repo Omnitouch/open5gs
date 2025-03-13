@@ -194,6 +194,13 @@ int redis_get_2_rand_p_cscf_ipv4(ogs_ipsubnet_t *p_cscf_1, ogs_ipsubnet_t *p_csc
         redisReply *firstElement = reply->element[0];
         redisReply *secondElement = reply->element[1];
 
+        /* When there are only 2 elements the order returned is 
+         * not random so randomly switch them here */
+        if (rand() % 2) {
+            firstElement = reply->element[1];
+            secondElement = reply->element[0];
+        }
+
         if (OGS_OK != ogs_ipsubnet(p_cscf_1, firstElement->str, NULL)) {
             ogs_error("Failed to encode IPv4 address from redis: '%s'", firstElement->str);
             /* If we failed decode the first one we want to make sure the 
