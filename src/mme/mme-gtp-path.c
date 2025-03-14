@@ -319,7 +319,7 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
 
         if (mme_self()->dns_target_pgw) {
             bool resolved_dns = false;
-            enum { MAX_MCC_MNC_STR = 4 };
+            enum { MAX_MCC_MNC_STR = 6 };
             char ipv4[INET_ADDRSTRLEN] = "";
             ResolverContext context = {};
             char mme_mcc[MAX_MCC_MNC_STR] = "";
