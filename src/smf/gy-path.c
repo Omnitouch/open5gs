@@ -158,10 +158,9 @@ static void fill_multiple_services_credit_control_ccr(smf_sess_t *sess,
     ret = fd_msg_avp_new(ogs_diam_gy_cc_total_octets, 0, &avpch2);
     ogs_assert(ret == 0);
     val.u64 = (sess->gy.ul_octets - sess->gy.last_report.ul_octets) + (sess->gy.dl_octets - sess->gy.last_report.dl_octets);
-    sess->gy.last_report.ul_octets = sess->gy.ul_octets;
     ret = fd_msg_avp_setvalue (avpch2, &val);
     ogs_assert(ret == 0);
-    ret = fd_msg_avp_add (avpch2, MSG_BRW_LAST_CHILD, avpch2);
+    ret = fd_msg_avp_add (avpch1, MSG_BRW_LAST_CHILD, avpch2);
     ogs_assert(ret == 0);
 
     /* CC-Input-Octets, RFC4006 8.24 */
@@ -838,29 +837,29 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     /* User-Equipment-Info */
     if (smf_ue->imeisv_len > 0) {
         /* User-Equipment-Info, 3GPP TS 32.299 7.1.17 */
-        ret = fd_msg_avp_new(ogs_diam_gy_user_equipment_info, 0, &avpch1);
+        ret = fd_msg_avp_new(ogs_diam_gy_user_equipment_info, 0, &avp);
 
         /* User-Equipment-Info-Type 0 (IMEI) */
-        ret = fd_msg_avp_new(ogs_diam_gy_user_equipment_info_type, 0, &avpch2);
+        ret = fd_msg_avp_new(ogs_diam_gy_user_equipment_info_type, 0, &avpch1);
         ogs_assert(ret == 0);
         val.i32 = 0;
-        ret = fd_msg_avp_setvalue(avpch2, &val);
+        ret = fd_msg_avp_setvalue(avpch1, &val);
         ogs_assert(ret == 0);
-        ret = fd_msg_avp_add(avpch1, MSG_BRW_LAST_CHILD, avpch2);
+        ret = fd_msg_avp_add(avp, MSG_BRW_LAST_CHILD, avpch1);
         ogs_assert(ret == 0);
 
         /* User-Equipment-Info-Val */
-        ret = fd_msg_avp_new(ogs_diam_gy_user_equipment_info_value, 0, &avpch2);
+        ret = fd_msg_avp_new(ogs_diam_gy_user_equipment_info_value, 0, &avpch1);
         ogs_assert(ret == 0);
         val.os.data = (uint8_t*)&sess->smf_ue->imeisv_bcd[0];
         val.os.len = 16;
-        ret = fd_msg_avp_setvalue(avpch2, &val);
+        ret = fd_msg_avp_setvalue(avpch1, &val);
         ogs_assert(ret == 0);
-        ret = fd_msg_avp_add(avpch1, MSG_BRW_LAST_CHILD, avpch2);
+        ret = fd_msg_avp_add(avp, MSG_BRW_LAST_CHILD, avpch1);
         ogs_assert(ret == 0);
 
-        /* User-Equipment-Info AVP add to PS-Information: */
-        ret = fd_msg_avp_add (avpch1, MSG_BRW_LAST_CHILD, avpch1);
+        /* User-Equipment-Info AVP add request: */
+        ret = fd_msg_avp_add (req, MSG_BRW_LAST_CHILD, avp);
         ogs_assert(ret == 0);
     }
 
