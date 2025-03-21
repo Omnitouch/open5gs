@@ -569,7 +569,6 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     struct msg *req = NULL;
     struct avp *avp;
     struct avp *avpch1;
-    struct avp *avpch2;
     union avp_value val;
     struct sess_state *sess_data = NULL, *svg;
     struct session *session = NULL;
