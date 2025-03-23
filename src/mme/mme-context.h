@@ -529,13 +529,23 @@ struct mme_ue_s {
 
 #define MIN_EPS_BEARER_ID           5
 #define MAX_EPS_BEARER_ID           15
+#define EPS_BEARER_ID_POOL_SIZE     MAX_EPS_BEARER_ID - MIN_EPS_BEARER_ID
+
+    /* This array representst the available eps_bearer_ids.
+     * Example:
+     *   if MIN_EPS_BEARER_ID = 5, MAX_EPS_BEARER_ID = 15, and EPS_BEARER_ID_POOL_SIZE = 10
+     *   and the first few bearer ids are assigned (5, 6, and 7) then the array would look like
+     *   the following: {0, 0, 0, 1, 1, 1, 1, 1, 1, 1}. The index + MIN_EPS_BEARER_ID is the 
+     *   bearer id. A 1 as the value denotes that the index + MIN_EPS_BEARER_ID is available and
+     *   a 0 denotes that it is unavailable.
+     * */
+    uint8_t ebi_pool[EPS_BEARER_ID_POOL_SIZE];
 
 #define CLEAR_EPS_BEARER_ID(__mME) \
     do { \
         ogs_assert((__mME)); \
         mme_ebi_pool_clear(__mME); \
     } while(0)
-    OGS_POOL(ebi_pool, uint8_t);
 
     /* Paging Info */
 #define ECM_CONNECTED(__mME) \
@@ -775,7 +785,6 @@ typedef struct mme_bearer_s {
 
     ogs_fsm_t       sm;             /* State Machine */
 
-    uint8_t         *ebi_node;      /* Pool-Node for EPS Bearer ID */
     uint8_t         ebi;            /* EPS Bearer ID */
 
     uint32_t        enb_s1u_teid;
@@ -1034,6 +1043,8 @@ int mme_m_tmsi_free(mme_m_tmsi_t *tmsi);
 void mme_ebi_pool_init(mme_ue_t *mme_ue);
 void mme_ebi_pool_final(mme_ue_t *mme_ue);
 void mme_ebi_pool_clear(mme_ue_t *mme_ue);
+uint8_t mme_get_and_hold_next_available_ebi(mme_ue_t *mme_ue);
+void mme_release_ebi(mme_ue_t *mme_ue, uint8_t held_ebi);
 
 uint8_t mme_selected_int_algorithm(mme_ue_t *mme_ue);
 uint8_t mme_selected_enc_algorithm(mme_ue_t *mme_ue);

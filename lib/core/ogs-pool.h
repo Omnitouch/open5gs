@@ -38,6 +38,16 @@ extern "C" {
 
 typedef uint32_t ogs_pool_id_t;
 
+/* `free` contains the pooled items, e.g. if pool initialised with 16 IDs 
+ * [1, 16] then free[0] will be 1, free[1] will be 2, and so on. 
+ * `avail` will have the number of available elements in the pool, e.g. 
+ * a pool with size 16 that has 4 taken elements will result in avail being 14.
+ * `head` is the one that is alloced every time `ogs_pool_alloc` is called then
+ * the head is incremented by 1 or rolled over back to 0.
+ * `index` contains the list of allocated pool elements, when alloced the 
+ * elements move from the `free` list to into the `index` list, when moved a 
+ * NULL is left behind in its place. The opposite happens when `ogs_pool_free`
+ * is called. */
 #define OGS_POOL(pool, type) \
     struct { \
         const char *name; \

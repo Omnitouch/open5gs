@@ -3780,10 +3780,10 @@ int mme_ue_set_imsi(mme_ue_t *mme_ue, char *imsi_bcd)
 
                     old_bearer->mme_ue = mme_ue;
 
-                    if (old_bearer->ebi_node)
-                        ogs_pool_free(
-                                &old_mme_ue->ebi_pool, old_bearer->ebi_node);
-                    old_bearer->ebi_node = NULL;
+                    if (old_bearer->ebi) {
+                        mme_release_ebi(old_mme_ue, old_bearer->ebi);
+                        old_bearer->ebi = 0;
+                    }
                 }
                 old_sess->mme_ue = mme_ue;
             }
@@ -4336,11 +4336,7 @@ mme_bearer_t *mme_bearer_add(mme_sess_t *sess)
     ogs_assert(bearer);
     memset(bearer, 0, sizeof *bearer);
 
-    ogs_pool_alloc(&mme_ue->ebi_pool, &bearer->ebi_node);
-    ogs_assert(bearer->ebi_node);
-
-    bearer->ebi = *(bearer->ebi_node);
-
+    bearer->ebi = mme_get_and_hold_next_available_ebi(mme_ue);
     ogs_assert(bearer->ebi >= MIN_EPS_BEARER_ID &&
                 bearer->ebi <= MAX_EPS_BEARER_ID);
 
@@ -4384,10 +4380,10 @@ void mme_bearer_remove(mme_bearer_t *bearer)
 
     OGS_TLV_CLEAR_DATA(&bearer->tft);
 
-    if (bearer->ebi_node) {
+    if (bearer->ebi) {
         if (NULL != mme_ue_cycle(bearer->mme_ue)) {
-            ogs_pool_free(&bearer->mme_ue->ebi_pool, bearer->ebi_node);
-            bearer->ebi_node = NULL;
+            mme_release_ebi(bearer->mme_ue, bearer->ebi);
+            bearer->ebi = 0;
         } else {
             ogs_error("Bearer doesn't have a valid mme_ue, possible memory leak detected");
         }
@@ -4867,26 +4863,13 @@ int mme_m_tmsi_free(mme_m_tmsi_t *m_tmsi)
 
 void mme_ebi_pool_init(mme_ue_t *mme_ue)
 {
-    int i, index;
-
-    if (NULL == mme_ue_cycle(mme_ue)) {
-        ogs_error("mme_ue does not exist");
-        return;
-    }
-
-    ogs_pool_init(&mme_ue->ebi_pool, MAX_EPS_BEARER_ID - MIN_EPS_BEARER_ID + 1);
-
-    for (i = MIN_EPS_BEARER_ID, index = 0;
-            i <= MAX_EPS_BEARER_ID; i++, index++) {
-        mme_ue->ebi_pool.array[index] = i;
-    }
+    /* Make all the EPS Bearer ID available */
+    mme_ebi_pool_clear(mme_ue);
 }
 
 void mme_ebi_pool_final(mme_ue_t *mme_ue)
 {
-    ogs_assert(mme_ue);
-
-    ogs_pool_final(&mme_ue->ebi_pool);
+    mme_ebi_pool_clear(mme_ue);
 }
 
 void mme_ebi_pool_clear(mme_ue_t *mme_ue)
@@ -4896,11 +4879,44 @@ void mme_ebi_pool_clear(mme_ue_t *mme_ue)
         return;
     }
 
-    /* Suppress log message (mme_ue->ebi_pool.avail != mme_ue->ebi_pool.size) */
-    mme_ue->ebi_pool.avail = mme_ue->ebi_pool.size;
+    /* Make all the EPS Bearer ID available */
+    for (int i = 0; i < EPS_BEARER_ID_POOL_SIZE; ++i) {
+        mme_ue->ebi_pool[i] = 1;
+    }
+}
 
-    mme_ebi_pool_final(mme_ue);
-    mme_ebi_pool_init(mme_ue);
+uint8_t mme_get_and_hold_next_available_ebi(mme_ue_t *mme_ue)
+{
+    if (NULL == mme_ue_cycle(mme_ue)) {
+        ogs_error("mme_ue does not exist");
+        return 0;
+    }
+
+    for (int i = 0; i < EPS_BEARER_ID_POOL_SIZE; ++i) {
+        if (mme_ue->ebi_pool[i]) {
+            /* Make the EPS Bearer ID unavailable */
+            mme_ue->ebi_pool[i] = 0;
+            return i + MIN_EPS_BEARER_ID;
+        }
+    }
+
+    ogs_expect("No available EPS bearer IDs remaining");
+
+    return 0;
+}
+
+void mme_release_ebi(mme_ue_t *mme_ue, uint8_t held_ebi)
+{
+    ogs_assert(held_ebi <= MAX_EPS_BEARER_ID);
+    ogs_assert(MIN_EPS_BEARER_ID <= held_ebi);
+
+    if (NULL == mme_ue_cycle(mme_ue)) {
+        ogs_error("mme_ue does not exist");
+        return;
+    }
+
+    /* Make the EPS Bearer ID available */
+    mme_ue->ebi_pool[held_ebi - MIN_EPS_BEARER_ID] = 1;
 }
 
 uint8_t mme_selected_int_algorithm(mme_ue_t *mme_ue)
