@@ -984,6 +984,9 @@ int smf_context_parse_config(void)
                         } else
                             ogs_warn("unknown key `%s`", redis_server_config_key);
                     }
+                } else if (!strcmp(smf_key, "rating_group")) {
+                    const char *rating_group = ogs_yaml_iter_value(&smf_iter);
+                    self.rating_group = atoi(rating_group);
                 } else if (!strcmp(smf_key, "redis_p_cscf_ipv4_key")) {
                     const char *redis_p_cscf_ipv4_key = ogs_yaml_iter_value(&smf_iter);
                     self.redis_p_cscf_ipv4_key = redis_p_cscf_ipv4_key;

@@ -464,6 +464,15 @@ sbi:
 #    enabled: true
 #    hold_time_sec: 5
 #
+# <RATING GROUP>
+#
+#  o If set the 'Rating-Group' AVP is included in the Gy CCR's 
+#    'Multiple-Services-Credit-Control' AVP. If not set the AVP
+#    isn't included.
+#
+#  smf:
+#    rating_group: 2000
+#
 # <EMERGENCY P-CSCF SELECTION>
 # 
 #  o To enable and set the P-CSCF address to be returned during an emergency 

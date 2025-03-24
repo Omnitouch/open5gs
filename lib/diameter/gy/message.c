@@ -45,6 +45,7 @@ struct dict_object *ogs_diam_gy_cc_output_octets = NULL;
 struct dict_object *ogs_diam_gy_cc_service_specific_units = NULL;
 struct dict_object *ogs_diam_gy_reporting_reason = NULL;
 struct dict_object *ogs_diam_gy_service_id = NULL;
+struct dict_object *ogs_diam_gy_rating_group = NULL;
 
 struct dict_object *ogs_diam_gy_service_information = NULL;
 struct dict_object *ogs_diam_gy_ps_information = NULL;
@@ -112,6 +113,7 @@ int ogs_diam_gy_init(void)
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "CC-Service-Specific-Units", &ogs_diam_gy_cc_service_specific_units);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Reporting-Reason", &ogs_diam_gy_reporting_reason);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Service-Identifier", &ogs_diam_gy_service_id);
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Rating-Group", &ogs_diam_gy_rating_group);
 
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Service-Information", &ogs_diam_gy_service_information);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "PS-Information", &ogs_diam_gy_ps_information);

@@ -91,6 +91,7 @@ extern struct dict_object *ogs_diam_gy_reporting_reason;
 #define OGS_DIAM_GY_REPORTING_REASON_FORCED_REAUTHORISATION     7
 #define OGS_DIAM_GY_REPORTING_REASON_POOL_EXHAUSTED             8
 #define OGS_DIAM_GY_REPORTING_REASON_UNUSED_QUOTA_TIMER         9
+extern struct dict_object *ogs_diam_gy_rating_group;
 extern struct dict_object *ogs_diam_gy_service_id;
 extern struct dict_object *ogs_diam_gy_service_information;
 extern struct dict_object *ogs_diam_gy_ps_information;

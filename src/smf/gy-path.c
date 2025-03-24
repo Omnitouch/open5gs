@@ -190,6 +190,15 @@ static void fill_multiple_services_credit_control_ccr(smf_sess_t *sess,
 
     /* Service-Identifier, RFC4006 8.28. Not used in Gy. */
     /* Rating-Group */
+    if (smf_self()->rating_group) {
+        ret = fd_msg_avp_new(ogs_diam_gy_rating_group, 0, &avpch1);
+        ogs_assert(ret == 0);
+        val.u32 = smf_self()->rating_group;
+        ret = fd_msg_avp_setvalue(avpch1, &val);
+        ogs_assert(ret == 0);
+        ret = fd_msg_avp_add (avp, MSG_BRW_LAST_CHILD, avpch1);
+        ogs_assert(ret == 0);
+    }
 
     /* Reporting-Reason, TS 32.299 7.2.175 */
     /* "values QHT, FINAL, VALIDITY_TIME, FORCED_REAUTHORISATION,
@@ -324,7 +333,17 @@ static void fill_service_information_ccr(smf_sess_t *sess,
     ret = fd_msg_avp_new(ogs_diam_gy_service_information, 0, &avp);
 
     /* PS-Information, TS 32.299 sec 7.2.158 */
-    ret = fd_msg_avp_new(ogs_diam_gy_ps_information, 0, &avpch1);
+    ret = fd_msg_avp_new(ogs_diam_gy_ps_information, 0, &avpch1); // 
+
+    /* 3GPP-RAT-Type, TS 29.061 16.4.7.2 21 */
+    ret = fd_msg_avp_new(ogs_diam_gy_3gpp_rat_type, 0, &avpch2);
+    ogs_assert(ret == 0);
+    val.os.data = (uint8_t*)OGS_GTP2_RAT_TYPE_EUTRAN;
+    val.os.len = 1;
+    ret = fd_msg_avp_setvalue (avpch2, &val);
+    ogs_assert(ret == 0);
+    ret = fd_msg_avp_add (avpch1, MSG_BRW_LAST_CHILD, avpch2);
+    ogs_assert(ret == 0);
 
     /* 3GPP-Charging-Id, 3GPP TS 29.061 16.4.7.2 2 */
     ret = fd_msg_avp_new(ogs_diam_gy_3gpp_charging_id, 0, &avpch2);

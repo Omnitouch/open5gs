@@ -123,6 +123,7 @@ typedef struct smf_context_s {
     redis_server_config_t redis_server_config;
     redis_ip_reuse_t redis_ip_reuse;
     const char *redis_p_cscf_ipv4_key;
+    uint32_t rating_group;
 
     /* Bearer deactivation timer value in seconds */
     int bearer_deactivation_timer_sec;
