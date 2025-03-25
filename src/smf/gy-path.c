@@ -328,6 +328,7 @@ static void fill_service_information_ccr(smf_sess_t *sess,
     struct sockaddr_in6 sin6;
     char buf[OGS_PLMNIDSTRLEN];
     char digit;
+    static uint8_t rat_type = OGS_GTP2_RAT_TYPE_EUTRAN;
 
     /* Service-Information, TS 32.299 sec 7.2.192 */
     ret = fd_msg_avp_new(ogs_diam_gy_service_information, 0, &avp);
@@ -338,7 +339,7 @@ static void fill_service_information_ccr(smf_sess_t *sess,
     /* 3GPP-RAT-Type, TS 29.061 16.4.7.2 21 */
     ret = fd_msg_avp_new(ogs_diam_gy_3gpp_rat_type, 0, &avpch2);
     ogs_assert(ret == 0);
-    val.os.data = (uint8_t*)OGS_GTP2_RAT_TYPE_EUTRAN;
+    val.os.data = (uint8_t*)&rat_type;
     val.os.len = 1;
     ret = fd_msg_avp_setvalue (avpch2, &val);
     ogs_assert(ret == 0);
