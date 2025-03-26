@@ -276,6 +276,9 @@ ogs_pkbuf_t *s1ap_build_initial_context_setup_request(
     S1AP_MME_UE_S1AP_ID_t *MME_UE_S1AP_ID = NULL;
     S1AP_ENB_UE_S1AP_ID_t *ENB_UE_S1AP_ID = NULL;
     S1AP_UEAggregateMaximumBitrate_t *UEAggregateMaximumBitrate = NULL;
+    S1AP_ManagementBasedMDTAllowed_t *ManagementBasedMDTAllowed = NULL;
+    S1AP_MDTPLMNList_t *MDTPLMNList = NULL;
+    S1AP_PLMNidentity_t *PLMNidentity = NULL;
     S1AP_E_RABToBeSetupListCtxtSUReq_t *E_RABToBeSetupListCtxtSUReq = NULL;
     S1AP_UESecurityCapabilities_t *UESecurityCapabilities = NULL;
     S1AP_SecurityKey_t *SecurityKey = NULL;
@@ -336,6 +339,33 @@ ogs_pkbuf_t *s1ap_build_initial_context_setup_request(
         S1AP_InitialContextSetupRequestIEs__value_PR_UEAggregateMaximumBitrate;
 
     UEAggregateMaximumBitrate = &ie->value.choice.UEAggregateMaximumBitrate;
+
+    ie = CALLOC(1, sizeof(S1AP_InitialContextSetupRequestIEs_t));
+    ASN_SEQUENCE_ADD(&InitialContextSetupRequest->protocolIEs, ie);
+
+    ie->id = S1AP_ProtocolIE_ID_id_ManagementBasedMDTAllowed;
+    ie->criticality = S1AP_Criticality_ignore;
+    ie->value.present =
+        S1AP_InitialContextSetupRequestIEs__value_PR_ManagementBasedMDTAllowed;
+
+    ManagementBasedMDTAllowed = &ie->value.choice.ManagementBasedMDTAllowed;
+    *ManagementBasedMDTAllowed = 0;
+
+    ie = CALLOC(1, sizeof(S1AP_InitialContextSetupRequestIEs_t));
+    ASN_SEQUENCE_ADD(&InitialContextSetupRequest->protocolIEs, ie);
+
+    ie->id = S1AP_ProtocolIE_ID_id_ManagementBasedMDTPLMNList;
+    ie->criticality = S1AP_Criticality_ignore;
+    ie->value.present =
+        S1AP_InitialContextSetupRequestIEs__value_PR_MDTPLMNList;
+
+    MDTPLMNList = &ie->value.choice.MDTPLMNList;
+    PLMNidentity = (S1AP_PLMNidentity_t *)
+        CALLOC(1, sizeof(S1AP_PLMNidentity_t));
+    ogs_s1ap_buffer_to_OCTET_STRING(
+            &mme_ue->tai.plmn_id, OGS_PLMN_ID_LEN, PLMNidentity);
+    ASN_SEQUENCE_ADD(
+            &MDTPLMNList->list, PLMNidentity);
 
     ie = CALLOC(1, sizeof(S1AP_InitialContextSetupRequestIEs_t));
     ASN_SEQUENCE_ADD(&InitialContextSetupRequest->protocolIEs, ie);
