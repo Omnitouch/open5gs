@@ -652,6 +652,9 @@ ogs_pkbuf_t *s1ap_build_initial_context_setup_request(
                 UERadioCapability->buf, UERadioCapability->size);
     }
 
+    ie = CALLOC(1, sizeof(S1AP_InitialContextSetupRequestIEs_t));
+    ASN_SEQUENCE_ADD(&InitialContextSetupRequest->protocolIEs, ie);
+
     ie->id = S1AP_ProtocolIE_ID_id_ManagementBasedMDTAllowed;
     ie->criticality = S1AP_Criticality_ignore;
     ie->value.present =
@@ -675,9 +678,6 @@ ogs_pkbuf_t *s1ap_build_initial_context_setup_request(
             &mme_ue->tai.plmn_id, OGS_PLMN_ID_LEN, PLMNidentity);
     ASN_SEQUENCE_ADD(
             &MDTPLMNList->list, PLMNidentity);
-
-    ie = CALLOC(1, sizeof(S1AP_InitialContextSetupRequestIEs_t));
-    ASN_SEQUENCE_ADD(&InitialContextSetupRequest->protocolIEs, ie);
 
     /* TS23.003 6.2.2 Composition of IMEISV
      *
