@@ -135,6 +135,11 @@ ogs_pkbuf_t *esm_build_activate_default_bearer_context_request(
         (NULL != mme_bearer_next(bearer)))
     {
         ogs_error("Invalid context");
+        ogs_debug("sess                    : <%p>", sess);
+        ogs_debug("mme_ue                  : <%p>", mme_ue);
+        ogs_debug("session                 : <%p>", session);
+        ogs_debug("bearer                  : <%p>", bearer);
+        ogs_debug("mme_bearer_next(bearer) : <%p>", mme_bearer_next(bearer));
         return NULL;
     }
 
