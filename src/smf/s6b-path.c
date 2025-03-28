@@ -64,8 +64,10 @@ static __inline__ struct sess_state *new_state(os0_t sid)
 
 static void state_cleanup(struct sess_state *sess_data, os0_t sid, void *opaque)
 {
-    if (sess_data->s6b_sid)
+    if (sess_data->s6b_sid) {
         ogs_free(sess_data->s6b_sid);
+        sess_data->s6b_sid = NULL;
+    }
 
     ogs_thread_mutex_lock(&sess_state_mutex);
     ogs_pool_free(&sess_state_pool, sess_data);

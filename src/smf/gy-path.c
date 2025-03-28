@@ -76,11 +76,15 @@ static __inline__ struct sess_state *new_state(os0_t sid)
 
 static void state_cleanup(struct sess_state *sess_data, os0_t sid, void *opaque)
 {
-    if (sess_data->gy_sid)
+    if (sess_data->gy_sid) {
         ogs_free(sess_data->gy_sid);
+        sess_data->gy_sid = NULL;
+    }
 
-    if (sess_data->peer_host)
+    if (sess_data->peer_host) {
         ogs_free(sess_data->peer_host);
+        sess_data->peer_host = NULL;
+    }
 
     ogs_thread_mutex_lock(&sess_state_mutex);
     ogs_pool_free(&sess_state_pool, sess_data);
@@ -1258,6 +1262,7 @@ out:
         sess_data->cc_request_number <= cc_request_number) {
         ogs_debug("    [LAST] state_cleanup(): [%s]", sess_data->gy_sid);
         state_cleanup(sess_data, NULL, NULL);
+        sess->gy_sid = NULL;
     } else {
         ogs_debug("    fd_sess_state_store(): [%s]", sess_data->gy_sid);
         ret = fd_sess_state_store(smf_gy_reg, session, &sess_data);

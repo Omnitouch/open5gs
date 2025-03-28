@@ -1133,6 +1133,7 @@ out:
         sess_data->cc_request_number <= cc_request_number) {
         ogs_debug("    [LAST] state_cleanup(): [%s]", sess_data->gx_sid);
         state_cleanup(sess_data, NULL, NULL);
+        sess->gx_sid = NULL;
     } else {
         ogs_debug("    fd_sess_state_store(): [%s]", sess_data->gx_sid);
         ret = fd_sess_state_store(smf_gx_reg, session, &sess_data);
