@@ -1114,6 +1114,18 @@ static void smf_gy_cca_cb(void *data, struct msg **msg)
     ogs_assert(ret == 0);
     gy_message->cc_request_type = hdr->avp_value->i32;
 
+    if (gy_message->cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_UPDATE_REQUEST) {
+        if (sess_data->xact_data[sess_data->cc_request_number].pfcp != true) {
+            ogs_error("GY message request type and flag don't line up");
+            error++;
+        }
+    } else {
+        if(sess_data->xact_data[sess_data->cc_request_number].pfcp != false) {
+            ogs_error("GY message request type and flag don't line up");
+            error++;
+        }
+    }
+
     if (gy_message->result_code != ER_DIAMETER_SUCCESS) {
         ogs_warn("ERROR DIAMETER Result Code(%d)", gy_message->result_code);
         goto out;
@@ -1178,18 +1190,6 @@ static void smf_gy_cca_cb(void *data, struct msg **msg)
             break;
         }
         fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL);
-    }
-
-    if (gy_message->cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_UPDATE_REQUEST) {
-        if (sess_data->xact_data[sess_data->cc_request_number].pfcp != true) {
-            ogs_error("GY message request type and flag don't line up");
-            error++;
-        }
-    } else {
-        if(sess_data->xact_data[sess_data->cc_request_number].pfcp != false) {
-            ogs_error("GY message request type and flag don't line up");
-            error++;
-        }
     }
 
 out:
