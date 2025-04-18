@@ -1,16 +1,31 @@
 Use mounse07410(vlm_master) git's fork for asn1c
 
-commit ebed802c88b3049cfe67326e4df780cefc6da49e (HEAD -> vlm_master, origin/vlm_master, origin/HEAD)
-Author: Leith Bade <leith@swiftnav.com>
-Date:   Mon Nov 14 20:28:25 2022 +1100
+commit e0c4a3eafa9f1861dd7dac1000953eb2850e47e4 (HEAD -> vlm_master, origin/vlm_master, origin/HEAD)
+Merge: ce10a57a 665a2278
+Author: Mouse <mouse07410@users.noreply.github.com>
+Date:   Sun Feb 11 17:13:22 2024 -0500
 
-    Check SEQUENCE field constraint check result instead of returning
+    Merge pull request #177 from v0-e/integer-2-int64
+
+    INTEGER to 64-bit native integer methods
+
+commit 665a227804e18c3fa6b46ab55aeedd7379f1ed29
+Author: v0-e <xyz.vieira@gmail.com>
+Date:   Wed Feb 7 15:29:18 2024 +0000
+
+    INTEGER <-> (u)int64_t tests
+
+commit 81cc4e47a665c51faff2d2c2fb2ba39066009356
+Author: v0-e <xyz.vieira@gmail.com>
+Date:   Wed Feb 7 15:28:09 2024 +0000
+
+    INTEGER to (u)int64_t
 
 ===========================================
 user@host ~/Documents/git/my$ \
     git clone https://github.com/mouse07410/asn1c.git
 user@host ~/Documents/git/my$ \
-    git checkout ebed802c88b3049cfe67326e4df780cefc6da49e
+    git checkout e0c4a3eafa9f1861dd7dac1000953eb2850e47e4
 
 OR
 
@@ -18,7 +33,7 @@ user@host ~/Documents/git/my$ \
     git clone https://github.com/open5gs/asn1c.git
 
 user@host Documents/git/my/asn1c$ \
-    autoreconf -fi;./configure;make -j4
+    autoreconf -fi;./configure;make -j8
 
 Modify 36413-h30.txt to 36413-h30.asn
 ===========================================
@@ -35,13 +50,13 @@ ASN.1 encoder/decoder
 user@host ~/documents/git/open5gs/lib/asn1c/s1ap$ \
     ASN1C_PREFIX=S1AP_ ../../../../my/asn1c/asn1c/asn1c -pdu=all \
     -fcompound-names -findirect-choice -fno-include-deps \
-    -no-gen-BER -no-gen-XER -no-gen-OER -no-gen-UPER \
+    -no-gen-BER -no-gen-XER -no-gen-OER -no-gen-UPER -no-gen-JER \
     ../support/s1ap-r17.3.0/36413-h30.asn
 
 user@host ~/Documents/git/open5gs/lib/asn1c/ngap$ \
     ASN1C_PREFIX=NGAP_ ../../../../my/asn1c/asn1c/asn1c -pdu=all \
     -fcompound-names -findirect-choice -fno-include-deps \
-    -no-gen-BER -no-gen-XER -no-gen-OER -no-gen-UPER \
+    -no-gen-BER -no-gen-XER -no-gen-OER -no-gen-UPER -no-gen-JER \
     ../support/ngap-r17.3.0/38413-h30.asn
 
 Fix NGAP_RANNodeNameUTF8String.c (Issues #994 - APC_EXTENSIBLE)

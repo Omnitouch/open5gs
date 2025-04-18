@@ -206,6 +206,7 @@ int ogs_asn_ip_to_BIT_STRING(ogs_ip_t *ip, BIT_STRING_t *bit_string)
         memcpy(bit_string->buf, &ip->addr6, OGS_IPV6_LEN);
         ogs_debug("    IPv6[%s]", OGS_INET_NTOP(&ip->addr6, buf));
     } else {
+        ogs_error("No IPv4 or IPv6");
         return OGS_ERROR;
     }
 
