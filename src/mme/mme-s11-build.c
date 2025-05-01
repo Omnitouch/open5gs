@@ -23,6 +23,25 @@
 #include "dns_resolvers.h"
 #include "mme-redis.h"
 
+/* This function returns true if the MCC uses 2-digit MNCs, based on the lookup table */
+static bool mcc_has_2digit_mnc(uint16_t mcc) {
+    /* Static list of MCCs that use 2-digit MNCs */
+    static const uint16_t two_digit_mnc_mccs[] = {
+        505, /* Australia */
+        530, /* New Zealand */
+    };
+    
+    const size_t num_mccs = sizeof(two_digit_mnc_mccs) / sizeof(two_digit_mnc_mccs[0]);
+    
+    for (size_t i = 0; i < num_mccs; i++) {
+        if (mcc == two_digit_mnc_mccs[i]) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 ogs_pkbuf_t *mme_s11_build_create_session_request(
         uint8_t type, mme_sess_t *sess, int create_action)
 {
@@ -201,19 +220,36 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
         uint16_t ue_mcc = 100 * mme_ue->nas_mobile_identity_imsi.digit1 +
                           10 * mme_ue->nas_mobile_identity_imsi.digit2 +
                           1 * mme_ue->nas_mobile_identity_imsi.digit3;
-
-        uint16_t ue_mnc = 100 * mme_ue->nas_mobile_identity_imsi.digit4 +
-                          10 * mme_ue->nas_mobile_identity_imsi.digit5 +
-                          1 * mme_ue->nas_mobile_identity_imsi.digit6;
-
-        snprintf(
-            roaming_apn,
-            OGS_MAX_APN_LEN,
-            "%s.mnc%03u.mcc%03u.gprs",
-            session->name,
-            ue_mnc,
-            ue_mcc
-        );
+        
+        uint16_t ue_mnc;
+        if (mcc_has_2digit_mnc(ue_mcc)) {
+            /* For 2-digit MNC */
+            ue_mnc = 10 * mme_ue->nas_mobile_identity_imsi.digit4 +
+                     1 * mme_ue->nas_mobile_identity_imsi.digit5;
+            
+            snprintf(
+                roaming_apn,
+                OGS_MAX_APN_LEN,
+                "%s.mnc0%02u.mcc%03u.gprs",  /* 2-digit MNC format */
+                session->name,
+                ue_mnc,
+                ue_mcc
+            );
+        } else {
+            /* For 3-digit MNC */
+            ue_mnc = 100 * mme_ue->nas_mobile_identity_imsi.digit4 +
+                     10 * mme_ue->nas_mobile_identity_imsi.digit5 +
+                     1 * mme_ue->nas_mobile_identity_imsi.digit6;
+                     
+            snprintf(
+                roaming_apn,
+                OGS_MAX_APN_LEN,
+                "%s.mnc%03u.mcc%03u.gprs",  /* 3-digit MNC format */
+                session->name,
+                ue_mnc,
+                ue_mcc
+            );
+        }
 
         req->access_point_name.len = ogs_fqdn_build(
                 apn, roaming_apn, strlen(roaming_apn));
