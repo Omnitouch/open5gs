@@ -1380,6 +1380,8 @@ void smf_n4_handle_session_report_request(
         }
         switch(smf_use_gy_iface()) {
         case 1:
+            pfcp_xact = ogs_pfcp_xact_cycle(pfcp_xact);
+            ogs_expect(pfcp_xact);
             smf_gy_send_ccr(sess, pfcp_xact,
                     OGS_DIAM_GY_CC_REQUEST_TYPE_UPDATE_REQUEST);
             break;

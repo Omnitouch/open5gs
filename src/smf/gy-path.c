@@ -600,8 +600,7 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     const char *service_context_id = "32251@3gpp.org";
     uint32_t timestamp;
 
-    ogs_assert(xact);
-    ogs_assert(sess);
+    ogs_debug("[Gy][Credit-Control-Request]");
 
     sess = smf_sess_cycle(sess);
     if (NULL == sess) {
@@ -616,9 +615,6 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     }
 
     ogs_assert(sess->ipv4 || sess->ipv6);
-    ogs_assert(smf_ue);
-
-    ogs_debug("[Gy][Credit-Control-Request]");
 
     /* Create the request */
     ret = fd_msg_new(ogs_diam_gy_cmd_ccr, MSGFL_ALLOC_ETEID, &req);
