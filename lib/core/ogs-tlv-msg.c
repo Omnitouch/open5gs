@@ -871,6 +871,13 @@ int ogs_tlv_parse_msg_desc(
     ogs_assert(desc);
     ogs_assert(pkbuf);
 
+    if ((OGS_TLV_MESSAGE != desc->ctype) ||
+        (NULL == desc->child_descs[0]))
+    {
+        ogs_error("Failed sanity check... Can't parse TLV message!");
+        return OGS_ERROR;
+    }
+
     ogs_assert(desc->ctype == OGS_TLV_MESSAGE);
     ogs_assert(desc->child_descs[0]);
 
