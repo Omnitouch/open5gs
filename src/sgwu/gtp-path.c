@@ -167,7 +167,7 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
                    (ogs_pfcp_self()->local_recovery +
                     ogs_time_sec(
                         ogs_app()->time.message.pfcp.association_interval))) {
-                ogs_error("[%s] Send Error Indication [TEID:0x%x] to [%s]",
+                ogs_error("[%s] Send Error Indication (no pfcp object related) [TEID:0x%x] to [%s]",
                         OGS_ADDR(&sock->local_addr, buf1),
                         teid,
                         OGS_ADDR(&from, buf2));
@@ -270,7 +270,7 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
                    (ogs_pfcp_self()->local_recovery +
                     ogs_time_sec(
                         ogs_app()->time.message.pfcp.association_interval))) {
-                ogs_error("[%s] Send Error Indication [TEID:0x%x] to [%s]",
+                ogs_error("[%s] Send Error Indication (no pfcp object related) [TEID:0x%x] to [%s]",
                         OGS_ADDR(&sock->local_addr, buf1),
                         teid,
                         OGS_ADDR(&from, buf2));
@@ -301,7 +301,7 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
                     (ogs_pfcp_self()->local_recovery +
                         ogs_time_sec(
                             ogs_app()->time.message.pfcp.association_interval))) {
-                    ogs_error("[%s] Send Error Indication [TEID:0x%x] to [%s]",
+                    ogs_error("[%s] Send Error Indication (no pdr related) [TEID:0x%x] to [%s]",
                             OGS_ADDR(&sock->local_addr, buf1),
                             teid,
                             OGS_ADDR(&from, buf2));
@@ -336,7 +336,7 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
                     (ogs_pfcp_self()->local_recovery +
                         ogs_time_sec(
                             ogs_app()->time.message.pfcp.association_interval))) {
-                    ogs_error("[%s] Send Error Indication [TEID:0x%x] to [%s]",
+                    ogs_error("[%s] Send Error Indication (no far related) [TEID:0x%x] to [%s]",
                             OGS_ADDR(&sock->local_addr, buf1),
                             teid,
                             OGS_ADDR(&from, buf2));
