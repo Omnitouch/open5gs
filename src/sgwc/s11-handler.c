@@ -186,21 +186,27 @@ void sgwc_s11_handle_create_session_request(
     ogs_gtp2_uli_t uli;
     ogs_gtp2_bearer_qos_t bearer_qos;
     char apn[OGS_MAX_APN_LEN+1];
-
-    ogs_assert(s11_xact);
+    
     ogs_assert(gtpbuf);
     ogs_assert(message);
     req = &message->create_session_request;
     ogs_assert(req);
-
+    
     ogs_debug("Create Session Request");
     sgwc_metrics_inst_global_inc(SGWC_METR_GLOB_CTR_S11_CREATE_SESSION_REQ);
+    
+    s11_xact = ogs_gtp_xact_cycle(s11_xact);
+    if (NULL == s11_xact) {
+        ogs_error("s11_xact no longer valid");
+        return;
+    }
 
     /************************
      * Check SGWC-UE Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
-
+    
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
     if (!sgwc_ue) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
@@ -481,18 +487,24 @@ void sgwc_s11_handle_modify_bearer_request(
     ogs_gtp2_uli_t uli;
     ogs_gtp2_f_teid_t *enb_s1u_teid = NULL;
 
-    ogs_assert(s11_xact);
     ogs_assert(message);
     req = &message->modify_bearer_request;
     ogs_assert(req);
 
     ogs_debug("Modify Bearer Request");
 
+    s11_xact = ogs_gtp_xact_cycle(s11_xact);
+    if (NULL == s11_xact) {
+        ogs_error("s11_xact no longer valid");
+        return;
+    }
+
     /************************
      * Check SGWC-UE Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
     if (!sgwc_ue) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
@@ -541,6 +553,13 @@ void sgwc_s11_handle_modify_bearer_request(
         ogs_assert(sess);
 
         ogs_list_for_each_entry(&pfcp_xact_list, pfcp_xact, tmpnode) {
+            pfcp_xact = ogs_pfcp_xact_cycle(pfcp_xact);
+
+            if (NULL == pfcp_xact) {
+                ogs_error("pfcp_xact doesn't exist");
+                continue;
+            }
+
             if (sess == pfcp_xact->data) {
                 current_xact = pfcp_xact;
                 break;
@@ -654,7 +673,6 @@ void sgwc_s11_handle_delete_session_request(
     ogs_gtp2_delete_session_request_t *req = NULL;
     ogs_gtp2_indication_t *indication = NULL;
 
-    ogs_assert(s11_xact);
     ogs_assert(gtpbuf);
     ogs_assert(message);
     req = &message->delete_session_request;
@@ -662,11 +680,18 @@ void sgwc_s11_handle_delete_session_request(
 
     ogs_debug("Delete Session Request");
 
+    s11_xact = ogs_gtp_xact_cycle(s11_xact);
+    if (NULL == s11_xact) {
+        ogs_error("s11_xact no longer valid");
+        return;
+    }
+
     /************************
      * Check SGWC-UE Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
     if (!sgwc_ue) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
@@ -982,9 +1007,12 @@ void sgwc_s11_handle_update_bearer_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(s11_xact);
-    s5c_xact = s11_xact->assoc_xact;
-    ogs_assert(s5c_xact);
+    s11_xact = ogs_gtp_xact_cycle(s11_xact);
+    s5c_xact = s11_xact ? ogs_gtp_xact_cycle(s11_xact->assoc_xact) : NULL;
+    if (NULL == s5c_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
 
     if (s11_xact->xid & OGS_GTP_CMD_XACT_ID)
         /* MME received Bearer Resource Modification Request */
@@ -1106,6 +1134,7 @@ void sgwc_s11_handle_delete_bearer_response(
 
     ogs_debug("Delete Bearer Response");
 
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
     if (!sgwc_ue) {
         ogs_error("No Context");
         return;
@@ -1118,8 +1147,12 @@ void sgwc_s11_handle_delete_bearer_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(s11_xact);
-    s5c_xact = s11_xact->assoc_xact;
+    s11_xact = ogs_gtp_xact_cycle(s11_xact);
+    s5c_xact = s11_xact ? ogs_gtp_xact_cycle(s11_xact->assoc_xact) : NULL;
+    if (NULL == s5c_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
 
     if ((s11_xact->xid & OGS_GTP_CMD_XACT_ID))
         /* MME received Bearer Resource Modification Request */
@@ -1239,18 +1272,24 @@ void sgwc_s11_handle_release_access_bearers_request(
 
     ogs_gtp2_release_access_bearers_request_t *req = NULL;
 
-    ogs_assert(s11_xact);
     ogs_assert(message);
     req = &message->release_access_bearers_request;
     ogs_assert(req);
 
     ogs_debug("Release Access Bearers Request");
 
+    s11_xact = ogs_gtp_xact_cycle(s11_xact);
+    if (NULL == s11_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
+
     /************************
      * Check SGWC-UE Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
     if (!sgwc_ue) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
@@ -1303,11 +1342,20 @@ void sgwc_s11_handle_downlink_data_notification_ack(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(s11_xact);
+    s11_xact = ogs_gtp_xact_cycle(s11_xact);
+    if (NULL == s11_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
+
     bearer = sgwc_bearer_cycle(s11_xact->data);
-    ogs_expect(bearer);
     sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
-    ogs_expect(sess);
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
+
+    if ((NULL == sgwc_ue) || (NULL == sess)) {
+        ogs_error("No context");
+        return;
+    }
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
@@ -1350,18 +1398,24 @@ void sgwc_s11_handle_create_indirect_data_forwarding_tunnel_request(
     ogs_gtp2_f_teid_t *req_teid = NULL;
     uint8_t cause_value = 0;
 
-    ogs_assert(s11_xact);
     ogs_assert(message);
     req = &message->create_indirect_data_forwarding_tunnel_request;
     ogs_assert(req);
 
     ogs_debug("Create Indirect Data Forwarding Tunnel Request");
 
+    s11_xact = ogs_gtp_xact_cycle(s11_xact);
+    if (NULL == s11_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
+
     /************************
      * Check SGWC-UE Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
     if (!sgwc_ue) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
@@ -1511,11 +1565,18 @@ void sgwc_s11_handle_delete_indirect_data_forwarding_tunnel_request(
 
     ogs_debug("Delete Indirect Data Forwarding Tunnel Request");
 
+    s11_xact = ogs_gtp_xact_cycle(s11_xact);
+    if (NULL == s11_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
+
     /************************
      * Check SGWC-UE Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
     if (!sgwc_ue) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
@@ -1564,18 +1625,24 @@ void sgwc_s11_handle_bearer_resource_command(
     sgwc_sess_t *sess = NULL;
     sgwc_bearer_t *bearer = NULL;
 
-    ogs_assert(s11_xact);
     ogs_assert(message);
     cmd = &message->bearer_resource_command;
     ogs_assert(cmd);
 
     ogs_debug("Bearer Resource Command");
 
+    s11_xact = ogs_gtp_xact_cycle(s11_xact);
+    if (NULL == s11_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
+
     /************************
      * Check SGWC-UE Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
     if (!sgwc_ue) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;

@@ -182,20 +182,24 @@ void sgwc_sxa_handle_session_establishment_response(
 
     ogs_debug("Session Establishment Response");
 
-    ogs_assert(pfcp_xact);
+    pfcp_xact = ogs_pfcp_xact_cycle(pfcp_xact);
+    s11_xact = pfcp_xact ? ogs_gtp_xact_cycle(pfcp_xact->assoc_xact) : NULL;
+    if (NULL == s11_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
+
     ogs_assert(pfcp_rsp);
     ogs_assert(recv_message);
 
     create_session_request = &recv_message->create_session_request;
     ogs_assert(create_session_request);
 
-    s11_xact = pfcp_xact->assoc_xact;
-    ogs_assert(s11_xact);
-
     ogs_pfcp_xact_commit(pfcp_xact);
 
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
+    sess = sgwc_sess_cycle(sess);
     if (!sess) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
@@ -514,7 +518,14 @@ void sgwc_sxa_handle_session_modification_response(
 
     ogs_debug("Session Modification Response");
 
-    ogs_assert(pfcp_xact);
+    pfcp_xact = ogs_pfcp_xact_cycle(pfcp_xact);
+    if (NULL == pfcp_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
+
+    sess = sgwc_sess_cycle(sess);
+    
     ogs_assert(pfcp_rsp);
 
     flags = pfcp_xact->modify_flags;
@@ -647,7 +658,7 @@ void sgwc_sxa_handle_session_modification_response(
          *    }
          */
         if (flags & OGS_PFCP_MODIFY_REMOVE) {
-            s5c_xact = pfcp_xact->assoc_xact;
+            s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
 
             if (s5c_xact) {
                 ogs_gtp_send_error_message(
@@ -659,7 +670,7 @@ void sgwc_sxa_handle_session_modification_response(
                 sgwc_bearer_remove(bearer);
             }
         } else if (flags & OGS_PFCP_MODIFY_CREATE) {
-            s5c_xact = pfcp_xact->assoc_xact;
+            s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
             ogs_assert(s5c_xact);
 
             ogs_gtp_send_error_message(
@@ -669,7 +680,7 @@ void sgwc_sxa_handle_session_modification_response(
 
         } else if (flags & OGS_PFCP_MODIFY_ACTIVATE) {
             if (flags & OGS_PFCP_MODIFY_UL_ONLY) {
-                s11_xact = pfcp_xact->assoc_xact;
+                s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
                 ogs_assert(s11_xact);
 
                 ogs_gtp_send_error_message(
@@ -677,7 +688,7 @@ void sgwc_sxa_handle_session_modification_response(
                         OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
 
             } else if (flags & OGS_PFCP_MODIFY_DL_ONLY) {
-                s11_xact = pfcp_xact->assoc_xact;
+                s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
                 ogs_assert(s11_xact);
 
                 ogs_gtp_send_error_message(
@@ -688,7 +699,7 @@ void sgwc_sxa_handle_session_modification_response(
                 ogs_assert_if_reached();
             }
         } else if (flags & OGS_PFCP_MODIFY_DEACTIVATE) {
-            s11_xact = pfcp_xact->assoc_xact;
+            s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
             ogs_assert(s11_xact);
 
             ogs_gtp_send_error_message(
@@ -1373,7 +1384,14 @@ void sgwc_sxa_handle_session_deletion_response(
 
     ogs_debug("Session Deletion Response");
 
-    ogs_assert(pfcp_xact);
+    pfcp_xact = ogs_pfcp_xact_cycle(pfcp_xact);
+    if (NULL == pfcp_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
+
+    sess = sgwc_sess_cycle(sess);
+
     ogs_assert(pfcp_rsp);
 
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
@@ -1505,7 +1523,14 @@ void sgwc_sxa_handle_session_report_request(
 
     ogs_debug("Session Report Request");
 
-    ogs_assert(pfcp_xact);
+    pfcp_xact = ogs_pfcp_xact_cycle(pfcp_xact);
+    if (NULL == pfcp_xact) {
+        ogs_error("Invalid transaction data");
+        return;
+    }
+
+    sess = sgwc_sess_cycle(sess);
+
     ogs_assert(pfcp_req);
 
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;

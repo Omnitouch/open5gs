@@ -582,6 +582,7 @@ int sgwc_sess_pfcp_xact_count(
     sgwc_sess_t *sess = NULL;
     int xact_count = 0;
 
+    sgwc_ue = sgwc_ue_cycle(sgwc_ue);
     ogs_assert(sgwc_ue);
 
     ogs_list_for_each(&sgwc_ue->sess_list, sess) {
@@ -589,6 +590,12 @@ int sgwc_sess_pfcp_xact_count(
         ogs_pfcp_xact_t *pfcp_xact = NULL;
         ogs_assert(pfcp_node);
         ogs_list_for_each(&pfcp_node->local_list, pfcp_xact) {
+
+            if (NULL == ogs_pfcp_xact_cycle(pfcp_xact)) {
+                ogs_error("Found a pfcp_xact that doesn't exist!");
+                continue;
+            }
+
             if (sess != pfcp_xact->data)
                 continue;
             if (pfcp_type && pfcp_type != pfcp_xact->seq[0].type)

@@ -222,7 +222,12 @@ int sgwc_pfcp_send_bearer_to_modify_list(
     ogs_pkbuf_t *sxabuf = NULL;
     ogs_pfcp_header_t h;
 
-    ogs_assert(sess);
+    sess = sgwc_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("Failed to find context");
+        return OGS_ERROR;
+    }
+
     xact = ogs_pfcp_xact_cycle(xact);
     if (NULL == xact) {
         ogs_error("xact no longer valid");
@@ -262,7 +267,17 @@ int sgwc_pfcp_send_session_establishment_request(
     ogs_pfcp_header_t h;
     ogs_pfcp_xact_t *xact = NULL;
 
-    ogs_assert(sess);
+    sess = sgwc_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("Failed to find session");
+        return OGS_ERROR;
+    }
+
+    gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
+    if (NULL == gtp_xact) {
+        ogs_error("xact doesn't exist anymore");
+        return OGS_ERROR;
+    }
 
     xact = ogs_pfcp_xact_local_create(sess->pfcp_node, sess_timeout, sess);
     if (!xact) {
@@ -342,7 +357,17 @@ int sgwc_pfcp_send_session_modification_request(
     ogs_pfcp_xact_t *xact = NULL;
     sgwc_bearer_t *bearer = NULL;
 
-    ogs_assert(sess);
+    sess = sgwc_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("Failed to find session");
+        return OGS_ERROR;
+    }
+    
+    gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
+    if (NULL == gtp_xact) {
+        ogs_error("xact doesn't exist anymore");
+        return OGS_ERROR;
+    }
 
     xact = ogs_pfcp_xact_local_create(sess->pfcp_node, sess_timeout, sess);
     if (!xact) {
@@ -387,6 +412,12 @@ int sgwc_pfcp_send_bearer_modification_request(
     sess = bearer ? sgwc_sess_cycle(bearer->sess) : NULL;
     if (NULL == sess) {
         ogs_error("sess doesn't exist!");
+        return OGS_ERROR;
+    }
+    
+    gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
+    if (NULL == gtp_xact) {
+        ogs_error("xact doesn't exist anymore");
         return OGS_ERROR;
     }
 
@@ -439,7 +470,17 @@ int sgwc_pfcp_send_session_deletion_request(
     ogs_pfcp_header_t h;
     ogs_pfcp_xact_t *xact = NULL;
 
-    ogs_assert(sess);
+    sess = sgwc_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("Failed to find session");
+        return OGS_ERROR;
+    }
+    
+    gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
+    if (NULL == gtp_xact) {
+        ogs_error("xact doesn't exist anymore");
+        return OGS_ERROR;
+    }
 
     xact = ogs_pfcp_xact_local_create(sess->pfcp_node, sess_timeout, sess);
     if (!xact) {
@@ -488,6 +529,18 @@ int sgwc_pfcp_send_session_report_response(
     int rv;
     ogs_pkbuf_t *sxabuf = NULL;
     ogs_pfcp_header_t h;
+
+    sess = sgwc_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("Failed to find session");
+        return OGS_ERROR;
+    }
+    
+    xact = ogs_pfcp_xact_cycle(xact);
+    if (NULL == xact) {
+        ogs_error("xact doesn't exist anymore");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_pfcp_header_t));
     h.type = OGS_PFCP_SESSION_REPORT_RESPONSE_TYPE;

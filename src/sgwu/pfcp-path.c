@@ -180,6 +180,12 @@ int sgwu_pfcp_send_session_establishment_response(
         return OGS_ERROR;
     }
 
+    sess = sgwu_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("No context");
+        return OGS_ERROR;
+    }
+
     memset(&h, 0, sizeof(ogs_pfcp_header_t));
     h.type = OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE;
     h.seid = sess->sgwc_sxa_f_seid.seid;
@@ -218,6 +224,12 @@ int sgwu_pfcp_send_session_modification_response(
         return OGS_ERROR;
     }
 
+    sess = sgwu_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("No context");
+        return OGS_ERROR;
+    }
+
     memset(&h, 0, sizeof(ogs_pfcp_header_t));
     h.type = OGS_PFCP_SESSION_MODIFICATION_RESPONSE_TYPE;
     h.seid = sess->sgwc_sxa_f_seid.seid;
@@ -252,6 +264,12 @@ int sgwu_pfcp_send_session_deletion_response(ogs_pfcp_xact_t *xact,
     xact = ogs_pfcp_xact_cycle(xact);
     if (NULL == xact) {
         ogs_error("xact no longer valid");
+        return OGS_ERROR;
+    }
+
+    sess = sgwu_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("No context");
         return OGS_ERROR;
     }
 
@@ -306,7 +324,12 @@ int sgwu_pfcp_send_session_report_request(
     ogs_pfcp_header_t h;
     ogs_pfcp_xact_t *xact = NULL;
 
-    ogs_assert(sess);
+    sess = sgwu_sess_cycle(sess);
+    if (NULL == sess) {
+        ogs_error("No context");
+        return OGS_ERROR;
+    }
+
     ogs_assert(report);
 
     memset(&h, 0, sizeof(ogs_pfcp_header_t));

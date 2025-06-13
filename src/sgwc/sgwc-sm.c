@@ -168,10 +168,12 @@ void sgwc_state_operational(ogs_fsm_t *s, sgwc_event_t *e)
             break;
         }
 
+        gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
+
         if (gtp_message.h.teid_presence && gtp_message.h.teid != 0) {
             /* Cause is not "Context not found" */
             sgwc_ue = sgwc_ue_find_by_teid(gtp_message.h.teid);
-        } else if (gtp_xact->local_teid) { /* rx no TEID or TEID=0 */
+        } else if ((NULL != gtp_xact) && (gtp_xact->local_teid)) { /* rx no TEID or TEID=0 */
             /* 3GPP TS 29.274 5.5.2: we receive TEID=0 under some
              * conditions, such as cause "Session context not found". In those
              * cases, we still want to identify the local session which
@@ -272,9 +274,11 @@ void sgwc_state_operational(ogs_fsm_t *s, sgwc_event_t *e)
             break;
         }
 
+        gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
+
         if (gtp_message.h.teid_presence && gtp_message.h.teid != 0) {
             sess = sgwc_sess_find_by_teid(gtp_message.h.teid);
-        } else if (gtp_xact->local_teid) { /* rx no TEID or TEID=0 */
+        } else if ((NULL != gtp_xact) && (gtp_xact->local_teid)) { /* rx no TEID or TEID=0 */
             /* 3GPP TS 29.274 5.5.2: we receive TEID=0 under some
              * conditions, such as cause "Session context not found". In those
              * cases, we still want to identify the local session which

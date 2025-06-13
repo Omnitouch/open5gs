@@ -108,7 +108,12 @@ void sgwc_s5c_handle_create_session_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(s5c_xact);
+    s5c_xact = ogs_gtp_xact_cycle(s5c_xact);
+    if (NULL == s5c_xact) {
+        ogs_error("s5c_xact was NULL");
+        return;
+    }
+
     s11_xact = s5c_xact->assoc_xact;
     if (NULL == s11_xact) {
         ogs_error("s11_xact was NULL");
@@ -134,11 +139,12 @@ void sgwc_s5c_handle_create_session_response(
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    sess = sgwc_sess_cycle(sess);
+    sgwc_ue = sess ? sgwc_ue_cycle(sess->sgwc_ue) : NULL;
+    if ((NULL == sess) || (NULL == sgwc_ue)) {
         ogs_error("No Context in TEID [Cause:%d]", session_cause);
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     } else {
-        sgwc_ue = sess->sgwc_ue;
         ogs_assert(sgwc_ue);
     }
 
@@ -365,8 +371,18 @@ void sgwc_s5c_handle_modify_bearer_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(s5c_xact);
+    s5c_xact = ogs_gtp_xact_cycle(s5c_xact);
+    if (NULL == s5c_xact) {
+        ogs_error("s5c_xact was NULL");
+        return;
+    }
+
     s11_xact = s5c_xact->assoc_xact;
+    if (NULL == s11_xact) {
+        ogs_error("s11_xact was NULL");
+        return;
+    }
+
     ogs_assert(s11_xact);
     modify_action = s5c_xact->modify_action;
 
@@ -389,11 +405,12 @@ void sgwc_s5c_handle_modify_bearer_response(
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    sess = sgwc_sess_cycle(sess);
+    sgwc_ue = sess ? sgwc_ue_cycle(sess->sgwc_ue) : NULL;
+    if ((NULL == sess) || (NULL == sgwc_ue)) {
         ogs_error("No Context in TEID [Cause:%d]", session_cause);
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     } else {
-        sgwc_ue = sess->sgwc_ue;
         ogs_assert(sgwc_ue);
     }
 
@@ -508,9 +525,17 @@ void sgwc_s5c_handle_delete_session_response(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(s5c_xact);
-    s11_xact = s5c_xact->assoc_xact;
-    ogs_assert(s11_xact);
+    s5c_xact = ogs_gtp_xact_cycle(s5c_xact);
+    if (NULL == s5c_xact) {
+        ogs_error("s5c_xact was NULL");
+        return;
+    }
+
+    s11_xact = ogs_gtp_xact_cycle(s5c_xact->assoc_xact);
+    if (NULL == s11_xact) {
+        ogs_error("s11_xact was NULL");
+        return;
+    }
 
     rv = ogs_gtp_xact_commit(s5c_xact);
     ogs_expect(rv == OGS_OK);
@@ -531,11 +556,12 @@ void sgwc_s5c_handle_delete_session_response(
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    sess = sgwc_sess_cycle(sess);
+    sgwc_ue = sess ? sgwc_ue_cycle(sess->sgwc_ue) : NULL;
+    if ((NULL == sess) || (NULL == sgwc_ue)) {
         ogs_error("No Context in TEID [Cause:%d]", session_cause);
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     } else {
-        sgwc_ue = sess->sgwc_ue;
         ogs_assert(sgwc_ue);
     }
 
@@ -606,18 +632,23 @@ void sgwc_s5c_handle_create_bearer_request(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(s5c_xact);
+    s5c_xact = ogs_gtp_xact_cycle(s5c_xact);
+    if (NULL == s5c_xact) {
+        ogs_error("s5c_xact was NULL");
+        return;
+    }
 
     /************************
      * Check Session Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    sess = sgwc_sess_cycle(sess);
+    sgwc_ue = sess ? sgwc_ue_cycle(sess->sgwc_ue) : NULL;
+    if ((NULL == sess) || (NULL == sgwc_ue)) {
         ogs_error("No Context in TEID");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     } else {
-        sgwc_ue = sess->sgwc_ue;
         ogs_assert(sgwc_ue);
     }
 
@@ -749,18 +780,24 @@ void sgwc_s5c_handle_update_bearer_request(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(s5c_xact);
+    s5c_xact = ogs_gtp_xact_cycle(s5c_xact);
+    if (NULL == s5c_xact) {
+        ogs_error("s5c_xact was NULL");
+        return;
+    }
 
+    s11_xact = ogs_gtp_xact_cycle(s5c_xact->assoc_xact);
     /************************
      * Check Session Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    sess = sgwc_sess_cycle(sess);
+    sgwc_ue = sess ? sgwc_ue_cycle(sess->sgwc_ue) : NULL;
+    if ((NULL == sess) || (NULL == sgwc_ue)) {
         ogs_error("No Context in TEID");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     } else {
-        sgwc_ue = sess->sgwc_ue;
         ogs_assert(sgwc_ue);
 
         if (req->bearer_contexts.presence == 0) {
@@ -812,7 +849,6 @@ void sgwc_s5c_handle_update_bearer_request(
         return;
     }
 
-    s11_xact = s5c_xact->assoc_xact;
     if (!s11_xact) {
         s11_xact = ogs_gtp_xact_local_create(
                 sgwc_ue->gnode, &message->h, pkbuf, bearer_timeout, bearer);
@@ -859,18 +895,23 @@ void sgwc_s5c_handle_delete_bearer_request(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(s5c_xact);
+    s5c_xact = ogs_gtp_xact_cycle(s5c_xact);
+    if (NULL == s5c_xact) {
+        ogs_error("s5c_xact was NULL");
+        return;
+    }
 
     /************************
      * Check Session Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    sess = sgwc_sess_cycle(sess);
+    sgwc_ue = sess ? sgwc_ue_cycle(sess->sgwc_ue) : NULL;
+    if ((NULL == sess) || (NULL == sgwc_ue)) {
         ogs_error("No Context in TEID");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     } else {
-        sgwc_ue = sess->sgwc_ue;
         ogs_assert(sgwc_ue);
 
         if (req->linked_eps_bearer_id.presence == 0 &&
@@ -953,7 +994,7 @@ void sgwc_s5c_handle_delete_bearer_request(
         return;
     }
 
-    s11_xact = s5c_xact->assoc_xact;
+    s11_xact = ogs_gtp_xact_cycle(s5c_xact->assoc_xact);
     if (!s11_xact) {
        /*
         * 1. SMF sends Delete Bearer Request(DEFAULT BEARER) to SGW/MME.
@@ -1015,20 +1056,29 @@ void sgwc_s5c_handle_bearer_resource_failure_indication(
     /********************
      * Check Transaction
      ********************/
-    ogs_assert(s5c_xact);
-    s11_xact = s5c_xact->assoc_xact;
-    ogs_assert(s11_xact);
+    s5c_xact = ogs_gtp_xact_cycle(s5c_xact);
+    if (NULL == s5c_xact) {
+        ogs_error("s5c_xact was NULL");
+        return;
+    }
+
+    s11_xact = ogs_gtp_xact_cycle(s5c_xact->assoc_xact);
+    if (NULL == s11_xact) {
+        ogs_error("s11_xact was NULL");
+        return;
+    }
 
     /************************
      * Check Session Context
      *
      * - Session could be deleted before a message is received from SMF.
      ************************/
-    if (!sess) {
+    sess = sgwc_sess_cycle(sess);
+    sgwc_ue = sess ? sgwc_ue_cycle(sess->sgwc_ue) : NULL;
+    if ((NULL == sess) || (NULL == sgwc_ue)) {
         ogs_error("No Context in TEID");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     } else {
-        sgwc_ue = sess->sgwc_ue;
         ogs_assert(sgwc_ue);
     }
 

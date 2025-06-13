@@ -266,9 +266,14 @@ int sgwc_gtp_send_create_session_response(
     ogs_gtp2_header_t h;
     ogs_pkbuf_t *pkbuf = NULL;
 
-    ogs_assert(sess);
-    sgwc_ue = sess->sgwc_ue;
-    ogs_assert(sgwc_ue);
+    sess = sgwc_sess_cycle(sess);
+    sgwc_ue = sess ? sess->sgwc_ue : NULL;
+
+    if (NULL == sgwc_ue) {
+        ogs_error("Failed to find valid context");
+        return OGS_ERROR;
+    }
+
     xact = ogs_gtp_xact_cycle(xact);
     if (NULL == xact) {
         ogs_error("xact no longer valid");
@@ -359,9 +364,13 @@ int sgwc_gtp2_send_delete_bearer_request(
     sgwc_ue_t *sgwc_ue = NULL;
     sgwc_sess_t *sess = NULL;
 
-    ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
+    bearer = sgwc_bearer_cycle(bearer);
+    sess = bearer ? sgwc_sess_cycle(bearer->sess): NULL;
+    
+    if (NULL == sess) {
+        ogs_error("Failed to find context");
+        return OGS_ERROR;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_DELETE_BEARER_REQUEST_TYPE;
