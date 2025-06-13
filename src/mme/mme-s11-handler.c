@@ -441,7 +441,6 @@ void mme_s11_handle_create_session_response(
         r = nas_eps_send_activate_default_bearer_context_request(
                 bearer, create_action);
         ogs_expect(r == OGS_OK);
-        return;
     } else if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST) {
 
         GTP_COUNTER_CHECK(mme_ue, GTP_COUNTER_CREATE_SESSION_BY_PATH_SWITCH,
