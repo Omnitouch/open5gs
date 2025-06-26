@@ -273,11 +273,8 @@ int sgwc_pfcp_send_session_establishment_request(
         return OGS_ERROR;
     }
 
+    // Possible for caller to pass us a NULL gtp_xact
     gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
-    if (NULL == gtp_xact) {
-        ogs_error("xact doesn't exist anymore");
-        return OGS_ERROR;
-    }
 
     xact = ogs_pfcp_xact_local_create(sess->pfcp_node, sess_timeout, sess);
     if (!xact) {
@@ -363,11 +360,8 @@ int sgwc_pfcp_send_session_modification_request(
         return OGS_ERROR;
     }
     
+    // Possible for caller to pass us a NULL gtp_xact
     gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
-    if (NULL == gtp_xact) {
-        ogs_error("xact doesn't exist anymore");
-        return OGS_ERROR;
-    }
 
     xact = ogs_pfcp_xact_local_create(sess->pfcp_node, sess_timeout, sess);
     if (!xact) {
@@ -415,11 +409,8 @@ int sgwc_pfcp_send_bearer_modification_request(
         return OGS_ERROR;
     }
     
+    // Possible for caller to pass us a NULL gtp_xact
     gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
-    if (NULL == gtp_xact) {
-        ogs_error("xact doesn't exist anymore");
-        return OGS_ERROR;
-    }
 
     xact = ogs_pfcp_xact_local_create(sess->pfcp_node, bearer_timeout, bearer);
     if (!xact) {
@@ -476,11 +467,8 @@ int sgwc_pfcp_send_session_deletion_request(
         return OGS_ERROR;
     }
     
+    // Possible for caller to pass us a NULL gtp_xact
     gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
-    if (NULL == gtp_xact) {
-        ogs_error("xact doesn't exist anymore");
-        return OGS_ERROR;
-    }
 
     xact = ogs_pfcp_xact_local_create(sess->pfcp_node, sess_timeout, sess);
     if (!xact) {

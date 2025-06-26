@@ -93,7 +93,7 @@ static void sess_timeout(ogs_gtp_xact_t *xact, void *data)
                     sgwc_ue ? sgwc_ue->imsi_bcd : "(NULL)sgwc_ue->imsi_bcd");
             break;
         }
-        ogs_assert(OGS_OK ==
+        ogs_expect(OGS_OK ==
             sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
         break;
     default:
