@@ -638,6 +638,12 @@ void sgwc_s11_handle_modify_bearer_request(
 
         sgwc_ue->uli_presence = true;
 
+        // If the new cell id isn't the same as the one we have (it changed)
+        // then we need to log a ULI update
+        if (sgwc_ue->e_cgi.cell_id != uli.e_cgi.cell_id) {
+            log_uli_update(bearer);
+        }
+
         ogs_nas_to_plmn_id(&sgwc_ue->e_tai.plmn_id, &uli.tai.nas_plmn_id);
         sgwc_ue->e_tai.tac = uli.tai.tac;
         ogs_nas_to_plmn_id(&sgwc_ue->e_cgi.plmn_id, &uli.e_cgi.nas_plmn_id);
@@ -650,7 +656,6 @@ void sgwc_s11_handle_modify_bearer_request(
                 ogs_plmn_id_hexdump(&sgwc_ue->e_cgi.plmn_id),
                 sgwc_ue->e_cgi.cell_id);
 
-        log_uli_update(bearer);
     }
 
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
