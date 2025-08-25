@@ -360,8 +360,12 @@ int sgwc_pfcp_send_session_modification_request(
         return OGS_ERROR;
     }
     
-    // Possible for caller to pass us a NULL gtp_xact
-    gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
+    // Its possible for `gtp_xact` to be NULL, valid, or
+    // for some stupid reason it can be a pointer to a bearer...
+    // Instead of checking it exists here we'll let sgwc_sxa_handle_session_modification_response
+    // figure it out as it knows when to expect the special cases...
+    // See: `bearer = sgwc_bearer_cycle(pfcp_xact->assoc_xact);`
+    // gtp_xact = ogs_gtp_xact_cycle(gtp_xact);
 
     xact = ogs_pfcp_xact_local_create(sess->pfcp_node, sess_timeout, sess);
     if (!xact) {

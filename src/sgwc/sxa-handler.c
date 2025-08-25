@@ -735,7 +735,7 @@ void sgwc_sxa_handle_session_modification_response(
      */
     if (flags & OGS_PFCP_MODIFY_REMOVE) {
         if (flags & OGS_PFCP_MODIFY_INDIRECT) {
-            s11_xact = pfcp_xact->assoc_xact;
+            s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
             ogs_assert(s11_xact);
 
             ogs_pfcp_xact_commit(pfcp_xact);
@@ -812,7 +812,7 @@ void sgwc_sxa_handle_session_modification_response(
             }
 
         } else {
-            s5c_xact = pfcp_xact->assoc_xact;
+            s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
 
             ogs_pfcp_xact_commit(pfcp_xact);
 
@@ -845,7 +845,7 @@ void sgwc_sxa_handle_session_modification_response(
             ogs_gtp2_create_bearer_request_t *gtp_req = NULL;
             ogs_gtp2_f_teid_t sgw_s1u_teid;
 
-            s5c_xact = pfcp_xact->assoc_xact;
+            s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
             ogs_assert(s5c_xact);
 
             ogs_pfcp_xact_commit(pfcp_xact);
@@ -895,7 +895,7 @@ void sgwc_sxa_handle_session_modification_response(
             ogs_gtp2_create_bearer_response_t *gtp_rsp = NULL;
             ogs_gtp2_f_teid_t sgw_s5u_teid, pgw_s5u_teid;
 
-            s5c_xact = pfcp_xact->assoc_xact;
+            s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
             ogs_assert(s5c_xact);
 
             ogs_pfcp_xact_commit(pfcp_xact);
@@ -953,7 +953,7 @@ void sgwc_sxa_handle_session_modification_response(
             ogs_expect(rv == OGS_OK);
 
         } else if (flags & OGS_PFCP_MODIFY_INDIRECT) {
-            s11_xact = pfcp_xact->assoc_xact;
+            s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
             ogs_assert(s11_xact);
 
             ogs_pfcp_xact_commit(pfcp_xact);
@@ -1091,7 +1091,7 @@ void sgwc_sxa_handle_session_modification_response(
     } else if (flags & OGS_PFCP_MODIFY_ACTIVATE) {
         OGS_LIST(bearer_to_modify_list);
 
-        s11_xact = pfcp_xact->assoc_xact;
+        s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
         ogs_assert(s11_xact);
 
         ogs_list_copy(&bearer_to_modify_list,
@@ -1319,7 +1319,7 @@ void sgwc_sxa_handle_session_modification_response(
                 ogs_error("Bearer doesn't exist!");
             }
         } else {
-            s11_xact = pfcp_xact->assoc_xact;
+            s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
             ogs_assert(s11_xact);
 
             ogs_pfcp_xact_commit(pfcp_xact);
