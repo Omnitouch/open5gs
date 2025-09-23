@@ -43,9 +43,13 @@ ogs_pkbuf_t *sgwc_s11_build_create_session_response(
 
     ogs_debug("[SGWC] Create Session Response");
 
-    ogs_assert(sess);
-    sgwc_ue = sess->sgwc_ue;
-    ogs_assert(sgwc_ue);
+    sess = sgwc_sess_cycle(sess);
+    sgwc_ue = sess ? sgwc_ue_cycle(sess->sgwc_ue) : NULL;
+
+    if (NULL == sgwc_ue) {
+        ogs_error("No context!");
+        return NULL;
+    }
 
     ogs_debug("    SGW_S5C_TEID[0x%x] PGW_S5C_TEID[0x%x]",
             sess->sgw_s5c_teid, sess->pgw_s5c_teid);
@@ -76,6 +80,11 @@ ogs_pkbuf_t *sgwc_s11_build_create_session_response(
     i = 0;
     ogs_list_for_each(&sess->bearer_list, bearer) {
         ogs_assert(i < OGS_BEARER_PER_UE);
+        bearer = sgwc_bearer_cycle(bearer);
+        if (NULL == bearer) {
+            ogs_error("Found NULL bearer in bearer list!");
+            return NULL;
+        }
 
         /* Bearer EBI */
         rsp->bearer_contexts_created[i].presence = 1;
@@ -125,7 +134,11 @@ ogs_pkbuf_t *sgwc_s11_build_create_session_response(
         pgw_s5u_teid[i].teid = htobe32(ul_tunnel->remote_teid);
         rv = ogs_gtp2_ip_to_f_teid(&ul_tunnel->remote_ip,
                 &pgw_s5u_teid[i], &pgw_s5u_len[i]);
-        ogs_assert(rv == OGS_OK);
+        if (rv != OGS_OK) {
+            ogs_error("Invalid PGW S5U IP address");
+            return NULL;
+        }
+
         rsp->bearer_contexts_created[i].s5_s8_u_sgw_f_teid.presence = 1;
         rsp->bearer_contexts_created[i].s5_s8_u_sgw_f_teid.data =
             &pgw_s5u_teid[i];

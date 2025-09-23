@@ -377,6 +377,8 @@ void sgwc_sxa_handle_session_establishment_response(
         ogs_gtp2_modify_bearer_request_t *modify_bearer_request =
             &send_message.modify_bearer_request;
 
+        ogs_debug("Modify Bearer Request");
+
         /*
          * Operation Indication:
          * This flag shall be set to 1 on the S4/S11 interface
@@ -1173,6 +1175,9 @@ void sgwc_sxa_handle_session_modification_response(
         } else if (flags & OGS_PFCP_MODIFY_DL_ONLY) {
             if (SGWC_SESSION_SYNC_DONE(sgwc_ue,
                     OGS_PFCP_SESSION_MODIFICATION_REQUEST_TYPE, flags)) {
+
+                ogs_debug("Modify Bearer Request");
+
                 ogs_gtp2_modify_bearer_request_t *gtp_req = NULL;
                 ogs_gtp2_modify_bearer_response_t *gtp_rsp = NULL;
 

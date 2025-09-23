@@ -149,6 +149,7 @@ void sgwc_s5c_handle_create_session_response(
     }
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
+        ogs_error("Cause value wasn't accepted: %d", cause_value);
         ogs_gtp_send_error_message(
                 s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                 OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
@@ -478,8 +479,13 @@ void sgwc_s5c_handle_modify_bearer_response(
         sess->sgw_s5c_teid, sess->pgw_s5c_teid);
 
     if (modify_action == OGS_GTP_MODIFY_IN_PATH_SWITCH_REQUEST) {
-        ogs_assert(OGS_OK ==
-            sgwc_gtp_send_create_session_response(sess, s11_xact));
+        if (OGS_OK != sgwc_gtp_send_create_session_response(sess, s11_xact)) {
+            ogs_error("Failed to send Create Session Response");
+            ogs_gtp_send_error_message(
+                    s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
+                    OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, OGS_GTP2_CAUSE_SYSTEM_FAILURE);
+            return;
+        }
     } else {
         message->h.type = OGS_GTP2_MODIFY_BEARER_RESPONSE_TYPE;
         message->h.teid = sgwc_ue->mme_s11_teid;
