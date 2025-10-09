@@ -450,6 +450,31 @@ void sgwc_sxa_handle_session_establishment_response(
         create_session_request->sender_f_teid_for_control_plane.
             len = sgw_s5c_len;
 
+        /* Override Serving Network and ULI for specific IMSI */
+        if (sess->sgwc_ue) {
+            static uint8_t target_imsi[8] = {0x13, 0x20, 0x06, 0x13, 0x14, 0x52, 0x26, 0xf2};
+            if (sess->sgwc_ue->imsi_len == 8 &&
+                memcmp(sess->sgwc_ue->imsi, target_imsi, 8) == 0) {
+                /* Override Serving Network to 62f210 */
+                static uint8_t static_serving_network[3] = {0x62, 0xf2, 0x10};
+                create_session_request->serving_network.presence = 1;
+                create_session_request->serving_network.data = static_serving_network;
+                create_session_request->serving_network.len = 3;
+
+                /* Override ULI: TAI ECGI (MCC=262, MNC=01, TAC=7001, ECGI cell=411/1) */
+                static uint8_t static_uli[13] = {
+                    0x18,                               /* Flags: ECGI Present, TAI Present */
+                    0x62, 0xf2, 0x10, 0x1b, 0x59,      /* TAI: MCC=262, MNC=01, TAC=7001 */
+                    0x62, 0xf2, 0x10, 0x00, 0x01, 0x9b, 0x01  /* ECGI: MCC=262, MNC=01, ECI=105217 */
+                };
+                create_session_request->user_location_information.presence = 1;
+                create_session_request->user_location_information.data = static_uli;
+                create_session_request->user_location_information.len = 13;
+
+                ogs_info("Overriding Serving Network and ULI for IMSI 310260314125622");
+            }
+        }
+
         /* Remove PGW-S5C */
         create_session_request->pgw_s5_s8_address_for_control_plane_or_pmip.
             presence = 0;
