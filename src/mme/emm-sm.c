@@ -749,18 +749,20 @@ static void common_register_state(ogs_fsm_t *s, mme_event_t *e,
 
             if (!MME_UE_HAVE_IMSI(mme_ue)) {
                 ogs_warn("Detach request : Unknown UE");
-                ogs_assert(OGS_OK ==
-                    nas_eps_send_service_reject(mme_ue,
-                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK));
+                r = nas_eps_send_service_reject(mme_ue,
+                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 OGS_FSM_TRAN(s, &emm_state_exception);
                 break;
             }
 
             if (!SECURITY_CONTEXT_IS_VALID(mme_ue)) {
                 ogs_warn("No Security Context : IMSI[%s]", mme_ue->imsi_bcd);
-                ogs_assert(OGS_OK ==
-                    nas_eps_send_service_reject(mme_ue,
-                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK));
+                r = nas_eps_send_service_reject(mme_ue,
+                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 OGS_FSM_TRAN(s, &emm_state_exception);
                 break;
             }
@@ -966,18 +968,20 @@ void emm_state_authentication(ogs_fsm_t *s, mme_event_t *e)
 
             if (!MME_UE_HAVE_IMSI(mme_ue)) {
                 ogs_warn("Detach request : Unknown UE");
-                ogs_assert(OGS_OK ==
-                    nas_eps_send_service_reject(mme_ue,
-                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK));
+                r = nas_eps_send_service_reject(mme_ue,
+                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 OGS_FSM_TRAN(s, &emm_state_exception);
                 break;
             }
 
             if (!SECURITY_CONTEXT_IS_VALID(mme_ue)) {
                 ogs_warn("No Security Context : IMSI[%s]", mme_ue->imsi_bcd);
-                ogs_assert(OGS_OK ==
-                    nas_eps_send_service_reject(mme_ue,
-                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK));
+                r = nas_eps_send_service_reject(mme_ue,
+                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 OGS_FSM_TRAN(s, &emm_state_exception);
                 break;
             }
@@ -1177,18 +1181,20 @@ void emm_state_security_mode(ogs_fsm_t *s, mme_event_t *e)
 
             if (!MME_UE_HAVE_IMSI(mme_ue)) {
                 ogs_warn("Detach request : Unknown UE");
-                ogs_assert(OGS_OK ==
-                    nas_eps_send_service_reject(mme_ue,
-                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK));
+                r = nas_eps_send_service_reject(mme_ue,
+                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 OGS_FSM_TRAN(s, &emm_state_exception);
                 break;
             }
 
             if (!SECURITY_CONTEXT_IS_VALID(mme_ue)) {
                 ogs_warn("No Security Context : IMSI[%s]", mme_ue->imsi_bcd);
-                ogs_assert(OGS_OK ==
-                    nas_eps_send_service_reject(mme_ue,
-                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK));
+                r = nas_eps_send_service_reject(mme_ue,
+                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 OGS_FSM_TRAN(s, &emm_state_exception);
                 break;
             }
@@ -1412,18 +1418,20 @@ void emm_state_initial_context_setup(ogs_fsm_t *s, mme_event_t *e)
 
             if (!MME_UE_HAVE_IMSI(mme_ue)) {
                 ogs_warn("Detach request : Unknown UE");
-                ogs_assert(OGS_OK ==
-                    nas_eps_send_service_reject(mme_ue,
-                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK));
+                r = nas_eps_send_service_reject(mme_ue,
+                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 OGS_FSM_TRAN(s, &emm_state_exception);
                 break;
             }
 
             if (!SECURITY_CONTEXT_IS_VALID(mme_ue)) {
                 ogs_warn("No Security Context : IMSI[%s]", mme_ue->imsi_bcd);
-                ogs_assert(OGS_OK ==
-                    nas_eps_send_service_reject(mme_ue,
-                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK));
+                r = nas_eps_send_service_reject(mme_ue,
+                    OGS_NAS_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK);
+                ogs_expect(r == OGS_OK);
+                ogs_assert(r != OGS_ERROR);
                 OGS_FSM_TRAN(s, &emm_state_exception);
                 break;
             }
