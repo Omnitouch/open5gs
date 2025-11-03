@@ -1581,9 +1581,12 @@ void sgwc_sxa_handle_session_report_request(
         return;
     }
 
-    ogs_assert(OGS_OK ==
+    if (OGS_OK !=
         sgwc_pfcp_send_session_report_response(
-            pfcp_xact, sess, OGS_PFCP_CAUSE_REQUEST_ACCEPTED));
+            pfcp_xact, sess, OGS_PFCP_CAUSE_REQUEST_ACCEPTED)) {
+        ogs_error("Failed to send session report response");
+        return;
+    }
 
     report_type.value = pfcp_req->report_type.u8;
 
