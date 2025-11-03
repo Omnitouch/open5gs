@@ -2258,7 +2258,11 @@ ogs_pkbuf_t *s1ap_build_handover_request(
 
             rv = ogs_asn_ip_to_BIT_STRING(
                     &bearer->sgw_s1u_ip, &e_rab->transportLayerAddress);
-            ogs_expect(rv == OGS_OK);
+            if (rv != OGS_OK) {
+                ogs_error("ogs_asn_ip_to_BIT_STRING() failed for bearer[%d]", bearer->ebi);
+                ogs_asn_free(&asn_DEF_S1AP_S1AP_PDU, &pdu);
+                return NULL;
+            }
             ogs_asn_uint32_to_OCTET_STRING(
                     bearer->sgw_s1u_teid, &e_rab->gTP_TEID);
             ogs_debug("    SGW-S1U-TEID[%d]", bearer->sgw_s1u_teid);

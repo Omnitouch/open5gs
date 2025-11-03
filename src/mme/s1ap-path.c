@@ -694,6 +694,9 @@ int s1ap_send_handover_request(
             source_totarget_transparentContainer);
     if (!s1apbuf) {
         ogs_error("s1ap_build_handover_request() failed");
+        enb_ue_t *target_to_remove = target_ue;
+        enb_ue_source_deassociate_target(source_ue);
+        enb_ue_remove(target_to_remove);
         return OGS_ERROR;
     }
 

@@ -2423,14 +2423,31 @@ void s1ap_handle_handover_required(mme_enb_t *enb, ogs_s1ap_message_t *message)
 
     source_ue->handover_type = *HandoverType;
 
+    /* Save security context state for potential rollback */
+    uint8_t saved_nh[OGS_SHA256_DIGEST_SIZE];
+    int saved_nhcc = mme_ue->nhcc;
+    memcpy(saved_nh, mme_ue->nh, OGS_SHA256_DIGEST_SIZE);
+
     mme_ue->nhcc++;
     ogs_kdf_nh_enb(mme_ue->kasme, mme_ue->nh, mme_ue->nh);
 
     r = s1ap_send_handover_request(
             source_ue, target_enb, HandoverType, Cause,
             Source_ToTarget_TransparentContainer);
-    ogs_expect(r == OGS_OK);
-    ogs_assert(r != OGS_ERROR);
+    if (r != OGS_OK) {
+        ogs_error("s1ap_send_handover_request() failed");
+
+        /* Rollback security context state */
+        mme_ue->nhcc = saved_nhcc;
+        memcpy(mme_ue->nh, saved_nh, OGS_SHA256_DIGEST_SIZE);
+        source_ue->handover_type = 0;
+
+        r = s1ap_send_handover_preparation_failure(source_ue,
+                S1AP_Cause_PR_protocol, S1AP_CauseProtocol_abstract_syntax_error_reject);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
+        return;
+    }
 }
 
 void s1ap_handle_handover_request_ack(
