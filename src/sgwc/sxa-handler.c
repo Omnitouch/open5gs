@@ -183,7 +183,8 @@ void sgwc_sxa_handle_session_establishment_response(
     ogs_debug("Session Establishment Response");
 
     pfcp_xact = ogs_pfcp_xact_cycle(pfcp_xact);
-    s11_xact = pfcp_xact ? ogs_gtp_xact_cycle(pfcp_xact->assoc_xact) : NULL;
+    s11_xact = (pfcp_xact && pfcp_xact->assoc_xact) ?
+                ogs_gtp_xact_cycle(pfcp_xact->assoc_xact) : NULL;
     if (NULL == s11_xact) {
         ogs_error("Invalid transaction data");
         return;
@@ -664,64 +665,82 @@ void sgwc_sxa_handle_session_modification_response(
          *    }
          */
         if (flags & OGS_PFCP_MODIFY_REMOVE) {
-            s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
+            if (pfcp_xact->assoc_xact) {
+                s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
 
-            if (s5c_xact) {
-                ogs_gtp_send_error_message(
-                        s5c_xact, sess ? sess->pgw_s5c_teid : 0,
-                        OGS_GTP2_DELETE_BEARER_RESPONSE_TYPE, cause_value);
+                if (s5c_xact) {
+                    ogs_gtp_send_error_message(
+                            s5c_xact, sess ? sess->pgw_s5c_teid : 0,
+                            OGS_GTP2_DELETE_BEARER_RESPONSE_TYPE, cause_value);
+                }
             }
 
             if (bearer) {
                 sgwc_bearer_remove(bearer);
             }
         } else if (flags & OGS_PFCP_MODIFY_CREATE) {
-            s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
+            if (pfcp_xact->assoc_xact) {
+                s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
 
-            if (s5c_xact) {
-                ogs_gtp_send_error_message(
-                        s5c_xact, sess ? sess->pgw_s5c_teid : 0,
-                        OGS_GTP2_CREATE_BEARER_RESPONSE_TYPE, cause_value);
+                if (s5c_xact) {
+                    ogs_gtp_send_error_message(
+                            s5c_xact, sess ? sess->pgw_s5c_teid : 0,
+                            OGS_GTP2_CREATE_BEARER_RESPONSE_TYPE, cause_value);
+                } else {
+                    ogs_error("S5-C transaction no longer valid");
+                }
             } else {
-                ogs_error("S5-C transaction no longer valid");
+                ogs_error("S5-C transaction association is NULL");
             }
 
 
         } else if (flags & OGS_PFCP_MODIFY_ACTIVATE) {
             if (flags & OGS_PFCP_MODIFY_UL_ONLY) {
-                s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
+                if (pfcp_xact->assoc_xact) {
+                    s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
 
-                if (s11_xact) {
-                    ogs_gtp_send_error_message(
-                            s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
-                            OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
+                    if (s11_xact) {
+                        ogs_gtp_send_error_message(
+                                s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
+                                OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
+                    } else {
+                        ogs_error("S11 transaction no longer valid");
+                    }
                 } else {
-                    ogs_error("S11 transaction no longer valid");
+                    ogs_error("S11 transaction association is NULL");
                 }
 
             } else if (flags & OGS_PFCP_MODIFY_DL_ONLY) {
-                s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
+                if (pfcp_xact->assoc_xact) {
+                    s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
 
-                if (s11_xact) {
-                    ogs_gtp_send_error_message(
-                            s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
-                            OGS_GTP2_MODIFY_BEARER_RESPONSE_TYPE, cause_value);
+                    if (s11_xact) {
+                        ogs_gtp_send_error_message(
+                                s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
+                                OGS_GTP2_MODIFY_BEARER_RESPONSE_TYPE, cause_value);
+                    } else {
+                        ogs_error("S11 transaction no longer valid");
+                    }
                 } else {
-                    ogs_error("S11 transaction no longer valid");
+                    ogs_error("S11 transaction association is NULL");
                 }
             } else {
                 ogs_fatal("Invalid modify_flags[0x%llx]", (long long)flags);
                 ogs_assert_if_reached();
             }
         } else if (flags & OGS_PFCP_MODIFY_DEACTIVATE) {
-            s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
+            if (pfcp_xact->assoc_xact) {
+                s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
 
-            if (s11_xact) {
-                ogs_gtp_send_error_message(
-                        s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
-                        OGS_GTP2_RELEASE_ACCESS_BEARERS_RESPONSE_TYPE, cause_value);
+                if (s11_xact) {
+                    ogs_gtp_send_error_message(
+                            s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
+                            OGS_GTP2_RELEASE_ACCESS_BEARERS_RESPONSE_TYPE, cause_value);
+                } else {
+                    ogs_error("S11 transaction no longer valid");
+                }
             } else {
-                ogs_error("S11 transaction no longer valid");
+                ogs_error("S11 transaction association is NULL");
             }
         }
 
@@ -753,8 +772,13 @@ void sgwc_sxa_handle_session_modification_response(
      */
     if (flags & OGS_PFCP_MODIFY_REMOVE) {
         if (flags & OGS_PFCP_MODIFY_INDIRECT) {
-            s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
-            ogs_assert(s11_xact);
+            s11_xact = (pfcp_xact->assoc_xact) ?
+                        ogs_gtp_xact_cycle(pfcp_xact->assoc_xact) : NULL;
+            if (!s11_xact) {
+                ogs_error("S11 transaction no longer valid");
+                ogs_pfcp_xact_commit(pfcp_xact);
+                return;
+            }
 
             ogs_pfcp_xact_commit(pfcp_xact);
 
@@ -830,7 +854,8 @@ void sgwc_sxa_handle_session_modification_response(
             }
 
         } else {
-            s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
+            s5c_xact = (pfcp_xact->assoc_xact) ?
+                        ogs_gtp_xact_cycle(pfcp_xact->assoc_xact) : NULL;
 
             ogs_pfcp_xact_commit(pfcp_xact);
 
@@ -863,8 +888,13 @@ void sgwc_sxa_handle_session_modification_response(
             ogs_gtp2_create_bearer_request_t *gtp_req = NULL;
             ogs_gtp2_f_teid_t sgw_s1u_teid;
 
-            s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
-            ogs_assert(s5c_xact);
+            s5c_xact = (pfcp_xact->assoc_xact) ?
+                        ogs_gtp_xact_cycle(pfcp_xact->assoc_xact) : NULL;
+            if (!s5c_xact) {
+                ogs_error("S5-C transaction no longer valid");
+                ogs_pfcp_xact_commit(pfcp_xact);
+                return;
+            }
 
             ogs_pfcp_xact_commit(pfcp_xact);
 
@@ -913,8 +943,13 @@ void sgwc_sxa_handle_session_modification_response(
             ogs_gtp2_create_bearer_response_t *gtp_rsp = NULL;
             ogs_gtp2_f_teid_t sgw_s5u_teid, pgw_s5u_teid;
 
-            s5c_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
-            ogs_assert(s5c_xact);
+            s5c_xact = (pfcp_xact->assoc_xact) ?
+                        ogs_gtp_xact_cycle(pfcp_xact->assoc_xact) : NULL;
+            if (!s5c_xact) {
+                ogs_error("S5-C transaction no longer valid");
+                ogs_pfcp_xact_commit(pfcp_xact);
+                return;
+            }
 
             ogs_pfcp_xact_commit(pfcp_xact);
 
@@ -971,8 +1006,13 @@ void sgwc_sxa_handle_session_modification_response(
             ogs_expect(rv == OGS_OK);
 
         } else if (flags & OGS_PFCP_MODIFY_INDIRECT) {
-            s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
-            ogs_assert(s11_xact);
+            s11_xact = (pfcp_xact->assoc_xact) ?
+                        ogs_gtp_xact_cycle(pfcp_xact->assoc_xact) : NULL;
+            if (!s11_xact) {
+                ogs_error("S11 transaction no longer valid");
+                ogs_pfcp_xact_commit(pfcp_xact);
+                return;
+            }
 
             ogs_pfcp_xact_commit(pfcp_xact);
 
@@ -1109,8 +1149,13 @@ void sgwc_sxa_handle_session_modification_response(
     } else if (flags & OGS_PFCP_MODIFY_ACTIVATE) {
         OGS_LIST(bearer_to_modify_list);
 
-        s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
-        ogs_assert(s11_xact);
+        s11_xact = (pfcp_xact->assoc_xact) ?
+                    ogs_gtp_xact_cycle(pfcp_xact->assoc_xact) : NULL;
+        if (!s11_xact) {
+            ogs_error("S11 transaction no longer valid");
+            ogs_pfcp_xact_commit(pfcp_xact);
+            return;
+        }
 
         ogs_list_copy(&bearer_to_modify_list,
                 &pfcp_xact->bearer_to_modify_list);
@@ -1340,8 +1385,13 @@ void sgwc_sxa_handle_session_modification_response(
                 ogs_error("Bearer doesn't exist!");
             }
         } else {
-            s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
-            ogs_assert(s11_xact);
+            s11_xact = (pfcp_xact->assoc_xact) ?
+                        ogs_gtp_xact_cycle(pfcp_xact->assoc_xact) : NULL;
+            if (!s11_xact) {
+                ogs_error("S11 transaction no longer valid");
+                ogs_pfcp_xact_commit(pfcp_xact);
+                return;
+            }
 
             ogs_pfcp_xact_commit(pfcp_xact);
 
@@ -1432,7 +1482,8 @@ void sgwc_sxa_handle_session_deletion_response(
         cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
     }
 
-    gtp_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
+    gtp_xact = (pfcp_xact->assoc_xact) ?
+                ogs_gtp_xact_cycle(pfcp_xact->assoc_xact) : NULL;
 
     ogs_pfcp_xact_commit(pfcp_xact);
 
