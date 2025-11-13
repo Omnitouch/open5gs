@@ -1383,6 +1383,8 @@ void sgwc_sxa_handle_session_modification_response(
                 }
             } else {
                 ogs_error("Bearer doesn't exist!");
+                ogs_pfcp_xact_commit(pfcp_xact);
+                return;
             }
         } else {
             s11_xact = (pfcp_xact->assoc_xact) ?
