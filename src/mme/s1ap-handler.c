@@ -2019,6 +2019,15 @@ void s1ap_handle_path_switch_request(
     /* Change enb_ue to the NEW eNB */
     enb_ue_switch_to_enb(enb_ue, enb);
 
+    /*
+     * Allocate a new SCTP output stream for the NEW eNB.
+     * The old enb_ostream_id was allocated for the old eNB and may be
+     * invalid for the new eNB (e.g., if the new eNB has fewer streams).
+     */
+    ogs_assert((enb->max_num_of_ostreams-1) >= 1);
+    enb_ue->enb_ostream_id =
+        OGS_NEXT_ID(enb->ostream_id, 1, enb->max_num_of_ostreams-1);
+
     ogs_info("    NEW ENB_UE_S1AP_ID[%d] MME_UE_S1AP_ID[%d]",
             enb_ue->enb_ue_s1ap_id, enb_ue->mme_ue_s1ap_id);
 
