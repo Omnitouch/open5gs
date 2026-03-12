@@ -631,7 +631,7 @@ void smf_s5c_handle_modify_bearer_request(
         }
 
         if (indication && indication->handover_indication) {
-            ogs_assert(OGS_OK == smf_epc_pfcp_send_deactivation(sess,
+            ogs_expect(OGS_OK == smf_epc_pfcp_send_deactivation(sess,
                     OGS_GTP2_CAUSE_ACCESS_CHANGED_FROM_NON_3GPP_TO_3GPP));
         }
     }
