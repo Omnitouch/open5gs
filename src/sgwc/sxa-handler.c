@@ -730,7 +730,20 @@ void sgwc_sxa_handle_session_modification_response(
             }
         } else if (flags & OGS_PFCP_MODIFY_DEACTIVATE) {
             if (pfcp_xact->assoc_xact) {
-                s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
+                if ((flags & OGS_PFCP_MODIFY_DL_ONLY) &&
+                    (flags & OGS_PFCP_MODIFY_DEACTIVATE) &&
+                    (flags & OGS_PFCP_MODIFY_ERROR_INDICATION) &&
+                    (flags & OGS_PFCP_MODIFY_SESSION))
+                {
+                    // See sgwc_pfcp_send_session_modification_request for some stupid reason the
+                    // pfcp_xact->assoc_xact can sometimes be set to the address of a bearer
+
+                    ogs_warn("Case where assoc_xact is bearer address");
+                    s11_xact = NULL;
+                }
+                else {
+                    s11_xact = ogs_gtp_xact_cycle(pfcp_xact->assoc_xact);
+                }
 
                 if (s11_xact) {
                     ogs_gtp_send_error_message(
@@ -1369,6 +1382,8 @@ void sgwc_sxa_handle_session_modification_response(
     } else if (flags & OGS_PFCP_MODIFY_DEACTIVATE) {
         if (flags & OGS_PFCP_MODIFY_ERROR_INDICATION) {
             /* It's faked method for receiving `bearer` context */
+            // See sgwc_pfcp_send_session_modification_request for some stupid reason the
+            // pfcp_xact->assoc_xact can sometimes be set to the address of a bearer
             bearer = sgwc_bearer_cycle(pfcp_xact->assoc_xact);
 
             if (NULL != bearer) {
